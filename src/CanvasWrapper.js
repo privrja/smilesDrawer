@@ -267,12 +267,12 @@ class CanvasWrapper {
 
         let gradient = this.ctx.createLinearGradient(l.x, l.y, r.x, r.y);
         if (line.isDecayPoint) {
-            gradient.addColorStop(0.4, "#33c40b");
-            gradient.addColorStop(0.6, "#33c40b");
+            gradient.addColorStop(0.4, this.getColor("DECAY"));
+            gradient.addColorStop(0.6, this.getColor("DECAY"));
         } else {
             gradient.addColorStop(0.4, this.getColor(line.getLeftElement()) ||
                 this.getColor('C'));
-            gradient.addColorStop(0.6, line.isDecayPoint || this.getColor(line.getRightElement()) ||
+            gradient.addColorStop(0.6, this.getColor(line.getRightElement()) ||
                 this.getColor('C'));
         }
 

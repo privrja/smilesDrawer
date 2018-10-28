@@ -71,7 +71,8 @@ class Drawer {
           B: '#e67e22',
           SI: '#e67e22',
           H: '#fff',
-          BACKGROUND: '#141414'
+          BACKGROUND: '#141414',
+          DECAY: '#33c40b'
         },
         light: {
           C: '#222',
@@ -86,7 +87,8 @@ class Drawer {
           B: '#e67e22',
           SI: '#e67e22',
           H: '#222',
-          BACKGROUND: '#fff'
+          BACKGROUND: '#fff',
+          DECAY: '#33c40b'
         }
       }
     };
