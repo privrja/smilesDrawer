@@ -112,6 +112,55 @@ class Graph {
     if (node.hasNext) {
       this._init(node.next, node.branchCount + offset, vertex.id);
     }
+
+    this.findDecayPoints();
+  }
+
+  findDecayPoints() {
+    for (let i = 0; i < this.edges.length; i++) {
+      if (this.edges[i].bondType === '=') {
+        // console.log("k " + this.edges[i].bondType);
+        // console.log("z " + this.edges[i].sourceId);
+        // console.log("y " + this.edges[i].targetId);
+        // console.log("x " + this.vertices[this.edges[i].sourceId]);
+        // console.log("el " + this.vertices[this.edges[i].sourceId].value.element);
+          console.log(this.vertices);
+          console.log(this.edges);
+        let dec = this.isDecayPoint(this.edges[i].sourceId, this.edges[i].targetId);
+        console.log("dec " + dec);
+      }
+    }
+  }
+
+  isDecayPoint(sourceId, targetId) {
+      if (this.vertices[sourceId].value.element === 'O' && this.vertices[targetId].value.element === 'C') {
+        return this.getNeighbourEdgeDecayId(targetId, 'N');
+      } else if (this.vertices[targetId].value.element === 'O' && this.vertices[sourceId].value.element === 'C') {
+        // TODO
+        return false;
+      }
+      return false;
+  }
+
+  getNeighbourEdgeDecayId(vertexId, element) {
+      for (let i = 0; i < this.vertices[vertexId].edges.length; i++) {
+        let edgeId = this.checkNeighbourEdgeId(i, vertexId, element);
+        if (edgeId !== false) {
+          return edgeId;
+        }
+      }
+    return false;
+  }
+
+  checkNeighbourEdgeId(edgeId, vertexId, element) {
+    console.log("edgeId: " + edgeId + " " + vertexId + " " + element + " sourceId: " + this.edges[edgeId].sourceId + " targetId: ");
+    if (this.edges[edgeId].sourceId === vertexId && this.vertices[this.edges[edgeId].targetId].value.element === element) {
+        return edgeId;
+    } else if (this.edges[edgeId].targetId === vertexId && this.vertices[this.edges[edgeId].sourceId].value.element === element) {
+       return edgeId;
+    } else {
+      return false;
+    }
   }
 
   /**

@@ -29,6 +29,7 @@ class Edge {
         this.isPartOfAromaticRing = false;
         this.center = false;
         this.wedge = '';
+        this.isDecay = false;
     }
 
     /**
@@ -38,6 +39,14 @@ class Edge {
     setBondType(bondType) {
       this.bondType = bondType;
       this.weight = Edge.bonds[bondType];
+    }
+
+    /**
+     * Set decay
+     * @param {Boolean} decay point
+     */
+    setDecay(decay) {
+        this.isDecay = decay;
     }
 
     /**
