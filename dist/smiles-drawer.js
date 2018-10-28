@@ -1495,8 +1495,13 @@ var CanvasWrapper = function () {
             ctx.lineWidth = this.opts.bondThickness;
 
             var gradient = this.ctx.createLinearGradient(l.x, l.y, r.x, r.y);
-            gradient.addColorStop(0.4, this.getColor(line.getLeftElement()) || this.getColor('C'));
-            gradient.addColorStop(0.6, this.getColor(line.getRightElement()) || this.getColor('C'));
+            if (line.isDecayPoint) {
+                gradient.addColorStop(0.4, this.getColor("DECAY"));
+                gradient.addColorStop(0.6, this.getColor("DECAY"));
+            } else {
+                gradient.addColorStop(0.4, this.getColor(line.getLeftElement()) || this.getColor('C'));
+                gradient.addColorStop(0.6, this.getColor(line.getRightElement()) || this.getColor('C'));
+            }
 
             if (dashed) {
                 ctx.setLineDash([1, 1.5]);
@@ -2228,7 +2233,8 @@ var Drawer = function () {
           B: '#e67e22',
           SI: '#e67e22',
           H: '#fff',
-          BACKGROUND: '#141414'
+          BACKGROUND: '#141414',
+          DECAY: '#33c40b'
         },
         light: {
           C: '#222',
@@ -2243,7 +2249,8 @@ var Drawer = function () {
           B: '#e67e22',
           SI: '#e67e22',
           H: '#222',
-          BACKGROUND: '#fff'
+          BACKGROUND: '#fff',
+          DECAY: '#33c40b'
         }
       }
     };
@@ -5482,6 +5489,7 @@ var Edge = function () {
         this.isPartOfAromaticRing = false;
         this.center = false;
         this.wedge = '';
+        this.isDecay = false;
     }
 
     /**
@@ -5495,6 +5503,17 @@ var Edge = function () {
         value: function setBondType(bondType) {
             this.bondType = bondType;
             this.weight = Edge.bonds[bondType];
+        }
+
+        /**
+         * Set decay
+         * @param {Boolean} decay point
+         */
+
+    }, {
+        key: 'setDecay',
+        value: function setDecay(decay) {
+            this.isDecay = decay;
         }
 
         /**
@@ -5657,6 +5676,56 @@ var Graph = function () {
 
       if (node.hasNext) {
         this._init(node.next, node.branchCount + offset, vertex.id);
+      }
+
+      this.findDecayPoints();
+    }
+  }, {
+    key: 'findDecayPoints',
+    value: function findDecayPoints() {
+      for (var i = 0; i < this.edges.length; i++) {
+        if (this.edges[i].bondType === '=') {
+          // console.log("k " + this.edges[i].bondType);
+          // console.log("z " + this.edges[i].sourceId);
+          // console.log("y " + this.edges[i].targetId);
+          // console.log("x " + this.vertices[this.edges[i].sourceId]);
+          // console.log("el " + this.vertices[this.edges[i].sourceId].value.element);
+          console.log(this.vertices);
+          console.log(this.edges);
+          var dec = this.isDecayPoint(this.edges[i].sourceId, this.edges[i].targetId);
+          console.log("dec " + dec);
+        }
+      }
+    }
+  }, {
+    key: 'isDecayPoint',
+    value: function isDecayPoint(sourceId, targetId) {
+      if (this.vertices[sourceId].value.element === 'O' && this.vertices[targetId].value.element === 'C') {
+        return this.getNeighbourEdgeDecayId(targetId, 'N');
+      } else if (this.vertices[targetId].value.element === 'O' && this.vertices[sourceId].value.element === 'C') {
+        return this.getNeighbourEdgeDecayId(sourceId, 'N');
+      }
+      return false;
+    }
+  }, {
+    key: 'getNeighbourEdgeDecayId',
+    value: function getNeighbourEdgeDecayId(vertexId, element) {
+      for (var i = 0; i < this.vertices[vertexId].edges.length; i++) {
+        var edgeId = this.checkNeighbourEdgeId(i, vertexId, element);
+        if (edgeId !== false) {
+          return edgeId;
+        }
+      }
+      return false;
+    }
+  }, {
+    key: 'checkNeighbourEdgeId',
+    value: function checkNeighbourEdgeId(edgeId, vertexId, element) {
+      console.log("edgeId: " + edgeId + " " + vertexId + " " + element + " sourceId: " + this.edges[edgeId].sourceId + " targetId: ");
+      if (this.edges[edgeId].sourceId === vertexId && this.vertices[this.edges[edgeId].targetId].value.element === element || this.edges[edgeId].targetId === vertexId && this.vertices[this.edges[edgeId].sourceId].value.element === element) {
+        return edgeId;
+      } else {
+        return false;
       }
     }
 
@@ -6611,6 +6680,7 @@ var Line = function () {
      * @param {string} [elementTo=null] A one-letter representation of the element associated with the vector marking the end of the line.
      * @param {Boolean} [chiralFrom=false] Whether or not the from atom is a chiral center.
      * @param {Boolean} [chiralTo=false] Whether or not the to atom is a chiral center.
+     * @param {Boolean} [isDecayPoint=false] Whether or not the edge is a decay point
      */
     function Line() {
         var from = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : new Vector2(0, 0);
@@ -6619,6 +6689,7 @@ var Line = function () {
         var elementTo = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : null;
         var chiralFrom = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : false;
         var chiralTo = arguments.length > 5 && arguments[5] !== undefined ? arguments[5] : false;
+        var isDecayPoint = arguments.length > 6 && arguments[6] !== undefined ? arguments[6] : false;
 
         _classCallCheck(this, Line);
 
@@ -6628,6 +6699,7 @@ var Line = function () {
         this.elementTo = elementTo;
         this.chiralFrom = chiralFrom;
         this.chiralTo = chiralTo;
+        this.isDecayPoint = isDecayPoint;
     }
 
     /**

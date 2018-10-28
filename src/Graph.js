@@ -136,8 +136,7 @@ class Graph {
       if (this.vertices[sourceId].value.element === 'O' && this.vertices[targetId].value.element === 'C') {
         return this.getNeighbourEdgeDecayId(targetId, 'N');
       } else if (this.vertices[targetId].value.element === 'O' && this.vertices[sourceId].value.element === 'C') {
-        // TODO
-        return false;
+          return this.getNeighbourEdgeDecayId(sourceId, 'N');
       }
       return false;
   }
@@ -154,9 +153,8 @@ class Graph {
 
   checkNeighbourEdgeId(edgeId, vertexId, element) {
     console.log("edgeId: " + edgeId + " " + vertexId + " " + element + " sourceId: " + this.edges[edgeId].sourceId + " targetId: ");
-    if (this.edges[edgeId].sourceId === vertexId && this.vertices[this.edges[edgeId].targetId].value.element === element) {
-        return edgeId;
-    } else if (this.edges[edgeId].targetId === vertexId && this.vertices[this.edges[edgeId].sourceId].value.element === element) {
+    if ((this.edges[edgeId].sourceId === vertexId && this.vertices[this.edges[edgeId].targetId].value.element === element) ||
+      (this.edges[edgeId].targetId === vertexId && this.vertices[this.edges[edgeId].sourceId].value.element === element)) {
        return edgeId;
     } else {
       return false;
