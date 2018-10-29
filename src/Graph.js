@@ -124,10 +124,13 @@ class Graph {
         // console.log("y " + this.edges[i].targetId);
         // console.log("x " + this.vertices[this.edges[i].sourceId]);
         // console.log("el " + this.vertices[this.edges[i].sourceId].value.element);
-          console.log(this.vertices);
-          console.log(this.edges);
+        //   console.log(this.vertices);
+        //   console.log(this.edges);
         let dec = this.isDecayPoint(this.edges[i].sourceId, this.edges[i].targetId);
         console.log("dec " + dec);
+        if (dec !== false) {
+            this.edges[dec].setDecay(true);
+        }
       }
     }
   }
@@ -152,7 +155,7 @@ class Graph {
   }
 
   checkNeighbourEdgeId(edgeId, vertexId, element) {
-    console.log("edgeId: " + edgeId + " " + vertexId + " " + element + " sourceId: " + this.edges[edgeId].sourceId + " targetId: ");
+    // console.log("edgeId: " + edgeId + " " + vertexId + " " + element + " sourceId: " + this.edges[edgeId].sourceId + " targetId: ");
     if ((this.edges[edgeId].sourceId === vertexId && this.vertices[this.edges[edgeId].targetId].value.element === element) ||
       (this.edges[edgeId].targetId === vertexId && this.vertices[this.edges[edgeId].sourceId].value.element === element)) {
        return edgeId;

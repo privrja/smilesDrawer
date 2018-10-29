@@ -1406,9 +1406,10 @@ class Drawer {
         let line = null;
 
         if (center.sameSideAs(vertexA.position, vertexB.position, Vector2.add(a, normals[0]))) {
-          line = new Line(Vector2.add(a, normals[0]), Vector2.add(b, normals[0]), elementA, elementB);
+          elementA.
+          line = new Line(Vector2.add(a, normals[0]), Vector2.add(b, normals[0]), elementA, elementB, false, false, edge.isDecay);
         } else {
-          line = new Line(Vector2.add(a, normals[1]), Vector2.add(b, normals[1]), elementA, elementB);
+          line = new Line(Vector2.add(a, normals[1]), Vector2.add(b, normals[1]), elementA, elementB, false, false, edge.isDecay);
         }
 
         line.shorten(this.opts.bondLength - this.opts.shortBondLength * this.opts.bondLength);
@@ -1421,13 +1422,13 @@ class Drawer {
         }
 
         // The normal edge
-        this.canvasWrapper.drawLine(new Line(a, b, elementA, elementB));
+        this.canvasWrapper.drawLine(new Line(a, b, elementA, elementB, false, false, edge.isDecay));
       } else if (edge.center || vertexA.isTerminal() && vertexB.isTerminal()) {
         normals[0].multiplyScalar(that.opts.halfBondSpacing);
         normals[1].multiplyScalar(that.opts.halfBondSpacing);
 
-        let lineA = new Line(Vector2.add(a, normals[0]), Vector2.add(b, normals[0]), elementA, elementB);
-        let lineB = new Line(Vector2.add(a, normals[1]), Vector2.add(b, normals[1]), elementA, elementB);
+        let lineA = new Line(Vector2.add(a, normals[0]), Vector2.add(b, normals[0]), elementA, elementB, false, false, edge.isDecay);
+        let lineB = new Line(Vector2.add(a, normals[1]), Vector2.add(b, normals[1]), elementA, elementB, false, false, edge.isDecay);
 
         this.canvasWrapper.drawLine(lineA);
         this.canvasWrapper.drawLine(lineB);
@@ -1437,8 +1438,8 @@ class Drawer {
         normals[0].multiplyScalar(that.opts.halfBondSpacing);
         normals[1].multiplyScalar(that.opts.halfBondSpacing);
 
-        let lineA = new Line(Vector2.add(a, normals[0]), Vector2.add(b, normals[0]), elementA, elementB);
-        let lineB = new Line(Vector2.add(a, normals[1]), Vector2.add(b, normals[1]), elementA, elementB);
+        let lineA = new Line(Vector2.add(a, normals[0]), Vector2.add(b, normals[0]), elementA, elementB, false, false, edge.isDecay);
+        let lineB = new Line(Vector2.add(a, normals[1]), Vector2.add(b, normals[1]), elementA, elementB, false, false, edge.isDecay);
 
         this.canvasWrapper.drawLine(lineA);
         this.canvasWrapper.drawLine(lineB);
@@ -1446,38 +1447,38 @@ class Drawer {
         normals[0].multiplyScalar(that.opts.bondSpacing);
         normals[1].multiplyScalar(that.opts.bondSpacing);
 
-        let line = new Line(Vector2.add(a, normals[0]), Vector2.add(b, normals[0]), elementA, elementB);
+        let line = new Line(Vector2.add(a, normals[0]), Vector2.add(b, normals[0]), elementA, elementB, false, false, edge.isDecay);
 
         line.shorten(this.opts.bondLength - this.opts.shortBondLength * this.opts.bondLength);
         this.canvasWrapper.drawLine(line);
-        this.canvasWrapper.drawLine(new Line(a, b, elementA, elementB));
+        this.canvasWrapper.drawLine(new Line(a, b, elementA, elementB, false, false, edge.isDecay));
       } else if (s.sideCount[0] < s.sideCount[1]) {
         normals[0].multiplyScalar(that.opts.bondSpacing);
         normals[1].multiplyScalar(that.opts.bondSpacing);
 
-        let line = new Line(Vector2.add(a, normals[1]), Vector2.add(b, normals[1]), elementA, elementB);
+        let line = new Line(Vector2.add(a, normals[1]), Vector2.add(b, normals[1]), elementA, elementB, false, false, edge.isDecay);
 
         line.shorten(this.opts.bondLength - this.opts.shortBondLength * this.opts.bondLength);
         this.canvasWrapper.drawLine(line);
-        this.canvasWrapper.drawLine(new Line(a, b, elementA, elementB));
+        this.canvasWrapper.drawLine(new Line(a, b, elementA, elementB, false, false, edge.isDecay));
       } else if (s.totalSideCount[0] > s.totalSideCount[1]) {
         normals[0].multiplyScalar(that.opts.bondSpacing);
         normals[1].multiplyScalar(that.opts.bondSpacing);
 
-        let line = new Line(Vector2.add(a, normals[0]), Vector2.add(b, normals[0]), elementA, elementB);
+        let line = new Line(Vector2.add(a, normals[0]), Vector2.add(b, normals[0]), elementA, elementB, false, false, edge.isDecay);
 
         line.shorten(this.opts.bondLength - this.opts.shortBondLength * this.opts.bondLength);
         this.canvasWrapper.drawLine(line);
-        this.canvasWrapper.drawLine(new Line(a, b, elementA, elementB));
+        this.canvasWrapper.drawLine(new Line(a, b, elementA, elementB, false, false, edge.isDecay));
       } else if (s.totalSideCount[0] <= s.totalSideCount[1]) {
         normals[0].multiplyScalar(that.opts.bondSpacing);
         normals[1].multiplyScalar(that.opts.bondSpacing);
 
-        let line = new Line(Vector2.add(a, normals[1]), Vector2.add(b, normals[1]), elementA, elementB);
+        let line = new Line(Vector2.add(a, normals[1]), Vector2.add(b, normals[1]), elementA, elementB, false, false, edge.isDecay);
 
         line.shorten(this.opts.bondLength - this.opts.shortBondLength * this.opts.bondLength);
         this.canvasWrapper.drawLine(line);
-        this.canvasWrapper.drawLine(new Line(a, b, elementA, elementB));
+        this.canvasWrapper.drawLine(new Line(a, b, elementA, elementB, false, false, edge.isDecay));
       } else {
 
       }
@@ -1485,13 +1486,13 @@ class Drawer {
       normals[0].multiplyScalar(that.opts.bondSpacing / 1.5);
       normals[1].multiplyScalar(that.opts.bondSpacing / 1.5);
 
-      let lineA = new Line(Vector2.add(a, normals[0]), Vector2.add(b, normals[0]), elementA, elementB);
-      let lineB = new Line(Vector2.add(a, normals[1]), Vector2.add(b, normals[1]), elementA, elementB);
+      let lineA = new Line(Vector2.add(a, normals[0]), Vector2.add(b, normals[0]), elementA, elementB, false, false, edge.isDecay);
+      let lineB = new Line(Vector2.add(a, normals[1]), Vector2.add(b, normals[1]), elementA, elementB, false, false, edge.isDecay);
 
       this.canvasWrapper.drawLine(lineA);
       this.canvasWrapper.drawLine(lineB);
 
-      this.canvasWrapper.drawLine(new Line(a, b, elementA, elementB));
+      this.canvasWrapper.drawLine(new Line(a, b, elementA, elementB, false, false, edge.isDecay));
     } else if (edge.bondType === '.') {
       // TODO: Something... maybe... version 2?
     } else {
@@ -1499,11 +1500,11 @@ class Drawer {
       let isChiralCenterB = vertexB.value.isStereoCenter;
 
       if (edge.wedge === 'up') {
-        this.canvasWrapper.drawWedge(new Line(a, b, elementA, elementB, isChiralCenterA, isChiralCenterB));
+        this.canvasWrapper.drawWedge(new Line(a, b, elementA, elementB, isChiralCenterA, isChiralCenterB, edge.isDecay));
       } else if (edge.wedge === 'down') {
-        this.canvasWrapper.drawDashedWedge(new Line(a, b, elementA, elementB, isChiralCenterA, isChiralCenterB));
+        this.canvasWrapper.drawDashedWedge(new Line(a, b, elementA, elementB, isChiralCenterA, isChiralCenterB, edge.isDecay));
       } else {
-        this.canvasWrapper.drawLine(new Line(a, b, elementA, elementB, isChiralCenterA, isChiralCenterB));
+        this.canvasWrapper.drawLine(new Line(a, b, elementA, elementB, isChiralCenterA, isChiralCenterB, edge.isDecay));
       }
     }
 

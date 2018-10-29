@@ -3762,9 +3762,9 @@ var Drawer = function () {
           var line = null;
 
           if (center.sameSideAs(vertexA.position, vertexB.position, Vector2.add(a, normals[0]))) {
-            line = new Line(Vector2.add(a, normals[0]), Vector2.add(b, normals[0]), elementA, elementB);
+            elementA.line = new Line(Vector2.add(a, normals[0]), Vector2.add(b, normals[0]), elementA, elementB, false, false, edge.isDecay);
           } else {
-            line = new Line(Vector2.add(a, normals[1]), Vector2.add(b, normals[1]), elementA, elementB);
+            line = new Line(Vector2.add(a, normals[1]), Vector2.add(b, normals[1]), elementA, elementB, false, false, edge.isDecay);
           }
 
           line.shorten(this.opts.bondLength - this.opts.shortBondLength * this.opts.bondLength);
@@ -3777,13 +3777,13 @@ var Drawer = function () {
           }
 
           // The normal edge
-          this.canvasWrapper.drawLine(new Line(a, b, elementA, elementB));
+          this.canvasWrapper.drawLine(new Line(a, b, elementA, elementB, false, false, edge.isDecay));
         } else if (edge.center || vertexA.isTerminal() && vertexB.isTerminal()) {
           normals[0].multiplyScalar(that.opts.halfBondSpacing);
           normals[1].multiplyScalar(that.opts.halfBondSpacing);
 
-          var lineA = new Line(Vector2.add(a, normals[0]), Vector2.add(b, normals[0]), elementA, elementB);
-          var lineB = new Line(Vector2.add(a, normals[1]), Vector2.add(b, normals[1]), elementA, elementB);
+          var lineA = new Line(Vector2.add(a, normals[0]), Vector2.add(b, normals[0]), elementA, elementB, false, false, edge.isDecay);
+          var lineB = new Line(Vector2.add(a, normals[1]), Vector2.add(b, normals[1]), elementA, elementB, false, false, edge.isDecay);
 
           this.canvasWrapper.drawLine(lineA);
           this.canvasWrapper.drawLine(lineB);
@@ -3793,8 +3793,8 @@ var Drawer = function () {
           normals[0].multiplyScalar(that.opts.halfBondSpacing);
           normals[1].multiplyScalar(that.opts.halfBondSpacing);
 
-          var _lineA = new Line(Vector2.add(a, normals[0]), Vector2.add(b, normals[0]), elementA, elementB);
-          var _lineB = new Line(Vector2.add(a, normals[1]), Vector2.add(b, normals[1]), elementA, elementB);
+          var _lineA = new Line(Vector2.add(a, normals[0]), Vector2.add(b, normals[0]), elementA, elementB, false, false, edge.isDecay);
+          var _lineB = new Line(Vector2.add(a, normals[1]), Vector2.add(b, normals[1]), elementA, elementB, false, false, edge.isDecay);
 
           this.canvasWrapper.drawLine(_lineA);
           this.canvasWrapper.drawLine(_lineB);
@@ -3802,50 +3802,50 @@ var Drawer = function () {
           normals[0].multiplyScalar(that.opts.bondSpacing);
           normals[1].multiplyScalar(that.opts.bondSpacing);
 
-          var _line = new Line(Vector2.add(a, normals[0]), Vector2.add(b, normals[0]), elementA, elementB);
+          var _line = new Line(Vector2.add(a, normals[0]), Vector2.add(b, normals[0]), elementA, elementB, false, false, edge.isDecay);
 
           _line.shorten(this.opts.bondLength - this.opts.shortBondLength * this.opts.bondLength);
           this.canvasWrapper.drawLine(_line);
-          this.canvasWrapper.drawLine(new Line(a, b, elementA, elementB));
+          this.canvasWrapper.drawLine(new Line(a, b, elementA, elementB, false, false, edge.isDecay));
         } else if (s.sideCount[0] < s.sideCount[1]) {
           normals[0].multiplyScalar(that.opts.bondSpacing);
           normals[1].multiplyScalar(that.opts.bondSpacing);
 
-          var _line2 = new Line(Vector2.add(a, normals[1]), Vector2.add(b, normals[1]), elementA, elementB);
+          var _line2 = new Line(Vector2.add(a, normals[1]), Vector2.add(b, normals[1]), elementA, elementB, false, false, edge.isDecay);
 
           _line2.shorten(this.opts.bondLength - this.opts.shortBondLength * this.opts.bondLength);
           this.canvasWrapper.drawLine(_line2);
-          this.canvasWrapper.drawLine(new Line(a, b, elementA, elementB));
+          this.canvasWrapper.drawLine(new Line(a, b, elementA, elementB, false, false, edge.isDecay));
         } else if (s.totalSideCount[0] > s.totalSideCount[1]) {
           normals[0].multiplyScalar(that.opts.bondSpacing);
           normals[1].multiplyScalar(that.opts.bondSpacing);
 
-          var _line3 = new Line(Vector2.add(a, normals[0]), Vector2.add(b, normals[0]), elementA, elementB);
+          var _line3 = new Line(Vector2.add(a, normals[0]), Vector2.add(b, normals[0]), elementA, elementB, false, false, edge.isDecay);
 
           _line3.shorten(this.opts.bondLength - this.opts.shortBondLength * this.opts.bondLength);
           this.canvasWrapper.drawLine(_line3);
-          this.canvasWrapper.drawLine(new Line(a, b, elementA, elementB));
+          this.canvasWrapper.drawLine(new Line(a, b, elementA, elementB, false, false, edge.isDecay));
         } else if (s.totalSideCount[0] <= s.totalSideCount[1]) {
           normals[0].multiplyScalar(that.opts.bondSpacing);
           normals[1].multiplyScalar(that.opts.bondSpacing);
 
-          var _line4 = new Line(Vector2.add(a, normals[1]), Vector2.add(b, normals[1]), elementA, elementB);
+          var _line4 = new Line(Vector2.add(a, normals[1]), Vector2.add(b, normals[1]), elementA, elementB, false, false, edge.isDecay);
 
           _line4.shorten(this.opts.bondLength - this.opts.shortBondLength * this.opts.bondLength);
           this.canvasWrapper.drawLine(_line4);
-          this.canvasWrapper.drawLine(new Line(a, b, elementA, elementB));
+          this.canvasWrapper.drawLine(new Line(a, b, elementA, elementB, false, false, edge.isDecay));
         } else {}
       } else if (edge.bondType === '#') {
         normals[0].multiplyScalar(that.opts.bondSpacing / 1.5);
         normals[1].multiplyScalar(that.opts.bondSpacing / 1.5);
 
-        var _lineA2 = new Line(Vector2.add(a, normals[0]), Vector2.add(b, normals[0]), elementA, elementB);
-        var _lineB2 = new Line(Vector2.add(a, normals[1]), Vector2.add(b, normals[1]), elementA, elementB);
+        var _lineA2 = new Line(Vector2.add(a, normals[0]), Vector2.add(b, normals[0]), elementA, elementB, false, false, edge.isDecay);
+        var _lineB2 = new Line(Vector2.add(a, normals[1]), Vector2.add(b, normals[1]), elementA, elementB, false, false, edge.isDecay);
 
         this.canvasWrapper.drawLine(_lineA2);
         this.canvasWrapper.drawLine(_lineB2);
 
-        this.canvasWrapper.drawLine(new Line(a, b, elementA, elementB));
+        this.canvasWrapper.drawLine(new Line(a, b, elementA, elementB, false, false, edge.isDecay));
       } else if (edge.bondType === '.') {
         // TODO: Something... maybe... version 2?
       } else {
@@ -3853,11 +3853,11 @@ var Drawer = function () {
         var isChiralCenterB = vertexB.value.isStereoCenter;
 
         if (edge.wedge === 'up') {
-          this.canvasWrapper.drawWedge(new Line(a, b, elementA, elementB, isChiralCenterA, isChiralCenterB));
+          this.canvasWrapper.drawWedge(new Line(a, b, elementA, elementB, isChiralCenterA, isChiralCenterB, edge.isDecay));
         } else if (edge.wedge === 'down') {
-          this.canvasWrapper.drawDashedWedge(new Line(a, b, elementA, elementB, isChiralCenterA, isChiralCenterB));
+          this.canvasWrapper.drawDashedWedge(new Line(a, b, elementA, elementB, isChiralCenterA, isChiralCenterB, edge.isDecay));
         } else {
-          this.canvasWrapper.drawLine(new Line(a, b, elementA, elementB, isChiralCenterA, isChiralCenterB));
+          this.canvasWrapper.drawLine(new Line(a, b, elementA, elementB, isChiralCenterA, isChiralCenterB, edge.isDecay));
         }
       }
 
@@ -5690,10 +5690,13 @@ var Graph = function () {
           // console.log("y " + this.edges[i].targetId);
           // console.log("x " + this.vertices[this.edges[i].sourceId]);
           // console.log("el " + this.vertices[this.edges[i].sourceId].value.element);
-          console.log(this.vertices);
-          console.log(this.edges);
+          //   console.log(this.vertices);
+          //   console.log(this.edges);
           var dec = this.isDecayPoint(this.edges[i].sourceId, this.edges[i].targetId);
           console.log("dec " + dec);
+          if (dec !== false) {
+            this.edges[dec].setDecay(true);
+          }
         }
       }
     }
@@ -5721,7 +5724,7 @@ var Graph = function () {
   }, {
     key: 'checkNeighbourEdgeId',
     value: function checkNeighbourEdgeId(edgeId, vertexId, element) {
-      console.log("edgeId: " + edgeId + " " + vertexId + " " + element + " sourceId: " + this.edges[edgeId].sourceId + " targetId: ");
+      // console.log("edgeId: " + edgeId + " " + vertexId + " " + element + " sourceId: " + this.edges[edgeId].sourceId + " targetId: ");
       if (this.edges[edgeId].sourceId === vertexId && this.vertices[this.edges[edgeId].targetId].value.element === element || this.edges[edgeId].targetId === vertexId && this.vertices[this.edges[edgeId].sourceId].value.element === element) {
         return edgeId;
       } else {
