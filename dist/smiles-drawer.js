@@ -2234,7 +2234,7 @@ var Drawer = function () {
           SI: '#e67e22',
           H: '#fff',
           BACKGROUND: '#141414',
-          DECAY: '#33c40b'
+          DECAY: '#027c21'
         },
         light: {
           C: '#222',
@@ -2250,7 +2250,7 @@ var Drawer = function () {
           SI: '#e67e22',
           H: '#222',
           BACKGROUND: '#fff',
-          DECAY: '#33c40b'
+          DECAY: '#027c21'
         }
       }
     };
@@ -5678,6 +5678,8 @@ var Graph = function () {
         this._init(node.next, node.branchCount + offset, vertex.id);
       }
 
+      // console.log(this.vertices);
+      // console.log(this.edges);
       this.findDecayPoints();
     }
   }, {
@@ -5690,8 +5692,7 @@ var Graph = function () {
           // console.log("y " + this.edges[i].targetId);
           // console.log("x " + this.vertices[this.edges[i].sourceId]);
           // console.log("el " + this.vertices[this.edges[i].sourceId].value.element);
-          //   console.log(this.vertices);
-          //   console.log(this.edges);
+          //   console.log("= edgeId" + i);
           var dec = this.isDecayPoint(this.edges[i].sourceId, this.edges[i].targetId);
           console.log("dec " + dec);
           if (dec !== false) {
@@ -5713,8 +5714,9 @@ var Graph = function () {
   }, {
     key: 'getNeighbourEdgeDecayId',
     value: function getNeighbourEdgeDecayId(vertexId, element) {
+      // console.log('info, ' + vertexId);
       for (var i = 0; i < this.vertices[vertexId].edges.length; i++) {
-        var edgeId = this.checkNeighbourEdgeId(i, vertexId, element);
+        var edgeId = this.checkNeighbourEdgeId(this.vertices[vertexId].edges[i], vertexId, element);
         if (edgeId !== false) {
           return edgeId;
         }
@@ -5724,7 +5726,7 @@ var Graph = function () {
   }, {
     key: 'checkNeighbourEdgeId',
     value: function checkNeighbourEdgeId(edgeId, vertexId, element) {
-      // console.log("edgeId: " + edgeId + " " + vertexId + " " + element + " sourceId: " + this.edges[edgeId].sourceId + " targetId: ");
+      // console.log("edgeId: " + edgeId + " " + vertexId + " " + element + " sourceId: " + this.edges[edgeId].sourceId + " targetId: " + this.edges[edgeId].targetId);
       if (this.edges[edgeId].sourceId === vertexId && this.vertices[this.edges[edgeId].targetId].value.element === element || this.edges[edgeId].targetId === vertexId && this.vertices[this.edges[edgeId].sourceId].value.element === element) {
         return edgeId;
       } else {
