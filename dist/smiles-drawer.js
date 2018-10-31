@@ -132,7 +132,7 @@ if (!Array.prototype.fill) {
 
 module.exports = SmilesDrawer;
 
-},{"./src/Drawer":5,"./src/Parser":10}],2:[function(require,module,exports){
+},{"./src/Drawer":6,"./src/Parser":11}],2:[function(require,module,exports){
 'use strict';
 
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
@@ -1190,7 +1190,7 @@ var Atom = function () {
 
 module.exports = Atom;
 
-},{"./ArrayHelper":2,"./Ring":11,"./Vertex":15}],4:[function(require,module,exports){
+},{"./ArrayHelper":2,"./Ring":12,"./Vertex":16}],4:[function(require,module,exports){
 'use strict';
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
@@ -2148,7 +2148,31 @@ var CanvasWrapper = function () {
 
 module.exports = CanvasWrapper;
 
-},{"./Line":8,"./MathHelper":9,"./Ring":11,"./Vector2":14,"./Vertex":15}],5:[function(require,module,exports){
+},{"./Line":9,"./MathHelper":10,"./Ring":12,"./Vector2":15,"./Vertex":16}],5:[function(require,module,exports){
+"use strict";
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+//@ts-check
+
+var DecayPoint = function DecayPoint() {
+  _classCallCheck(this, DecayPoint);
+};
+
+/** @var use all variants of decay points */
+
+
+DecayPoint.ALL = 0;
+
+/** @var -CO-O- type of decay */
+DecayPoint.COO = 1;
+
+/** @var -CO-NH- type of decay */
+DecayPoint.CONH = 2;
+
+module.exports = DecayPoint;
+
+},{}],6:[function(require,module,exports){
 'use strict';
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
@@ -5447,7 +5471,7 @@ var Drawer = function () {
 
 module.exports = Drawer;
 
-},{"./ArrayHelper":2,"./Atom":3,"./CanvasWrapper":4,"./Edge":6,"./Graph":7,"./Line":8,"./MathHelper":9,"./Ring":11,"./RingConnection":12,"./SSSR":13,"./Vector2":14,"./Vertex":15}],6:[function(require,module,exports){
+},{"./ArrayHelper":2,"./Atom":3,"./CanvasWrapper":4,"./Edge":7,"./Graph":8,"./Line":9,"./MathHelper":10,"./Ring":12,"./RingConnection":13,"./SSSR":14,"./Vector2":15,"./Vertex":16}],7:[function(require,module,exports){
 'use strict';
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
@@ -5541,7 +5565,7 @@ var Edge = function () {
 
 module.exports = Edge;
 
-},{}],7:[function(require,module,exports){
+},{}],8:[function(require,module,exports){
 'use strict';
 
 var _slicedToArray = function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"]) _i["return"](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError("Invalid attempt to destructure non-iterable instance"); } }; }();
@@ -5551,6 +5575,7 @@ var _createClass = function () { function defineProperties(target, props) { for 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 //@ts-check
+var DecayPoint = require('./DecayPoint');
 var MathHelper = require('./MathHelper');
 var Vector2 = require('./Vector2');
 var Vertex = require('./Vertex');
@@ -5558,9 +5583,9 @@ var Edge = require('./Edge');
 var Ring = require('./Ring');
 var Atom = require('./Atom');
 
-/** 
- * A class representing the molecular graph. 
- * 
+/**
+ * A class representing the molecular graph.
+ *
  * @property {Vertex[]} vertices The vertices of the graph.
  * @property {Edge[]} edges The edges of this graph.
  * @property {Object} vertexIdsToEdgeId A map mapping vertex ids to the edge between the two vertices. The key is defined as vertexAId + '_' + vertexBId.
@@ -5570,7 +5595,7 @@ var Atom = require('./Atom');
 var Graph = function () {
   /**
    * The constructor of the class Graph.
-   * 
+   *
    * @param {Object} parseTree A SMILES parse tree.
    * @param {Boolean} [isomeric=false] A boolean specifying whether or not the SMILES is isomeric.
    */
@@ -5678,55 +5703,125 @@ var Graph = function () {
         this._init(node.next, node.branchCount + offset, vertex.id);
       }
 
-      // console.log(this.vertices);
-      // console.log(this.edges);
+      console.log(this.vertices);
+      console.log(this.edges);
       this.findDecayPoints();
     }
+
+    /**
+     * Find decay points of molecule
+     * Types of decay points, declared in DecayPoint
+     */
+
   }, {
     key: 'findDecayPoints',
     value: function findDecayPoints() {
       for (var i = 0; i < this.edges.length; i++) {
         if (this.edges[i].bondType === '=') {
-          // console.log("k " + this.edges[i].bondType);
-          // console.log("z " + this.edges[i].sourceId);
-          // console.log("y " + this.edges[i].targetId);
-          // console.log("x " + this.vertices[this.edges[i].sourceId]);
-          // console.log("el " + this.vertices[this.edges[i].sourceId].value.element);
-          //   console.log("= edgeId" + i);
-          var dec = this.isDecayPoint(this.edges[i].sourceId, this.edges[i].targetId);
-          console.log("dec " + dec);
+          var dec = this.isDecayPoint(this.edges[i].sourceId, this.edges[i].targetId, i);
+          console.log("res " + dec);
           if (dec !== false) {
             this.edges[dec].setDecay(true);
           }
         }
       }
     }
+
+    /**
+     * check if its decay point of specific decay types
+     * @param sourceId
+     * @param targetId
+     * @param decayTypes DecayPoint
+     * @returns {int|boolean} return edge id when found, otherwise return false
+     */
+
   }, {
     key: 'isDecayPoint',
-    value: function isDecayPoint(sourceId, targetId) {
+    value: function isDecayPoint(sourceId, targetId, edgeBondId) {
+      var decayTypes = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : DecayPoint.ALL;
+
+      switch (decayTypes) {
+        case DecayPoint.ALL:
+          var found = this.getNeighbourEdgeDecayIdOfCONH(sourceId, targetId, edgeBondId);
+          if (found === false) {
+            return this.getNeighbourEdgeDecayIdOfCOO(sourceId, targetId, edgeBondId);
+          } else {
+            return found;
+          }
+        case DecayPoint.COO:
+          return this.getNeighbourEdgeDecayIdOfCOO(sourceId, targetId, edgeBondId);
+        case DecayPoint.CONH:
+          return this.getNeighbourEdgeDecayIdOfCONH(sourceId, targetId, edgeBondId);
+      }
+    }
+
+    /**
+     * Find decay points of -CO-O- type
+     * @param sourceId
+     * @param targetId
+     * @returns {int|boolean}
+     */
+
+  }, {
+    key: 'getNeighbourEdgeDecayIdOfCOO',
+    value: function getNeighbourEdgeDecayIdOfCOO(sourceId, targetId, edgeBondId) {
       if (this.vertices[sourceId].value.element === 'O' && this.vertices[targetId].value.element === 'C') {
-        return this.getNeighbourEdgeDecayId(targetId, 'N');
+        return this.getNeighbourEdgeDecayId(targetId, 'O', edgeBondId);
       } else if (this.vertices[targetId].value.element === 'O' && this.vertices[sourceId].value.element === 'C') {
-        return this.getNeighbourEdgeDecayId(sourceId, 'N');
+        return this.getNeighbourEdgeDecayId(sourceId, 'O', edgeBondId);
       }
       return false;
     }
+
+    /**
+     * Find decay points of -CO-NH- type
+     * @param sourceId
+     * @param targetId
+     * @returns {int|boolean}
+     */
+
+  }, {
+    key: 'getNeighbourEdgeDecayIdOfCONH',
+    value: function getNeighbourEdgeDecayIdOfCONH(sourceId, targetId, edgeBondId) {
+      if (this.vertices[sourceId].value.element === 'O' && this.vertices[targetId].value.element === 'C') {
+        return this.getNeighbourEdgeDecayId(targetId, 'N', edgeBondId);
+      } else if (this.vertices[targetId].value.element === 'O' && this.vertices[sourceId].value.element === 'C') {
+        return this.getNeighbourEdgeDecayId(sourceId, 'N', edgeBondId);
+      }
+      return false;
+    }
+
+    /**
+     * Find decay point edge id of right neighbour
+     * @param vertexId
+     * @param element
+     * @returns {int|boolean}
+     */
+
   }, {
     key: 'getNeighbourEdgeDecayId',
-    value: function getNeighbourEdgeDecayId(vertexId, element) {
-      // console.log('info, ' + vertexId);
+    value: function getNeighbourEdgeDecayId(vertexId, element, edgeBondId) {
       for (var i = 0; i < this.vertices[vertexId].edges.length; i++) {
         var edgeId = this.checkNeighbourEdgeId(this.vertices[vertexId].edges[i], vertexId, element);
-        if (edgeId !== false) {
+        console.log("E " + edgeId + " " + edgeBondId + " " + element + " " + this.vertices[vertexId].edges.length);
+        if (edgeId !== false && edgeId !== edgeBondId) {
           return edgeId;
         }
       }
       return false;
     }
+
+    /**
+     * Find edge id of decay point
+     * @param edgeId
+     * @param vertexId
+     * @param element
+     * @returns {int|boolean}
+     */
+
   }, {
     key: 'checkNeighbourEdgeId',
     value: function checkNeighbourEdgeId(edgeId, vertexId, element) {
-      // console.log("edgeId: " + edgeId + " " + vertexId + " " + element + " sourceId: " + this.edges[edgeId].sourceId + " targetId: " + this.edges[edgeId].targetId);
       if (this.edges[edgeId].sourceId === vertexId && this.vertices[this.edges[edgeId].targetId].value.element === element || this.edges[edgeId].targetId === vertexId && this.vertices[this.edges[edgeId].sourceId].value.element === element) {
         return edgeId;
       } else {
@@ -5843,7 +5938,7 @@ var Graph = function () {
 
     /**
      * Returns an array containing the vertex ids of this graph.
-     * 
+     *
      * @returns {Number[]} An array containing all vertex ids of this graph.
      */
 
@@ -5861,7 +5956,7 @@ var Graph = function () {
 
     /**
      * Returns an array containing source, target arrays of this graphs edges.
-     * 
+     *
      * @returns {Array[]} An array containing source, target arrays of this graphs edges. Example: [ [ 2, 5 ], [ 6, 9 ] ].
      */
 
@@ -5879,7 +5974,7 @@ var Graph = function () {
 
     /**
      * Get the adjacency matrix of the graph.
-     * 
+     *
      * @returns {Array[]} The adjancency matrix of the molecular graph.
      */
 
@@ -5906,7 +6001,7 @@ var Graph = function () {
 
     /**
      * Get the adjacency matrix of the graph with all bridges removed (thus the components). Thus the remaining vertices are all part of ring systems.
-     * 
+     *
      * @returns {Array[]} The adjancency matrix of the molecular graph with all bridges removed.
      */
 
@@ -5939,7 +6034,7 @@ var Graph = function () {
 
     /**
      * Get the adjacency matrix of a subgraph.
-     * 
+     *
      * @param {Number[]} vertexIds An array containing the vertex ids contained within the subgraph.
      * @returns {Array[]} The adjancency matrix of the subgraph.
      */
@@ -5970,7 +6065,7 @@ var Graph = function () {
 
     /**
      * Get the distance matrix of the graph.
-     * 
+     *
      * @returns {Array[]} The distance matrix of the graph.
      */
 
@@ -6009,7 +6104,7 @@ var Graph = function () {
 
     /**
      * Get the distance matrix of a subgraph.
-     * 
+     *
      * @param {Number[]} vertexIds An array containing the vertex ids contained within the subgraph.
      * @returns {Array[]} The distance matrix of the subgraph.
      */
@@ -6049,7 +6144,7 @@ var Graph = function () {
 
     /**
      * Get the adjacency list of the graph.
-     * 
+     *
      * @returns {Array[]} The adjancency list of the graph.
      */
 
@@ -6078,7 +6173,7 @@ var Graph = function () {
 
     /**
      * Get the adjacency list of a subgraph.
-     * 
+     *
      * @param {Number[]} vertexIds An array containing the vertex ids contained within the subgraph.
      * @returns {Array[]} The adjancency list of the subgraph.
      */
@@ -6108,7 +6203,7 @@ var Graph = function () {
 
     /**
      * Returns an array containing the edge ids of bridges. A bridge splits the graph into multiple components when removed.
-     * 
+     *
      * @returns {Number[]} An array containing the edge ids of the bridges.
      */
 
@@ -6138,7 +6233,7 @@ var Graph = function () {
 
     /**
      * Traverses the graph in breadth-first order.
-     * 
+     *
      * @param {Number} startVertexId The id of the starting vertex.
      * @param {Function} callback The callback function to be called on every vertex.
      */
@@ -6244,7 +6339,7 @@ var Graph = function () {
 
     /**
      * Positiones the (sub)graph using Kamada and Kawais algorithm for drawing general undirected graphs. https://pdfs.semanticscholar.org/b8d3/bca50ccc573c5cb99f7d201e8acce6618f04.pdf
-     * 
+     *
      * @param {Number[]} vertexIds An array containing vertexIds to be placed using the force based layout.
      * @param {Vector2} center The center of the layout.
      * @param {Number} startVertexId A vertex id. Should be the starting vertex - e.g. the first to be positioned and connected to a previously place vertex.
@@ -6551,7 +6646,7 @@ var Graph = function () {
 
     /**
      * Returns the connected components of the graph.
-     * 
+     *
      * @param {Array[]} adjacencyMatrix An adjacency matrix.
      * @returns {Set[]} Connected components as sets.
      */
@@ -6583,8 +6678,8 @@ var Graph = function () {
     }
 
     /**
-     * Returns the number of connected components for the graph. 
-     * 
+     * Returns the number of connected components for the graph.
+     *
      * @param {Array[]} adjacencyMatrix An adjacency matrix.
      * @returns {Number} The number of connected components of the supplied graph.
      */
@@ -6654,7 +6749,7 @@ var Graph = function () {
 
 module.exports = Graph;
 
-},{"./Atom":3,"./Edge":6,"./MathHelper":9,"./Ring":11,"./Vector2":14,"./Vertex":15}],8:[function(require,module,exports){
+},{"./Atom":3,"./DecayPoint":5,"./Edge":7,"./MathHelper":10,"./Ring":12,"./Vector2":15,"./Vertex":16}],9:[function(require,module,exports){
 'use strict';
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
@@ -7032,7 +7127,7 @@ var Line = function () {
 
 module.exports = Line;
 
-},{"./Vector2":14}],9:[function(require,module,exports){
+},{"./Vector2":15}],10:[function(require,module,exports){
 'use strict';
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
@@ -7245,7 +7340,7 @@ var MathHelper = function () {
 
 module.exports = MathHelper;
 
-},{}],10:[function(require,module,exports){
+},{}],11:[function(require,module,exports){
 "use strict";
 
 // WHEN REPLACING, CHECK FOR:
@@ -8955,7 +9050,7 @@ module.exports = function () {
   };
 }();
 
-},{}],11:[function(require,module,exports){
+},{}],12:[function(require,module,exports){
 'use strict';
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
@@ -9208,7 +9303,7 @@ var Ring = function () {
 
 module.exports = Ring;
 
-},{"./ArrayHelper":2,"./RingConnection":12,"./Vector2":14,"./Vertex":15}],12:[function(require,module,exports){
+},{"./ArrayHelper":2,"./RingConnection":13,"./Vector2":15,"./Vertex":16}],13:[function(require,module,exports){
 'use strict';
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
@@ -9426,7 +9521,7 @@ var RingConnection = function () {
 
 module.exports = RingConnection;
 
-},{"./Ring":11,"./Vertex":15}],13:[function(require,module,exports){
+},{"./Ring":12,"./Vertex":16}],14:[function(require,module,exports){
 'use strict';
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
@@ -10191,7 +10286,7 @@ var SSSR = function () {
 
 module.exports = SSSR;
 
-},{"./Graph":7}],14:[function(require,module,exports){
+},{"./Graph":8}],15:[function(require,module,exports){
 'use strict';
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
@@ -10948,7 +11043,7 @@ var Vector2 = function () {
 
 module.exports = Vector2;
 
-},{}],15:[function(require,module,exports){
+},{}],16:[function(require,module,exports){
 'use strict';
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
@@ -11359,5 +11454,5 @@ var Vertex = function () {
 
 module.exports = Vertex;
 
-},{"./ArrayHelper":2,"./Atom":3,"./MathHelper":9,"./Vector2":14}]},{},[1])
+},{"./ArrayHelper":2,"./Atom":3,"./MathHelper":10,"./Vector2":15}]},{},[1])
 

@@ -1,4 +1,5 @@
 //@ts-check
+const DecayPoint = require('./DecayPoint');
 const MathHelper = require('./MathHelper')
 const Vector2 = require('./Vector2')
 const Vertex = require('./Vertex')
@@ -6,9 +7,9 @@ const Edge = require('./Edge')
 const Ring = require('./Ring')
 const Atom = require('./Atom')
 
-/** 
- * A class representing the molecular graph. 
- * 
+/**
+ * A class representing the molecular graph.
+ *
  * @property {Vertex[]} vertices The vertices of the graph.
  * @property {Edge[]} edges The edges of this graph.
  * @property {Object} vertexIdsToEdgeId A map mapping vertex ids to the edge between the two vertices. The key is defined as vertexAId + '_' + vertexBId.
@@ -17,7 +18,7 @@ const Atom = require('./Atom')
 class Graph {
   /**
    * The constructor of the class Graph.
-   * 
+   *
    * @param {Object} parseTree A SMILES parse tree.
    * @param {Boolean} [isomeric=false] A boolean specifying whether or not the SMILES is isomeric.
    */
@@ -113,22 +114,17 @@ class Graph {
       this._init(node.next, node.branchCount + offset, vertex.id);
     }
 
-    // console.log(this.vertices);
-    // console.log(this.edges);
     this.findDecayPoints();
   }
 
+    /**
+     * Find decay points of molecule
+     * Types of decay points, declared in DecayPoint
+     */
   findDecayPoints() {
     for (let i = 0; i < this.edges.length; i++) {
       if (this.edges[i].bondType === '=') {
-        // console.log("k " + this.edges[i].bondType);
-        // console.log("z " + this.edges[i].sourceId);
-        // console.log("y " + this.edges[i].targetId);
-        // console.log("x " + this.vertices[this.edges[i].sourceId]);
-        // console.log("el " + this.vertices[this.edges[i].sourceId].value.element);
-        //   console.log("= edgeId" + i);
-        let dec = this.isDecayPoint(this.edges[i].sourceId, this.edges[i].targetId);
-        console.log("dec " + dec);
+        let dec = this.isDecayPoint(this.edges[i].sourceId, this.edges[i].targetId, i);
         if (dec !== false) {
             this.edges[dec].setDecay(true);
         }
@@ -136,28 +132,83 @@ class Graph {
     }
   }
 
-  isDecayPoint(sourceId, targetId) {
+    /**
+     * check if its decay point of specific decay types
+     * @param sourceId
+     * @param targetId
+     * @param decayTypes DecayPoint
+     * @returns {int|boolean} return edge id when found, otherwise return false
+     */
+  isDecayPoint(sourceId, targetId, edgeBondId, decayTypes = DecayPoint.ALL) {
+      switch (decayTypes) {
+          case DecayPoint.ALL:
+              let found = this.getNeighbourEdgeDecayIdOfCONH(sourceId, targetId, edgeBondId);
+              if (found === false) {
+                return this.getNeighbourEdgeDecayIdOfCOO(sourceId, targetId, edgeBondId);
+              } else {
+                return found;
+              }
+          case DecayPoint.COO:
+            return this.getNeighbourEdgeDecayIdOfCOO(sourceId, targetId, edgeBondId);
+          case DecayPoint.CONH:
+              return this.getNeighbourEdgeDecayIdOfCONH(sourceId, targetId, edgeBondId);
+      }
+  }
+
+    /**
+     * Find decay points of -CO-O- type
+     * @param sourceId
+     * @param targetId
+     * @returns {int|boolean}
+     */
+  getNeighbourEdgeDecayIdOfCOO(sourceId, targetId, edgeBondId) {
+        if (this.vertices[sourceId].value.element === 'O' && this.vertices[targetId].value.element === 'C') {
+            return this.getNeighbourEdgeDecayId(targetId, 'O', edgeBondId);
+        } else if (this.vertices[targetId].value.element === 'O' && this.vertices[sourceId].value.element === 'C') {
+            return this.getNeighbourEdgeDecayId(sourceId, 'O', edgeBondId);
+        }
+        return false;
+    }
+
+    /**
+     * Find decay points of -CO-NH- type
+     * @param sourceId
+     * @param targetId
+     * @returns {int|boolean}
+     */
+  getNeighbourEdgeDecayIdOfCONH(sourceId, targetId, edgeBondId) {
       if (this.vertices[sourceId].value.element === 'O' && this.vertices[targetId].value.element === 'C') {
-        return this.getNeighbourEdgeDecayId(targetId, 'N');
+          return this.getNeighbourEdgeDecayId(targetId, 'N', edgeBondId);
       } else if (this.vertices[targetId].value.element === 'O' && this.vertices[sourceId].value.element === 'C') {
-          return this.getNeighbourEdgeDecayId(sourceId, 'N');
+          return this.getNeighbourEdgeDecayId(sourceId, 'N', edgeBondId);
       }
       return false;
   }
 
-  getNeighbourEdgeDecayId(vertexId, element) {
-    // console.log('info, ' + vertexId);
+    /**
+     * Find decay point edge id of right neighbour
+     * @param vertexId
+     * @param element
+     * @returns {int|boolean}
+     */
+  getNeighbourEdgeDecayId(vertexId, element, edgeBondId) {
       for (let i = 0; i < this.vertices[vertexId].edges.length; i++) {
         let edgeId = this.checkNeighbourEdgeId(this.vertices[vertexId].edges[i], vertexId, element);
-        if (edgeId !== false) {
+        if (edgeId !== false && edgeId !== edgeBondId) {
           return edgeId;
         }
       }
     return false;
   }
 
+    /**
+     * Find edge id of decay point
+     * @param edgeId
+     * @param vertexId
+     * @param element
+     * @returns {int|boolean}
+     */
   checkNeighbourEdgeId(edgeId, vertexId, element) {
-    // console.log("edgeId: " + edgeId + " " + vertexId + " " + element + " sourceId: " + this.edges[edgeId].sourceId + " targetId: " + this.edges[edgeId].targetId);
     if ((this.edges[edgeId].sourceId === vertexId && this.vertices[this.edges[edgeId].targetId].value.element === element) ||
       (this.edges[edgeId].targetId === vertexId && this.vertices[this.edges[edgeId].sourceId].value.element === element)) {
        return edgeId;
@@ -258,7 +309,7 @@ class Graph {
 
   /**
    * Returns an array containing the vertex ids of this graph.
-   * 
+   *
    * @returns {Number[]} An array containing all vertex ids of this graph.
    */
   getVertexList() {
@@ -273,7 +324,7 @@ class Graph {
 
   /**
    * Returns an array containing source, target arrays of this graphs edges.
-   * 
+   *
    * @returns {Array[]} An array containing source, target arrays of this graphs edges. Example: [ [ 2, 5 ], [ 6, 9 ] ].
    */
   getEdgeList() {
@@ -288,7 +339,7 @@ class Graph {
 
   /**
    * Get the adjacency matrix of the graph.
-   * 
+   *
    * @returns {Array[]} The adjancency matrix of the molecular graph.
    */
   getAdjacencyMatrix() {
@@ -312,7 +363,7 @@ class Graph {
 
   /**
    * Get the adjacency matrix of the graph with all bridges removed (thus the components). Thus the remaining vertices are all part of ring systems.
-   * 
+   *
    * @returns {Array[]} The adjancency matrix of the molecular graph with all bridges removed.
    */
   getComponentsAdjacencyMatrix() {
@@ -342,7 +393,7 @@ class Graph {
 
   /**
    * Get the adjacency matrix of a subgraph.
-   * 
+   *
    * @param {Number[]} vertexIds An array containing the vertex ids contained within the subgraph.
    * @returns {Array[]} The adjancency matrix of the subgraph.
    */
@@ -370,7 +421,7 @@ class Graph {
 
   /**
    * Get the distance matrix of the graph.
-   * 
+   *
    * @returns {Array[]} The distance matrix of the graph.
    */
   getDistanceMatrix() {
@@ -406,7 +457,7 @@ class Graph {
 
   /**
    * Get the distance matrix of a subgraph.
-   * 
+   *
    * @param {Number[]} vertexIds An array containing the vertex ids contained within the subgraph.
    * @returns {Array[]} The distance matrix of the subgraph.
    */
@@ -443,7 +494,7 @@ class Graph {
 
   /**
    * Get the adjacency list of the graph.
-   * 
+   *
    * @returns {Array[]} The adjancency list of the graph.
    */
   getAdjacencyList() {
@@ -469,7 +520,7 @@ class Graph {
 
   /**
    * Get the adjacency list of a subgraph.
-   * 
+   *
    * @param {Number[]} vertexIds An array containing the vertex ids contained within the subgraph.
    * @returns {Array[]} The adjancency list of the subgraph.
    */
@@ -496,7 +547,7 @@ class Graph {
 
   /**
    * Returns an array containing the edge ids of bridges. A bridge splits the graph into multiple components when removed.
-   * 
+   *
    * @returns {Number[]} An array containing the edge ids of the bridges.
    */
   getBridges() {
@@ -523,7 +574,7 @@ class Graph {
 
   /**
    * Traverses the graph in breadth-first order.
-   * 
+   *
    * @param {Number} startVertexId The id of the starting vertex.
    * @param {Function} callback The callback function to be called on every vertex.
    */
@@ -615,7 +666,7 @@ class Graph {
 
   /**
    * Positiones the (sub)graph using Kamada and Kawais algorithm for drawing general undirected graphs. https://pdfs.semanticscholar.org/b8d3/bca50ccc573c5cb99f7d201e8acce6618f04.pdf
-   * 
+   *
    * @param {Number[]} vertexIds An array containing vertexIds to be placed using the force based layout.
    * @param {Vector2} center The center of the layout.
    * @param {Number} startVertexId A vertex id. Should be the starting vertex - e.g. the first to be positioned and connected to a previously place vertex.
@@ -762,7 +813,7 @@ class Graph {
         let k = arrK[i];
         let m = (ux - vx) * (ux - vx);
         let denom = 1.0 / Math.pow(m + (uy - vy) * (uy - vy), 1.5);
-        
+
         dxx += k * (1 - l * (uy - vy) * (uy - vy) * denom);
         dyy += k * (1 - l * m * denom);
         dxy += k * (l * (ux - vx) * (uy - vy) * denom);
@@ -889,7 +940,7 @@ class Graph {
 
   /**
    * Returns the connected components of the graph.
-   * 
+   *
    * @param {Array[]} adjacencyMatrix An adjacency matrix.
    * @returns {Set[]} Connected components as sets.
    */
@@ -918,8 +969,8 @@ class Graph {
   }
 
   /**
-   * Returns the number of connected components for the graph. 
-   * 
+   * Returns the number of connected components for the graph.
+   *
    * @param {Array[]} adjacencyMatrix An adjacency matrix.
    * @returns {Number} The number of connected components of the supplied graph.
    */
