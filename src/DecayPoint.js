@@ -3,7 +3,7 @@
 class DecayPoint {
 }
 
-/** @var use all variants of decay points */
+/** @var ALL use all variants of decay points */
 DecayPoint.ALL = 0;
 
 /** @var -CO-O- type of decay */
