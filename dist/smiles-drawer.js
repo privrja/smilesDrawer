@@ -2151,24 +2151,35 @@ module.exports = CanvasWrapper;
 },{"./Line":9,"./MathHelper":10,"./Ring":12,"./Vector2":15,"./Vertex":16}],5:[function(require,module,exports){
 "use strict";
 
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 //@ts-check
 
-var DecayPoint = function DecayPoint() {
-  _classCallCheck(this, DecayPoint);
-};
+var DecayPoint = function () {
+    function DecayPoint() {
+        _classCallCheck(this, DecayPoint);
+    }
 
-/** @var use all variants of decay points */
+    _createClass(DecayPoint, null, [{
+        key: "VALUES",
 
 
-DecayPoint.ALL = 0;
+        /**
+         * Enum values for Decay points
+         * ALL use all variants of decay points
+         * COO -CO-O- type of decay
+         * CONH -CO-NH- type of decay
+         * @return {{ALL: number, COO: number, CONH: number}}
+         */
+        get: function get() {
+            return { ALL: 0, COO: 1, CONH: 2 };
+        }
+    }]);
 
-/** @var -CO-O- type of decay */
-DecayPoint.COO = 1;
-
-/** @var -CO-NH- type of decay */
-DecayPoint.CONH = 2;
+    return DecayPoint;
+}();
 
 module.exports = DecayPoint;
 
@@ -2339,11 +2350,17 @@ var Drawer = function () {
      * Is setup to draw decay points?
      * when boolean this.drawDecayPoint is true then return isDecay
      * @param isDecay bool - edge.isDecay
-     * @returns {boolean|*}
+     * @returns {Boolean}
      */
     value: function isDrawDecayPoint(isDecay) {
       return this.drawDecayPoints && isDecay;
     }
+
+    /**
+     * Draws the parsed smiles data to a canvas, with decay points
+     * @see #Drawer.draw
+     */
+
   }, {
     key: 'drawWithDecayPoints',
     value: function drawWithDecayPoints(data, target) {
@@ -5760,19 +5777,19 @@ var Graph = function () {
   }, {
     key: 'isDecayPoint',
     value: function isDecayPoint(sourceId, targetId, edgeBondId) {
-      var decayTypes = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : DecayPoint.ALL;
+      var decayTypes = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : DecayPoint.VALUES.ALL;
 
       switch (decayTypes) {
-        case DecayPoint.ALL:
+        case DecayPoint.VALUES.ALL:
           var found = this.getNeighbourEdgeDecayIdOfCONH(sourceId, targetId, edgeBondId);
           if (found === false) {
             return this.getNeighbourEdgeDecayIdOfCOO(sourceId, targetId, edgeBondId);
           } else {
             return found;
           }
-        case DecayPoint.COO:
+        case DecayPoint.VALUES.COO:
           return this.getNeighbourEdgeDecayIdOfCOO(sourceId, targetId, edgeBondId);
-        case DecayPoint.CONH:
+        case DecayPoint.VALUES.CONH:
           return this.getNeighbourEdgeDecayIdOfCONH(sourceId, targetId, edgeBondId);
       }
     }

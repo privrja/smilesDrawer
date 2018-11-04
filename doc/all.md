@@ -785,6 +785,8 @@ The main class of the application representing the smiles drawer
 * [Drawer](#Drawer)
     * [new Drawer(options)](#new_Drawer_new)
     * [.extend()](#Drawer+extend)
+    * [.isDrawDecayPoint(isDecay)](#Drawer+isDrawDecayPoint) ⇒ <code>Boolean</code>
+    * [.drawWithDecayPoints()](#Drawer+drawWithDecayPoints)
     * [.draw(data, target, themeName, infoOnly)](#Drawer+draw)
     * [.edgeRingCount(edgeId)](#Drawer+edgeRingCount) ⇒ <code>Number</code>
     * [.getBridgedRings()](#Drawer+getBridgedRings) ⇒ <code>[Array.&lt;Ring&gt;](#Ring)</code>
@@ -861,6 +863,24 @@ The constructor for the class SmilesDrawer.
 A helper method to extend the default options with user supplied ones.
 
 **Kind**: instance method of <code>[Drawer](#Drawer)</code>  
+<a name="Drawer+isDrawDecayPoint"></a>
+
+### drawer.isDrawDecayPoint(isDecay) ⇒ <code>Boolean</code>
+Is setup to draw decay points?when boolean this.drawDecayPoint is true then return isDecay
+
+**Kind**: instance method of <code>[Drawer](#Drawer)</code>  
+
+| Param | Description |
+| --- | --- |
+| isDecay | bool - edge.isDecay |
+
+<a name="Drawer+drawWithDecayPoints"></a>
+
+### drawer.drawWithDecayPoints()
+Draws the parsed smiles data to a canvas, with decay points
+
+**Kind**: instance method of <code>[Drawer](#Drawer)</code>  
+**See**: #Drawer.draw  
 <a name="Drawer+draw"></a>
 
 ### drawer.draw(data, target, themeName, infoOnly)
@@ -1519,6 +1539,7 @@ A class representing an edge.
     * [new Edge(sourceId, targetId, [weight])](#new_Edge_new)
     * _instance_
         * [.setBondType(bondType)](#Edge+setBondType)
+        * [.setDecay(decay)](#Edge+setDecay)
     * _static_
         * [.bonds](#Edge.bonds) ⇒ <code>Object</code>
 
@@ -1544,6 +1565,17 @@ Set the bond type of this edge. This also sets the edge weight.
 | Param | Type |
 | --- | --- |
 | bondType | <code>String</code> | 
+
+<a name="Edge+setDecay"></a>
+
+### edge.setDecay(decay)
+Set decay
+
+**Kind**: instance method of <code>[Edge](#Edge)</code>  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| decay | <code>Boolean</code> | point |
 
 <a name="Edge.bonds"></a>
 
@@ -1572,6 +1604,12 @@ A class representing the molecular graph.
     * [new Graph(parseTree, [isomeric])](#new_Graph_new)
     * _instance_
         * [._init(node, parentVertexId, isBranch)](#Graph+_init)
+        * [.findDecayPoints()](#Graph+findDecayPoints)
+        * [.isDecayPoint(sourceId, targetId, decayTypes)](#Graph+isDecayPoint) ⇒ <code>int</code> &#124; <code>boolean</code>
+        * [.getNeighbourEdgeDecayIdOfCOO(sourceId, targetId)](#Graph+getNeighbourEdgeDecayIdOfCOO) ⇒ <code>int</code> &#124; <code>boolean</code>
+        * [.getNeighbourEdgeDecayIdOfCONH(sourceId, targetId)](#Graph+getNeighbourEdgeDecayIdOfCONH) ⇒ <code>int</code> &#124; <code>boolean</code>
+        * [.getNeighbourEdgeDecayId(vertexId, element)](#Graph+getNeighbourEdgeDecayId) ⇒ <code>int</code> &#124; <code>boolean</code>
+        * [.checkNeighbourEdgeId(edgeId, vertexId, element)](#Graph+checkNeighbourEdgeId) ⇒ <code>int</code> &#124; <code>boolean</code>
         * [.clear()](#Graph+clear)
         * [.addVertex(vertex)](#Graph+addVertex) ⇒ <code>Number</code>
         * [.addEdge(edge)](#Graph+addEdge) ⇒ <code>Number</code>
@@ -1622,6 +1660,75 @@ PRIVATE FUNCTION. Initializing the graph from the parse tree.
 | node | <code>Object</code> |  | The current node in the parse tree. |
 | parentVertexId | <code>Number</code> | <code></code> | The id of the previous vertex. |
 | isBranch | <code>Boolean</code> | <code>false</code> | Whether or not the bond leading to this vertex is a branch bond. Branches are represented by parentheses in smiles (e.g. CC(O)C). |
+
+<a name="Graph+findDecayPoints"></a>
+
+### graph.findDecayPoints()
+Find decay points of moleculeTypes of decay points, declared in DecayPoint
+
+**Kind**: instance method of <code>[Graph](#Graph)</code>  
+<a name="Graph+isDecayPoint"></a>
+
+### graph.isDecayPoint(sourceId, targetId, decayTypes) ⇒ <code>int</code> &#124; <code>boolean</code>
+check if its decay point of specific decay types
+
+**Kind**: instance method of <code>[Graph](#Graph)</code>  
+**Returns**: <code>int</code> &#124; <code>boolean</code> - return edge id when found, otherwise return false  
+
+| Param | Description |
+| --- | --- |
+| sourceId |  |
+| targetId |  |
+| decayTypes | DecayPoint |
+
+<a name="Graph+getNeighbourEdgeDecayIdOfCOO"></a>
+
+### graph.getNeighbourEdgeDecayIdOfCOO(sourceId, targetId) ⇒ <code>int</code> &#124; <code>boolean</code>
+Find decay points of -CO-O- type
+
+**Kind**: instance method of <code>[Graph](#Graph)</code>  
+
+| Param |
+| --- |
+| sourceId | 
+| targetId | 
+
+<a name="Graph+getNeighbourEdgeDecayIdOfCONH"></a>
+
+### graph.getNeighbourEdgeDecayIdOfCONH(sourceId, targetId) ⇒ <code>int</code> &#124; <code>boolean</code>
+Find decay points of -CO-NH- type
+
+**Kind**: instance method of <code>[Graph](#Graph)</code>  
+
+| Param |
+| --- |
+| sourceId | 
+| targetId | 
+
+<a name="Graph+getNeighbourEdgeDecayId"></a>
+
+### graph.getNeighbourEdgeDecayId(vertexId, element) ⇒ <code>int</code> &#124; <code>boolean</code>
+Find decay point edge id of right neighbour
+
+**Kind**: instance method of <code>[Graph](#Graph)</code>  
+
+| Param |
+| --- |
+| vertexId | 
+| element | 
+
+<a name="Graph+checkNeighbourEdgeId"></a>
+
+### graph.checkNeighbourEdgeId(edgeId, vertexId, element) ⇒ <code>int</code> &#124; <code>boolean</code>
+Find edge id of decay point
+
+**Kind**: instance method of <code>[Graph](#Graph)</code>  
+
+| Param |
+| --- |
+| edgeId | 
+| vertexId | 
+| element | 
 
 <a name="Graph+clear"></a>
 
@@ -1893,7 +2000,7 @@ A class representing a line.
 
 
 * [Line](#Line)
-    * [new Line([from], [to], [elementFrom], [elementTo], [chiralFrom], [chiralTo])](#new_Line_new)
+    * [new Line([from], [to], [elementFrom], [elementTo], [chiralFrom], [chiralTo], [isDecayPoint])](#new_Line_new)
     * [.clone()](#Line+clone) ⇒ <code>[Line](#Line)</code>
     * [.getLength()](#Line+getLength) ⇒ <code>Number</code>
     * [.getAngle()](#Line+getAngle) ⇒ <code>Number</code>
@@ -1915,7 +2022,7 @@ A class representing a line.
 
 <a name="new_Line_new"></a>
 
-### new Line([from], [to], [elementFrom], [elementTo], [chiralFrom], [chiralTo])
+### new Line([from], [to], [elementFrom], [elementTo], [chiralFrom], [chiralTo], [isDecayPoint])
 The constructor for the class Line.
 
 
@@ -1927,6 +2034,7 @@ The constructor for the class Line.
 | [elementTo] | <code>string</code> | <code>null</code> | A one-letter representation of the element associated with the vector marking the end of the line. |
 | [chiralFrom] | <code>Boolean</code> | <code>false</code> | Whether or not the from atom is a chiral center. |
 | [chiralTo] | <code>Boolean</code> | <code>false</code> | Whether or not the to atom is a chiral center. |
+| [isDecayPoint] | <code>Boolean</code> | <code>false</code> | Whether or not the edge is a decay point |
 
 <a name="Line+clone"></a>
 

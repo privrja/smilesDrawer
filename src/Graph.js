@@ -138,18 +138,18 @@ class Graph {
      * @param decayTypes DecayPoint
      * @returns {int|boolean} return edge id when found, otherwise return false
      */
-  isDecayPoint(sourceId, targetId, edgeBondId, decayTypes = DecayPoint.ALL) {
+  isDecayPoint(sourceId, targetId, edgeBondId, decayTypes = DecayPoint.VALUES.ALL) {
       switch (decayTypes) {
-          case DecayPoint.ALL:
+          case DecayPoint.VALUES.ALL:
               let found = this.getNeighbourEdgeDecayIdOfCONH(sourceId, targetId, edgeBondId);
               if (found === false) {
                 return this.getNeighbourEdgeDecayIdOfCOO(sourceId, targetId, edgeBondId);
               } else {
                 return found;
               }
-          case DecayPoint.COO:
+          case DecayPoint.VALUES.COO:
             return this.getNeighbourEdgeDecayIdOfCOO(sourceId, targetId, edgeBondId);
-          case DecayPoint.CONH:
+          case DecayPoint.VALUES.CONH:
               return this.getNeighbourEdgeDecayIdOfCONH(sourceId, targetId, edgeBondId);
       }
   }
