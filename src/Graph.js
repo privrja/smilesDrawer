@@ -31,6 +31,7 @@ class Graph {
     // Used for the bridge detection algorithm
     this._time = 0;
     this._init(parseTree);
+    this.findDecayPoints();
   }
 
   /**
@@ -113,8 +114,6 @@ class Graph {
     if (node.hasNext) {
       this._init(node.next, node.branchCount + offset, vertex.id);
     }
-
-    this.findDecayPoints();
   }
 
     /**

@@ -2243,6 +2243,7 @@ var Drawer = function () {
       fontSizeLarge: 5,
       fontSizeSmall: 3,
       padding: 20.0,
+      drawDecayPoints: false,
       themes: {
         dark: {
           C: '#fff',
@@ -2288,6 +2289,8 @@ var Drawer = function () {
 
     // Set the default theme.
     this.theme = this.opts.themes.dark;
+
+    this.drawDecayPoints = this.opts.drawDecayPoints;
   }
 
   /**
@@ -2329,8 +2332,28 @@ var Drawer = function () {
       return extended;
     }
   }, {
-    key: 'draw',
+    key: 'isDrawDecayPoint',
 
+
+    /**
+     * Is setup to draw decay points?
+     * when boolean this.drawDecayPoint is true then return isDecay
+     * @param isDecay bool - edge.isDecay
+     * @returns {boolean|*}
+     */
+    value: function isDrawDecayPoint(isDecay) {
+      return this.drawDecayPoints && isDecay;
+    }
+  }, {
+    key: 'drawWithDecayPoints',
+    value: function drawWithDecayPoints(data, target) {
+      var themeName = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 'light';
+      var infoOnly = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : false;
+
+      this.drawDecayPoints = true;
+      this.draw(data, target, themeName, infoOnly);
+      this.drawDecayPoints = false;
+    }
 
     /**
      * Draws the parsed smiles data to a canvas element.
@@ -2340,6 +2363,9 @@ var Drawer = function () {
      * @param {String} themeName='dark' The name of the theme to use. Built-in themes are 'light' and 'dark'.
      * @param {Boolean} infoOnly=false Only output info on the molecule without drawing anything to the canvas.
      */
+
+  }, {
+    key: 'draw',
     value: function draw(data, target) {
       var themeName = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 'light';
       var infoOnly = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : false;
@@ -3786,9 +3812,9 @@ var Drawer = function () {
           var line = null;
 
           if (center.sameSideAs(vertexA.position, vertexB.position, Vector2.add(a, normals[0]))) {
-            elementA.line = new Line(Vector2.add(a, normals[0]), Vector2.add(b, normals[0]), elementA, elementB, false, false, edge.isDecay);
+            line = new Line(Vector2.add(a, normals[0]), Vector2.add(b, normals[0]), elementA, elementB, false, false, this.isDrawDecayPoint(edge.isDecay));
           } else {
-            line = new Line(Vector2.add(a, normals[1]), Vector2.add(b, normals[1]), elementA, elementB, false, false, edge.isDecay);
+            line = new Line(Vector2.add(a, normals[1]), Vector2.add(b, normals[1]), elementA, elementB, false, false, this.isDrawDecayPoint(edge.isDecay));
           }
 
           line.shorten(this.opts.bondLength - this.opts.shortBondLength * this.opts.bondLength);
@@ -3801,13 +3827,13 @@ var Drawer = function () {
           }
 
           // The normal edge
-          this.canvasWrapper.drawLine(new Line(a, b, elementA, elementB, false, false, edge.isDecay));
+          this.canvasWrapper.drawLine(new Line(a, b, elementA, elementB, false, false, this.isDrawDecayPoint(edge.isDecay)));
         } else if (edge.center || vertexA.isTerminal() && vertexB.isTerminal()) {
           normals[0].multiplyScalar(that.opts.halfBondSpacing);
           normals[1].multiplyScalar(that.opts.halfBondSpacing);
 
-          var lineA = new Line(Vector2.add(a, normals[0]), Vector2.add(b, normals[0]), elementA, elementB, false, false, edge.isDecay);
-          var lineB = new Line(Vector2.add(a, normals[1]), Vector2.add(b, normals[1]), elementA, elementB, false, false, edge.isDecay);
+          var lineA = new Line(Vector2.add(a, normals[0]), Vector2.add(b, normals[0]), elementA, elementB, false, false, this.isDrawDecayPoint(edge.isDecay));
+          var lineB = new Line(Vector2.add(a, normals[1]), Vector2.add(b, normals[1]), elementA, elementB, false, false, this.isDrawDecayPoint(edge.isDecay));
 
           this.canvasWrapper.drawLine(lineA);
           this.canvasWrapper.drawLine(lineB);
@@ -3817,8 +3843,8 @@ var Drawer = function () {
           normals[0].multiplyScalar(that.opts.halfBondSpacing);
           normals[1].multiplyScalar(that.opts.halfBondSpacing);
 
-          var _lineA = new Line(Vector2.add(a, normals[0]), Vector2.add(b, normals[0]), elementA, elementB, false, false, edge.isDecay);
-          var _lineB = new Line(Vector2.add(a, normals[1]), Vector2.add(b, normals[1]), elementA, elementB, false, false, edge.isDecay);
+          var _lineA = new Line(Vector2.add(a, normals[0]), Vector2.add(b, normals[0]), elementA, elementB, false, false, this.isDrawDecayPoint(edge.isDecay));
+          var _lineB = new Line(Vector2.add(a, normals[1]), Vector2.add(b, normals[1]), elementA, elementB, false, false, this.isDrawDecayPoint(edge.isDecay));
 
           this.canvasWrapper.drawLine(_lineA);
           this.canvasWrapper.drawLine(_lineB);
@@ -3826,50 +3852,50 @@ var Drawer = function () {
           normals[0].multiplyScalar(that.opts.bondSpacing);
           normals[1].multiplyScalar(that.opts.bondSpacing);
 
-          var _line = new Line(Vector2.add(a, normals[0]), Vector2.add(b, normals[0]), elementA, elementB, false, false, edge.isDecay);
+          var _line = new Line(Vector2.add(a, normals[0]), Vector2.add(b, normals[0]), elementA, elementB, false, false, this.isDrawDecayPoint(edge.isDecay));
 
           _line.shorten(this.opts.bondLength - this.opts.shortBondLength * this.opts.bondLength);
           this.canvasWrapper.drawLine(_line);
-          this.canvasWrapper.drawLine(new Line(a, b, elementA, elementB, false, false, edge.isDecay));
+          this.canvasWrapper.drawLine(new Line(a, b, elementA, elementB, false, false, this.isDrawDecayPoint(edge.isDecay)));
         } else if (s.sideCount[0] < s.sideCount[1]) {
           normals[0].multiplyScalar(that.opts.bondSpacing);
           normals[1].multiplyScalar(that.opts.bondSpacing);
 
-          var _line2 = new Line(Vector2.add(a, normals[1]), Vector2.add(b, normals[1]), elementA, elementB, false, false, edge.isDecay);
+          var _line2 = new Line(Vector2.add(a, normals[1]), Vector2.add(b, normals[1]), elementA, elementB, false, false, this.isDrawDecayPoint(edge.isDecay));
 
           _line2.shorten(this.opts.bondLength - this.opts.shortBondLength * this.opts.bondLength);
           this.canvasWrapper.drawLine(_line2);
-          this.canvasWrapper.drawLine(new Line(a, b, elementA, elementB, false, false, edge.isDecay));
+          this.canvasWrapper.drawLine(new Line(a, b, elementA, elementB, false, false, this.isDrawDecayPoint(edge.isDecay)));
         } else if (s.totalSideCount[0] > s.totalSideCount[1]) {
           normals[0].multiplyScalar(that.opts.bondSpacing);
           normals[1].multiplyScalar(that.opts.bondSpacing);
 
-          var _line3 = new Line(Vector2.add(a, normals[0]), Vector2.add(b, normals[0]), elementA, elementB, false, false, edge.isDecay);
+          var _line3 = new Line(Vector2.add(a, normals[0]), Vector2.add(b, normals[0]), elementA, elementB, false, false, this.isDrawDecayPoint(edge.isDecay));
 
           _line3.shorten(this.opts.bondLength - this.opts.shortBondLength * this.opts.bondLength);
           this.canvasWrapper.drawLine(_line3);
-          this.canvasWrapper.drawLine(new Line(a, b, elementA, elementB, false, false, edge.isDecay));
+          this.canvasWrapper.drawLine(new Line(a, b, elementA, elementB, false, false, this.isDrawDecayPoint(edge.isDecay)));
         } else if (s.totalSideCount[0] <= s.totalSideCount[1]) {
           normals[0].multiplyScalar(that.opts.bondSpacing);
           normals[1].multiplyScalar(that.opts.bondSpacing);
 
-          var _line4 = new Line(Vector2.add(a, normals[1]), Vector2.add(b, normals[1]), elementA, elementB, false, false, edge.isDecay);
+          var _line4 = new Line(Vector2.add(a, normals[1]), Vector2.add(b, normals[1]), elementA, elementB, false, false, this.isDrawDecayPoint(edge.isDecay));
 
           _line4.shorten(this.opts.bondLength - this.opts.shortBondLength * this.opts.bondLength);
           this.canvasWrapper.drawLine(_line4);
-          this.canvasWrapper.drawLine(new Line(a, b, elementA, elementB, false, false, edge.isDecay));
+          this.canvasWrapper.drawLine(new Line(a, b, elementA, elementB, false, false, this.isDrawDecayPoint(edge.isDecay)));
         } else {}
       } else if (edge.bondType === '#') {
         normals[0].multiplyScalar(that.opts.bondSpacing / 1.5);
         normals[1].multiplyScalar(that.opts.bondSpacing / 1.5);
 
-        var _lineA2 = new Line(Vector2.add(a, normals[0]), Vector2.add(b, normals[0]), elementA, elementB, false, false, edge.isDecay);
-        var _lineB2 = new Line(Vector2.add(a, normals[1]), Vector2.add(b, normals[1]), elementA, elementB, false, false, edge.isDecay);
+        var _lineA2 = new Line(Vector2.add(a, normals[0]), Vector2.add(b, normals[0]), elementA, elementB, false, false, this.isDrawDecayPoint(edge.isDecay));
+        var _lineB2 = new Line(Vector2.add(a, normals[1]), Vector2.add(b, normals[1]), elementA, elementB, false, false, this.isDrawDecayPoint(edge.isDecay));
 
         this.canvasWrapper.drawLine(_lineA2);
         this.canvasWrapper.drawLine(_lineB2);
 
-        this.canvasWrapper.drawLine(new Line(a, b, elementA, elementB, false, false, edge.isDecay));
+        this.canvasWrapper.drawLine(new Line(a, b, elementA, elementB, false, false, this.isDrawDecayPoint(edge.isDecay)));
       } else if (edge.bondType === '.') {
         // TODO: Something... maybe... version 2?
       } else {
@@ -3877,11 +3903,11 @@ var Drawer = function () {
         var isChiralCenterB = vertexB.value.isStereoCenter;
 
         if (edge.wedge === 'up') {
-          this.canvasWrapper.drawWedge(new Line(a, b, elementA, elementB, isChiralCenterA, isChiralCenterB, edge.isDecay));
+          this.canvasWrapper.drawWedge(new Line(a, b, elementA, elementB, isChiralCenterA, isChiralCenterB, this.isDrawDecayPoint(edge.isDecay)));
         } else if (edge.wedge === 'down') {
-          this.canvasWrapper.drawDashedWedge(new Line(a, b, elementA, elementB, isChiralCenterA, isChiralCenterB, edge.isDecay));
+          this.canvasWrapper.drawDashedWedge(new Line(a, b, elementA, elementB, isChiralCenterA, isChiralCenterB, this.isDrawDecayPoint(edge.isDecay)));
         } else {
-          this.canvasWrapper.drawLine(new Line(a, b, elementA, elementB, isChiralCenterA, isChiralCenterB, edge.isDecay));
+          this.canvasWrapper.drawLine(new Line(a, b, elementA, elementB, isChiralCenterA, isChiralCenterB, this.isDrawDecayPoint(edge.isDecay)));
         }
       }
 
@@ -5612,6 +5638,7 @@ var Graph = function () {
     // Used for the bridge detection algorithm
     this._time = 0;
     this._init(parseTree);
+    this.findDecayPoints();
   }
 
   /**
@@ -5702,10 +5729,6 @@ var Graph = function () {
       if (node.hasNext) {
         this._init(node.next, node.branchCount + offset, vertex.id);
       }
-
-      console.log(this.vertices);
-      console.log(this.edges);
-      this.findDecayPoints();
     }
 
     /**
@@ -5719,7 +5742,6 @@ var Graph = function () {
       for (var i = 0; i < this.edges.length; i++) {
         if (this.edges[i].bondType === '=') {
           var dec = this.isDecayPoint(this.edges[i].sourceId, this.edges[i].targetId, i);
-          console.log("res " + dec);
           if (dec !== false) {
             this.edges[dec].setDecay(true);
           }
@@ -5803,7 +5825,6 @@ var Graph = function () {
     value: function getNeighbourEdgeDecayId(vertexId, element, edgeBondId) {
       for (var i = 0; i < this.vertices[vertexId].edges.length; i++) {
         var edgeId = this.checkNeighbourEdgeId(this.vertices[vertexId].edges[i], vertexId, element);
-        console.log("E " + edgeId + " " + edgeBondId + " " + element + " " + this.vertices[vertexId].edges.length);
         if (edgeId !== false && edgeId !== edgeBondId) {
           return edgeId;
         }

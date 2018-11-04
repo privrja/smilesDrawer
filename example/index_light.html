@@ -188,12 +188,16 @@
     <div>
       <label><input id="debug" name="debug" type="checkbox">Debug</label>
     </div>
+    <div>
+      <label><input id="decay" name="decay" type="checkbox">Draw Decay</label>
+    </div>
   </div>
 
   <script>
     var input = document.getElementById('input');
     var debugCheckbox = document.getElementById('debug');
-    var bondThicknessInput = document.getElementById('bondThickness')
+    var decayCheckbox = document.getElementById('decay');
+    var bondThicknessInput = document.getElementById('bondThickness');
     var textSizeInput = document.getElementById('textSize');
     var bondLengthInput = document.getElementById('bondLength');
     var shortBondLengthInput = document.getElementById('shortBondLength');
@@ -203,8 +207,8 @@
 
     var options = {
       debug: false,
-      atomVisualization: 'default'
-    }
+      atomVisualization: 'default',
+    };
 
     var smilesDrawer = new SmilesDrawer.Drawer(options);
     var input = document.getElementById('input');
@@ -245,8 +249,13 @@
         draw();
       });
 
+      decayCheckbox.addEventListener('click', function () {
+        options.drawDecayPoints = decayCheckbox.checked;
+        updateOptions();
+    });
+
       debugCheckbox.addEventListener('click', function () {
-        options.debug = debugCheckbox.checked ? true : false;
+        options.debug = debugCheckbox.checked;
         updateOptions();
       });
 
