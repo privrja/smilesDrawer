@@ -1406,7 +1406,6 @@ class Drawer {
         let line = null;
 
         if (center.sameSideAs(vertexA.position, vertexB.position, Vector2.add(a, normals[0]))) {
-          elementA.
           line = new Line(Vector2.add(a, normals[0]), Vector2.add(b, normals[0]), elementA, elementB, false, false, edge.isDecay);
         } else {
           line = new Line(Vector2.add(a, normals[1]), Vector2.add(b, normals[1]), elementA, elementB, false, false, edge.isDecay);
