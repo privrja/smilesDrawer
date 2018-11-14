@@ -3050,26 +3050,25 @@ class Drawer {
         if (!this.graph) {
             return;
         }
-        console.log(this.graph);
-        let pos = this.xdraw(e);
-        console.log(pos.x + " " + pos.y);
 
-        // e.preventDefault();
-        // e.stopPropagation();
-        //
+        e.preventDefault();
+        e.stopPropagation();
+
         // console.log(offsetX + " " + offsetY);
-        // let mouseX;
-        // let mouseY;
-        //
+        let mouseX;
+        let mouseY;
+
         for (let i = 0; i < this.graph.edges.length; ++i) {
-            // mouseX = parseInt(e.clientX - offsetX - ((this.canvasWrapper.canvas.width - this.canvasWrapper.drawingWidth)/2) - this.canvasWrapper.offsetX + (this.canvasWrapper.drawingWidth));
-            // mouseY = parseInt(e.clientY - offsetY - ((this.canvasWrapper.canvas.height - this.canvasWrapper.drawingHeight)/2) - this.canvasWrapper.offsetY + (this.canvasWrapper.drawingHeight));
-            console.log(this.canvasWrapper.canvas.height);
-            console.log(this.canvasWrapper.drawingHeight);
-            console.log(this.canvasWrapper.canvas.height - this.canvasWrapper.drawingHeight);
-            console.log((this.canvasWrapper.canvas.height - this.canvasWrapper.drawingHeight)/2);
-            console.log(parseInt(e.clientY - offsetY - ((this.canvasWrapper.canvas.height - this.canvasWrapper.drawingHeight)/2) + this.canvasWrapper.offsetY + (this.canvasWrapper.drawingHeight)));
-            console.log('edge ' + this.graph.edges[i].id);
+            mouseX = parseInt(e.clientX - offsetX);
+            mouseY = parseInt(e.clientY - offsetY);
+            // mouseX = parseInt(e.clientX - offsetX - ((this.canvasWrapper.canvas.width - this.canvasWrapper.drawingWidth)/2) - this.canvasWrapper.canvas.offsetWidth);
+            // mouseY = parseInt(e.clientY - offsetY - ((this.canvasWrapper.canvas.height - this.canvasWrapper.drawingHeight)/2) - this.canvasWrapper.canvas.offsetHeight);
+            // console.log(this.canvasWrapper.canvas.height);
+            // console.log(this.canvasWrapper.drawingHeight);
+            // console.log(this.canvasWrapper.canvas.height - this.canvasWrapper.drawingHeight);
+            // console.log((this.canvasWrapper.canvas.height - this.canvasWrapper.drawingHeight)/2);
+            // console.log(parseInt(e.clientY - offsetY - ((this.canvasWrapper.canvas.height - this.canvasWrapper.drawingHeight)/2) + this.canvasWrapper.offsetY + (this.canvasWrapper.drawingHeight)));
+            // console.log('edge ' + this.graph.edges[i].id);
             let vertexA = this.graph.vertices[this.graph.edges[i].sourceId];
             let vertexB = this.graph.vertices[this.graph.edges[i].targetId];
             if (!vertexA || !vertexB) {
@@ -3078,28 +3077,24 @@ class Drawer {
             let a = vertexA.position;
             let b = vertexB.position;
             let normals = this.getEdgeNormals(this.graph.edges[i]);
-            console.log(vertexA.position + " " + vertexB.position);
+            // console.log(vertexA.position + " " + vertexB.position);
             let line = new Line(a, b);
-            var scaleX = this.canvasWrapper.canvas.offsetWidth / this.canvasWrapper.drawingWidth;
-            var scaleY = this.canvasWrapper.canvas.offsetHeight / this.canvasWrapper.drawingHeight;
-            console.log("scale " + scaleX + " " + scaleY);
-            // mouseX *= scaleX;
-            // mouseY *= scaleY;
             let l = line.getLeftVector().clone();
             let r = line.getRightVector().clone();
             l.x += this.canvasWrapper.offsetX;
             l.y += this.canvasWrapper.offsetY;
             r.x += this.canvasWrapper.offsetX;
             r.y += this.canvasWrapper.offsetY;
-            console.log("offset " + this.canvasWrapper.offsetY + " " + this.canvasWrapper.offsetX);
-            console.log("mouse " + mouseX + " " + mouseY);
-            console.log("line " + l + " " + r);
-            console.log("dr width " + this.canvasWrapper.drawingWidth);
-            console.log("dr height " + this.canvasWrapper.drawingHeight);
-            if (mouseX < l.x || mouseX > r.x) {
-                console.log("Outside");
-                continue;
-            }
+            // console.log("offset " + this.canvasWrapper.canvas.offsetWidth + " " + this.canvasWrapper.offsetHeight);
+            // console.log("offset " + this.canvasWrapper.offsetY + " " + this.canvasWrapper.offsetX);
+            // console.log("mouse " + mouseX + " " + mouseY);
+            // console.log("line " + l + " " + r);
+            // console.log("dr width " + this.canvasWrapper.drawingWidth);
+            // console.log("dr height " + this.canvasWrapper.drawingHeight);
+            // if (mouseX < l.x || mouseX > r.x) {
+            //     console.log("Outside");
+            //     continue;
+            // }
         }
         // if (pos.x< line.x0 || mouseX > line.x1) {
         //     draw(line);
@@ -3117,26 +3112,6 @@ class Drawer {
         //     draw(line);
         // }
     }
-
-    getMousePos(evt) {
-        var rect = this.canvasWrapper.canvas.getBoundingClientRect(), // abs. size of element
-            scaleX = this.canvasWrapper.canvas.width / rect.width,    // relationship bitmap vs. element for X
-            scaleY = this.canvasWrapper.canvas.height / rect.height;  // relationship bitmap vs. element for Y
-
-        return {
-            x: (evt.clientX - rect.left) * scaleX,   // scale mouse coordinates after they have
-            y: (evt.clientY - rect.top) * scaleY     // been adjusted to be relative to element
-        }
-    }
-
-    xdraw(evt) {
-        var pos = this.getMousePos(evt);        // get adjusted coordinates as above
-        this.canvasWrapper.ctx.fillStyle = "#000000";
-        this.canvasWrapper.ctx.fillRect(pos.x-1, pos.y-1, 2, 2);
-        return pos;
-    }
-
-
 }
 
 module.exports = Drawer;
