@@ -258,6 +258,8 @@ class CanvasWrapper {
         r.x += offsetX;
         r.y += offsetY;
 
+        console.log("draw line: " + l + " " + r);
+
         ctx.save();
         ctx.beginPath();
         ctx.moveTo(l.x, l.y);
