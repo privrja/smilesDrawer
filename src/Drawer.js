@@ -3061,14 +3061,7 @@ class Drawer {
         for (let i = 0; i < this.graph.edges.length; ++i) {
             mouseX = parseInt(e.clientX - offsetX);
             mouseY = parseInt(e.clientY - offsetY);
-            // mouseX = parseInt(e.clientX - offsetX - ((this.canvasWrapper.canvas.width - this.canvasWrapper.drawingWidth)/2) - this.canvasWrapper.canvas.offsetWidth);
-            // mouseY = parseInt(e.clientY - offsetY - ((this.canvasWrapper.canvas.height - this.canvasWrapper.drawingHeight)/2) - this.canvasWrapper.canvas.offsetHeight);
-            // console.log(this.canvasWrapper.canvas.height);
-            // console.log(this.canvasWrapper.drawingHeight);
-            // console.log(this.canvasWrapper.canvas.height - this.canvasWrapper.drawingHeight);
-            // console.log((this.canvasWrapper.canvas.height - this.canvasWrapper.drawingHeight)/2);
-            // console.log(parseInt(e.clientY - offsetY - ((this.canvasWrapper.canvas.height - this.canvasWrapper.drawingHeight)/2) + this.canvasWrapper.offsetY + (this.canvasWrapper.drawingHeight)));
-            // console.log('edge ' + this.graph.edges[i].id);
+            console.log('edge ' + this.graph.edges[i].id);
             let vertexA = this.graph.vertices[this.graph.edges[i].sourceId];
             let vertexB = this.graph.vertices[this.graph.edges[i].targetId];
             if (!vertexA || !vertexB) {
@@ -3076,42 +3069,93 @@ class Drawer {
             }
             let a = vertexA.position;
             let b = vertexB.position;
+            var scaleX = this.canvasWrapper.canvas.offsetWidth / this.canvasWrapper.drawingWidth;
+            var scaleY = this.canvasWrapper.canvas.offsetHeight / this.canvasWrapper.drawingHeight;
+            var scale = (scaleX < scaleY) ? scaleX : scaleY;
+            console.log("scale " + scaleX + " " + scaleY + " " + scale);
+
             let normals = this.getEdgeNormals(this.graph.edges[i]);
-            // console.log(vertexA.position + " " + vertexB.position);
-            let line = new Line(a, b);
+            console.log(vertexA.position + " " + vertexB.position);
+            let line = new Line(a, b, null, null, false, false, true);
             let l = line.getLeftVector().clone();
             let r = line.getRightVector().clone();
             l.x += this.canvasWrapper.offsetX;
             l.y += this.canvasWrapper.offsetY;
             r.x += this.canvasWrapper.offsetX;
             r.y += this.canvasWrapper.offsetY;
-            // console.log("offset " + this.canvasWrapper.canvas.offsetWidth + " " + this.canvasWrapper.offsetHeight);
-            // console.log("offset " + this.canvasWrapper.offsetY + " " + this.canvasWrapper.offsetX);
-            // console.log("mouse " + mouseX + " " + mouseY);
-            // console.log("line " + l + " " + r);
-            // console.log("dr width " + this.canvasWrapper.drawingWidth);
-            // console.log("dr height " + this.canvasWrapper.drawingHeight);
-            // if (mouseX < l.x || mouseX > r.x) {
-            //     console.log("Outside");
-            //     continue;
-            // }
+            let leftPoint = l;
+            let rightPoint = r;
+            r.x *= scale;
+            r.y *= scale;
+            l.x *= scale;
+            l.y *= scale;
+
+            console.log("offset " + this.canvasWrapper.canvas.offsetWidth + " " + this.canvasWrapper.offsetHeight);
+            console.log("offset " + this.canvasWrapper.offsetX + " " + this.canvasWrapper.offsetY);
+            console.log("mouse " + mouseX + " " + mouseY);
+            console.log("line " + l + " " + r);
+            console.log("c width " + this.canvasWrapper.realWidth);
+            console.log("c height " + this.canvasWrapper.realHeight);
+            console.log("dr width " + this.canvasWrapper.drawingWidth);
+            console.log("dr height " + this.canvasWrapper.drawingHeight);
+            if (mouseX < l.x || mouseX > r.x) {
+                console.log("Outside");
+                continue;
+            }
+            console.log("Maybe Inside");
+            let tolerance = 15;
+            let linePoint = this.linepointNearestMouse(l, r, mouseX, mouseY);
+            let dx = mouseX - linePoint.x;
+            let dy = mouseY - linePoint.y;
+            let distance = Math.abs(Math.sqrt(dx * dx + dy * dy));
+            if (distance < tolerance) {
+                console.log("Inside");
+                // this.canvasWrapper.ctx.beginPath();
+                // linePoint.x += this.canvasWrapper.offsetX;
+                // linePoint.y += this.canvasWrapper.offsetY;
+                console.log("lineN " + leftPoint + " " + rightPoint);
+                // l.x += this.canvasWrapper.offsetX;
+                // l.y += this.canvasWrapper.offsetY;
+                // r.x += this.canvasWrapper.offsetX;
+                // r.y += this.canvasWrapper.offsetY;
+
+                this.graph.edges[i].isDecay = true;
+                this.drawEdge(this.graph.edges[i].id, false);
+                // this.canvasWrapper.drawLine(line);
+                // this.canvasWrapper.ctx.save();
+                // this.canvasWrapper.ctx.beginPath();
+                // this.canvasWrapper.ctx.moveTo(l.x, l.y);
+                // this.canvasWrapper.ctx.lineTo(r.x, r.y);
+                // this.canvasWrapper.ctx.lineCap = 'round';
+                // this.canvasWrapper.ctx.lineWidth = this.canvasWrapper.opts.bondThickness;
+                // let gradient = this.canvasWrapper.ctx.createLinearGradient(l.x, l.y, r.x, r.y);
+                // gradient.addColorStop(0.8, this.canvasWrapper.getColor("DECAY"));
+                // this.canvasWrapper.ctx.strokeStyle = gradient;
+                // this.canvasWrapper.ctx.stroke();
+                // this.canvasWrapper.ctx.restore();
+                // this.canvasWrapper.ctx.arc(linePoint.x, linePoint.y, tolerance, 0, Math.PI * 2);
+                // this.canvasWrapper.ctx.closePath();
+                // this.canvasWrapper.ctx.fill();
+                break;
+            } else {
+                console.log("Outside");
+            }
         }
-        // if (pos.x< line.x0 || mouseX > line.x1) {
-        //     draw(line);
-        //     return;
-        // }
-        // var linepoint = linepointNearestMouse(line, mouseX, mouseY);
-        // var dx = mouseX - linepoint.x;
-        // var dy = mouseY - linepoint.y;
-        // var distance = Math.abs(Math.sqrt(dx * dx + dy * dy));
-        // if (distance < tolerance) {
-        //     console.log("Inside");
-        //     draw(line, mouseX, mouseY, linepoint.x, linepoint.y);
-        // } else {
-        //     console.log("Outside");
-        //     draw(line);
-        // }
     }
+
+    linepointNearestMouse(vertexA, vertexB, x, y) {
+        var dx = vertexB.x - vertexA.x;
+        var dy = vertexB.y - vertexA.y;
+        var t = ((x - vertexA.x) * dx + (y - vertexA.y) * dy) / (dx * dx + dy * dy);
+        var lineX = this.lerp(vertexA.x, vertexB.x, t);
+        var lineY = this.lerp(vertexA.y, vertexB.y, t);
+        return ({x: lineX, y: lineY});
+    }
+
+    lerp(a, b, x) {
+        return (a + x * (b - a));
+    };
+
 }
 
 module.exports = Drawer;
