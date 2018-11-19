@@ -3120,7 +3120,7 @@ class Drawer {
                 rightPoint.x += this.canvasWrapper.offsetX * scale2;
                 rightPoint.y += this.canvasWrapper.offsetY * scale2;
 
-                this.graph.edges[i].isDecay = true;
+                this.graph.edges[i].isDecay = !this.graph.edges[i].isDecay;
                 this.canvasWrapper.updateSize(this.opts.width, this.opts.height);
                 this.canvasWrapper.scale(this.graph.vertices);
                 this.drawEdges(this.opts.debug);
