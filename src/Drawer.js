@@ -3072,6 +3072,10 @@ class Drawer {
             var scaleX = this.canvasWrapper.canvas.offsetWidth / this.canvasWrapper.drawingWidth;
             var scaleY = this.canvasWrapper.canvas.offsetHeight / this.canvasWrapper.drawingHeight;
             var scale = (scaleX < scaleY) ? scaleX : scaleY;
+            var scale2X = this.canvasWrapper.canvas.offsetWidth / this.canvasWrapper.drawingWidth;
+            var scale2Y = this.canvasWrapper.canvas.offsetHeight / this.canvasWrapper.drawingHeight;
+
+            var scale2 = (scale2X < scale2Y) ? scale2X : scale2Y;
             console.log("scale " + scaleX + " " + scaleY + " " + scale);
 
             let normals = this.getEdgeNormals(this.graph.edges[i]);
@@ -3110,32 +3114,18 @@ class Drawer {
             let distance = Math.abs(Math.sqrt(dx * dx + dy * dy));
             if (distance < tolerance) {
                 console.log("Inside");
-                // this.canvasWrapper.ctx.beginPath();
-                // linePoint.x += this.canvasWrapper.offsetX;
-                // linePoint.y += this.canvasWrapper.offsetY;
                 console.log("lineN " + leftPoint + " " + rightPoint);
-                // l.x += this.canvasWrapper.offsetX;
-                // l.y += this.canvasWrapper.offsetY;
-                // r.x += this.canvasWrapper.offsetX;
-                // r.y += this.canvasWrapper.offsetY;
+                leftPoint.x += this.canvasWrapper.offsetX * scale2;
+                leftPoint.y += this.canvasWrapper.offsetY * scale2;
+                rightPoint.x += this.canvasWrapper.offsetX * scale2;
+                rightPoint.y += this.canvasWrapper.offsetY * scale2;
 
                 this.graph.edges[i].isDecay = true;
-                this.drawEdge(this.graph.edges[i].id, false);
-                // this.canvasWrapper.drawLine(line);
-                // this.canvasWrapper.ctx.save();
-                // this.canvasWrapper.ctx.beginPath();
-                // this.canvasWrapper.ctx.moveTo(l.x, l.y);
-                // this.canvasWrapper.ctx.lineTo(r.x, r.y);
-                // this.canvasWrapper.ctx.lineCap = 'round';
-                // this.canvasWrapper.ctx.lineWidth = this.canvasWrapper.opts.bondThickness;
-                // let gradient = this.canvasWrapper.ctx.createLinearGradient(l.x, l.y, r.x, r.y);
-                // gradient.addColorStop(0.8, this.canvasWrapper.getColor("DECAY"));
-                // this.canvasWrapper.ctx.strokeStyle = gradient;
-                // this.canvasWrapper.ctx.stroke();
-                // this.canvasWrapper.ctx.restore();
-                // this.canvasWrapper.ctx.arc(linePoint.x, linePoint.y, tolerance, 0, Math.PI * 2);
-                // this.canvasWrapper.ctx.closePath();
-                // this.canvasWrapper.ctx.fill();
+                this.canvasWrapper.updateSize(this.opts.width, this.opts.height);
+                this.canvasWrapper.scale(this.graph.vertices);
+                this.drawEdges(this.opts.debug);
+                this.drawVertices(this.opts.debug);
+                this.canvasWrapper.reset();
                 break;
             } else {
                 console.log("Outside");
