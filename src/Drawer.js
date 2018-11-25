@@ -1365,7 +1365,6 @@ class Drawer {
                 let edgeId = edges[i];
                 if (!drawn[edgeId]) {
                     drawn[edgeId] = true;
-                    console.log("draw Edge id: " + edgeId);
                     that.drawEdge(edgeId, debug);
                 }
             }
@@ -3044,6 +3043,13 @@ class Drawer {
         }
     }
 
+
+    /**
+     * Find edge and mark it as decay point and redraw graph
+     * @param e event
+     * @param offsetX offset of canvas in page X. Typically canvas.offsetLeft
+     * @param offsetY offset of canvas in page Y. Typically canvas.offsetTop
+     */
     handleMouseClick(e, offsetX, offsetY) {
         if (!this.opts.drawDecayPoints) {
             return;
@@ -3053,9 +3059,14 @@ class Drawer {
         if (!this.graph) {
             return;
         }
-        this.findAndReDrawEdge(parseInt(e.clientX - offsetX), parseInt(e.clientY - offsetY));
+        this.findAndReDrawEdge(e.clientX - offsetX, e.clientY - offsetY);
     }
 
+    /**
+     * Find edge which was clicked, mark edge as decay point and redraw graph
+     * @param mouseX mouse positionX - offsetX
+     * @param mouseY mouse positionY - offsetY
+     */
     findAndReDrawEdge(mouseX, mouseY) {
         for (let i = 0; i < this.graph.edges.length; ++i) {
             let vertexA = this.graph.vertices[this.graph.edges[i].sourceId];
@@ -3068,21 +3079,20 @@ class Drawer {
             let l = this.computeEdgeLeftPoint(line, scale);
             let r = this.computeEdgeRightPoint(line, scale);
             if (mouseX < l.x - this.opts.mouseTolerance || mouseX > r.x + this.opts.mouseTolerance) {
-                console.log("Outside");
                 continue;
             }
-            console.log("Maybe Inside");
             if ((mouseY > l.y - this.opts.mouseTolerance && mouseY < r.y + this.opts.mouseTolerance)
                 || (mouseY > r.y - this.opts.mouseTolerance && mouseY < l.y + this.opts.mouseTolerance)) {
-                console.log("Inside");
                 this.reDrawGraphWithEdgeAsDecay(i);
                 break;
-            } else {
-                console.log("Outside");
             }
         }
     }
 
+    /**
+     * Make edge decay point and redraw graph
+     * @param {Number} edgeId
+     */
     reDrawGraphWithEdgeAsDecay(edgeId) {
         this.graph.edges[edgeId].isDecay = !this.graph.edges[edgeId].isDecay;
         this.canvasWrapper.updateSize(this.opts.width, this.opts.height);
@@ -3092,20 +3102,43 @@ class Drawer {
         this.canvasWrapper.reset();
     }
 
+    /**
+     * Compute scale of canvas
+     * @return {number} scale
+     */
     computeScale() {
         let scaleX = this.canvasWrapper.canvas.offsetWidth / this.canvasWrapper.drawingWidth;
         let scaleY = this.canvasWrapper.canvas.offsetHeight / this.canvasWrapper.drawingHeight;
         return (scaleX < scaleY) ? scaleX : scaleY;
     }
 
+    /**
+     * Compute left point of edge for compare
+     * @param {Line} line
+     * @param {Number} scale
+     * @return {Vector2} point
+     */
     computeEdgeLeftPoint(line, scale) {
         return this.computeEdgePoint(line.getLeftVector().clone(), scale);
     }
 
+    /**
+     * Compute right point of edge for compare
+     * @param {Line} line
+     * @param {Number} scale
+     * @return {Vector2} point
+     */
     computeEdgeRightPoint(line, scale) {
         return this.computeEdgePoint(line.getRightVector().clone(), scale);
     }
 
+    /**
+     * Compute point coordinates for compare
+     * add offset to coordinates and multiply coordinates with scale
+     * @param {Vector2} point
+     * @param {Number} scale
+     * @return {Vector2} point
+     */
     computeEdgePoint(point, scale) {
         point.x += this.canvasWrapper.offsetX;
         point.y += this.canvasWrapper.offsetY;
