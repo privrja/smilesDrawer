@@ -58,6 +58,7 @@ class Drawer {
             fontSizeSmall: 3,
             padding: 20.0,
             drawDecayPoints: false,
+            mouseTolerance: 3,
             themes: {
                 dark: {
                     C: '#fff',
@@ -3043,78 +3044,74 @@ class Drawer {
         }
     }
 
-    // handle mousemove events
-    // calculate how close the mouse is to the line
-    // if that distance is less than tolerance then
-    // display a dot on the line
-    handleMousemove(e, offsetX, offsetY) {
-        let tolerance = 3;
+    handleMouseClick(e, offsetX, offsetY) {
+        if (!this.opts.drawDecayPoints) {
+            return;
+        }
+        e.preventDefault();
+        e.stopPropagation();
         if (!this.graph) {
             return;
         }
+        this.findAndReDrawEdge(parseInt(e.clientX - offsetX), parseInt(e.clientY - offsetY));
+    }
 
-        e.preventDefault();
-        e.stopPropagation();
-
-        // console.log(offsetX + " " + offsetY);
-        let mouseX;
-        let mouseY;
-
+    findAndReDrawEdge(mouseX, mouseY) {
         for (let i = 0; i < this.graph.edges.length; ++i) {
-            mouseX = parseInt(e.clientX - offsetX);
-            mouseY = parseInt(e.clientY - offsetY);
-            console.log('edge ' + this.graph.edges[i].id);
             let vertexA = this.graph.vertices[this.graph.edges[i].sourceId];
             let vertexB = this.graph.vertices[this.graph.edges[i].targetId];
             if (!vertexA || !vertexB) {
                 continue;
             }
-            let a = vertexA.position;
-            let b = vertexB.position;
-            let scaleX = this.canvasWrapper.canvas.offsetWidth / this.canvasWrapper.drawingWidth;
-            let scaleY = this.canvasWrapper.canvas.offsetHeight / this.canvasWrapper.drawingHeight;
-            let scale = (scaleX < scaleY) ? scaleX : scaleY;
-            console.log("scale " + scaleX + " " + scaleY + " " + scale);
-
-            console.log(vertexA.position + " " + vertexB.position);
-            let line = new Line(a, b, null, null, false, false, true);
-            let l = line.getLeftVector().clone();
-            let r = line.getRightVector().clone();
-            l.x += this.canvasWrapper.offsetX;
-            l.y += this.canvasWrapper.offsetY;
-            r.x += this.canvasWrapper.offsetX;
-            r.y += this.canvasWrapper.offsetY;
-            r.x *= scale;
-            r.y *= scale;
-            l.x *= scale;
-            l.y *= scale;
-
-            console.log("offset " + this.canvasWrapper.canvas.offsetWidth + " " + this.canvasWrapper.offsetHeight);
-            console.log("offset " + this.canvasWrapper.offsetX + " " + this.canvasWrapper.offsetY);
-            console.log("mouse " + mouseX + " " + mouseY);
-            console.log("line " + l + " " + r);
-            console.log("c width " + this.canvasWrapper.realWidth);
-            console.log("c height " + this.canvasWrapper.realHeight);
-            console.log("dr width " + this.canvasWrapper.drawingWidth);
-            console.log("dr height " + this.canvasWrapper.drawingHeight);
-            if (mouseX < l.x - tolerance || mouseX > r.x + tolerance) {
+            let scale = this.computeScale();
+            let line = new Line(vertexA.position, vertexB.position, null, null, false, false, true);
+            let l = this.computeEdgeLeftPoint(line, scale);
+            let r = this.computeEdgeRightPoint(line, scale);
+            if (mouseX < l.x - this.opts.mouseTolerance || mouseX > r.x + this.opts.mouseTolerance) {
                 console.log("Outside");
                 continue;
             }
             console.log("Maybe Inside");
-            if ((mouseY > l.y - tolerance && mouseY < r.y + tolerance) || (mouseY > r.y - tolerance && mouseY < l.y + tolerance)) {
+            if ((mouseY > l.y - this.opts.mouseTolerance && mouseY < r.y + this.opts.mouseTolerance)
+                || (mouseY > r.y - this.opts.mouseTolerance && mouseY < l.y + this.opts.mouseTolerance)) {
                 console.log("Inside");
-                this.graph.edges[i].isDecay = !this.graph.edges[i].isDecay;
-                this.canvasWrapper.updateSize(this.opts.width, this.opts.height);
-                this.canvasWrapper.scale(this.graph.vertices);
-                this.drawEdges(this.opts.debug);
-                this.drawVertices(this.opts.debug);
-                this.canvasWrapper.reset();
+                this.reDrawGraphWithEdgeAsDecay(i);
                 break;
             } else {
                 console.log("Outside");
             }
         }
+    }
+
+    reDrawGraphWithEdgeAsDecay(edgeId) {
+        this.graph.edges[edgeId].isDecay = !this.graph.edges[edgeId].isDecay;
+        this.canvasWrapper.updateSize(this.opts.width, this.opts.height);
+        this.canvasWrapper.scale(this.graph.vertices);
+        this.drawEdges(this.opts.debug);
+        this.drawVertices(this.opts.debug);
+        this.canvasWrapper.reset();
+    }
+
+    computeScale() {
+        let scaleX = this.canvasWrapper.canvas.offsetWidth / this.canvasWrapper.drawingWidth;
+        let scaleY = this.canvasWrapper.canvas.offsetHeight / this.canvasWrapper.drawingHeight;
+        return (scaleX < scaleY) ? scaleX : scaleY;
+    }
+
+    computeEdgeLeftPoint(line, scale) {
+        return this.computeEdgePoint(line.getLeftVector().clone(), scale);
+    }
+
+    computeEdgeRightPoint(line, scale) {
+        return this.computeEdgePoint(line.getRightVector().clone(), scale);
+    }
+
+    computeEdgePoint(point, scale) {
+        point.x += this.canvasWrapper.offsetX;
+        point.y += this.canvasWrapper.offsetY;
+        point.x *= scale;
+        point.y *= scale;
+        return point;
     }
 }
 
