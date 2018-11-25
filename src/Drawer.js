@@ -1364,6 +1364,7 @@ class Drawer {
                 let edgeId = edges[i];
                 if (!drawn[edgeId]) {
                     drawn[edgeId] = true;
+                    console.log("draw Edge id: " + edgeId);
                     that.drawEdge(edgeId, debug);
                 }
             }
@@ -3047,6 +3048,7 @@ class Drawer {
     // if that distance is less than tolerance then
     // display a dot on the line
     handleMousemove(e, offsetX, offsetY) {
+        let tolerance = 3;
         if (!this.graph) {
             return;
         }
@@ -3069,16 +3071,11 @@ class Drawer {
             }
             let a = vertexA.position;
             let b = vertexB.position;
-            var scaleX = this.canvasWrapper.canvas.offsetWidth / this.canvasWrapper.drawingWidth;
-            var scaleY = this.canvasWrapper.canvas.offsetHeight / this.canvasWrapper.drawingHeight;
-            var scale = (scaleX < scaleY) ? scaleX : scaleY;
-            var scale2X = this.canvasWrapper.canvas.offsetWidth / this.canvasWrapper.drawingWidth;
-            var scale2Y = this.canvasWrapper.canvas.offsetHeight / this.canvasWrapper.drawingHeight;
-
-            var scale2 = (scale2X < scale2Y) ? scale2X : scale2Y;
+            let scaleX = this.canvasWrapper.canvas.offsetWidth / this.canvasWrapper.drawingWidth;
+            let scaleY = this.canvasWrapper.canvas.offsetHeight / this.canvasWrapper.drawingHeight;
+            let scale = (scaleX < scaleY) ? scaleX : scaleY;
             console.log("scale " + scaleX + " " + scaleY + " " + scale);
 
-            let normals = this.getEdgeNormals(this.graph.edges[i]);
             console.log(vertexA.position + " " + vertexB.position);
             let line = new Line(a, b, null, null, false, false, true);
             let l = line.getLeftVector().clone();
@@ -3087,8 +3084,6 @@ class Drawer {
             l.y += this.canvasWrapper.offsetY;
             r.x += this.canvasWrapper.offsetX;
             r.y += this.canvasWrapper.offsetY;
-            let leftPoint = l;
-            let rightPoint = r;
             r.x *= scale;
             r.y *= scale;
             l.x *= scale;
@@ -3102,24 +3097,13 @@ class Drawer {
             console.log("c height " + this.canvasWrapper.realHeight);
             console.log("dr width " + this.canvasWrapper.drawingWidth);
             console.log("dr height " + this.canvasWrapper.drawingHeight);
-            if (mouseX < l.x || mouseX > r.x) {
+            if (mouseX < l.x - tolerance || mouseX > r.x + tolerance) {
                 console.log("Outside");
                 continue;
             }
             console.log("Maybe Inside");
-            let tolerance = 15;
-            let linePoint = this.linepointNearestMouse(l, r, mouseX, mouseY);
-            let dx = mouseX - linePoint.x;
-            let dy = mouseY - linePoint.y;
-            let distance = Math.abs(Math.sqrt(dx * dx + dy * dy));
-            if (distance < tolerance) {
+            if ((mouseY > l.y - tolerance && mouseY < r.y + tolerance) || (mouseY > r.y - tolerance && mouseY < l.y + tolerance)) {
                 console.log("Inside");
-                console.log("lineN " + leftPoint + " " + rightPoint);
-                leftPoint.x += this.canvasWrapper.offsetX * scale2;
-                leftPoint.y += this.canvasWrapper.offsetY * scale2;
-                rightPoint.x += this.canvasWrapper.offsetX * scale2;
-                rightPoint.y += this.canvasWrapper.offsetY * scale2;
-
                 this.graph.edges[i].isDecay = !this.graph.edges[i].isDecay;
                 this.canvasWrapper.updateSize(this.opts.width, this.opts.height);
                 this.canvasWrapper.scale(this.graph.vertices);
@@ -3132,20 +3116,6 @@ class Drawer {
             }
         }
     }
-
-    linepointNearestMouse(vertexA, vertexB, x, y) {
-        var dx = vertexB.x - vertexA.x;
-        var dy = vertexB.y - vertexA.y;
-        var t = ((x - vertexA.x) * dx + (y - vertexA.y) * dy) / (dx * dx + dy * dy);
-        var lineX = this.lerp(vertexA.x, vertexB.x, t);
-        var lineY = this.lerp(vertexA.y, vertexB.y, t);
-        return ({x: lineX, y: lineY});
-    }
-
-    lerp(a, b, x) {
-        return (a + x * (b - a));
-    };
-
 }
 
 module.exports = Drawer;

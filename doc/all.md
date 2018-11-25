@@ -515,6 +515,8 @@ A class wrapping a canvas element.
 | opts | <code>Object</code> | The SmilesDrawer options. |
 | drawingWidth | <code>Number</code> | The width of the canvas. |
 | drawingHeight | <code>Number</code> | The height of the canvas. |
+| realWidth | <code>Number</code> | The width of the canvas real. |
+| realHeight | <code>Number</code> | The height of the canvas real. |
 | offsetX | <code>Number</code> | The horizontal offset required for centering the drawing. |
 | offsetY | <code>Number</code> | The vertical offset required for centering the drawing. |
 | fontLarge | <code>Number</code> | The large font size in pt. |
@@ -846,6 +848,7 @@ The main class of the application representing the smiles drawer
     * [.annotateStereochemistry()](#Drawer+annotateStereochemistry)
     * [.visitStereochemistry(vertexId, previousVertexId, visited, priority, maxDepth, depth)](#Drawer+visitStereochemistry)
     * [.initPseudoElements()](#Drawer+initPseudoElements)
+    * [.reDraw()](#Drawer+reDraw)
 
 <a name="new_Drawer_new"></a>
 
@@ -1513,6 +1516,12 @@ Annotaed stereochemistry information for visualization.
 
 ### drawer.initPseudoElements()
 Creates pseudo-elements (such as Et, Me, Ac, Bz, ...) at the position of the carbon setsthe involved atoms not to be displayed.
+
+**Kind**: instance method of <code>[Drawer](#Drawer)</code>  
+<a name="Drawer+reDraw"></a>
+
+### drawer.reDraw()
+Draws the parsed smiles data to a canvas element.
 
 **Kind**: instance method of <code>[Drawer](#Drawer)</code>  
 <a name="Edge"></a>

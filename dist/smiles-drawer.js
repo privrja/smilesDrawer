@@ -3767,6 +3767,7 @@ var Drawer = function () {
                     var edgeId = edges[i];
                     if (!drawn[edgeId]) {
                         drawn[edgeId] = true;
+                        console.log("draw Edge id: " + edgeId);
                         that.drawEdge(edgeId, debug);
                     }
                 }
@@ -5521,6 +5522,7 @@ var Drawer = function () {
     }, {
         key: 'handleMousemove',
         value: function handleMousemove(e, offsetX, offsetY) {
+            var tolerance = 3;
             if (!this.graph) {
                 return;
             }
@@ -5548,7 +5550,6 @@ var Drawer = function () {
                 var scale = scaleX < scaleY ? scaleX : scaleY;
                 console.log("scale " + scaleX + " " + scaleY + " " + scale);
 
-                var normals = this.getEdgeNormals(this.graph.edges[i]);
                 console.log(vertexA.position + " " + vertexB.position);
                 var line = new Line(a, b, null, null, false, false, true);
                 var l = line.getLeftVector().clone();
@@ -5557,8 +5558,6 @@ var Drawer = function () {
                 l.y += this.canvasWrapper.offsetY;
                 r.x += this.canvasWrapper.offsetX;
                 r.y += this.canvasWrapper.offsetY;
-                var leftPoint = l;
-                var rightPoint = r;
                 r.x *= scale;
                 r.y *= scale;
                 l.x *= scale;
@@ -5572,64 +5571,24 @@ var Drawer = function () {
                 console.log("c height " + this.canvasWrapper.realHeight);
                 console.log("dr width " + this.canvasWrapper.drawingWidth);
                 console.log("dr height " + this.canvasWrapper.drawingHeight);
-                if (mouseX < l.x || mouseX > r.x) {
+                if (mouseX < l.x - tolerance || mouseX > r.x + tolerance) {
                     console.log("Outside");
                     continue;
                 }
                 console.log("Maybe Inside");
-                var tolerance = 15;
-                var linePoint = this.linepointNearestMouse(l, r, mouseX, mouseY);
-                var dx = mouseX - linePoint.x;
-                var dy = mouseY - linePoint.y;
-                var distance = Math.abs(Math.sqrt(dx * dx + dy * dy));
-                if (distance < tolerance) {
+                if (mouseY > l.y - tolerance && mouseY < r.y + tolerance || mouseY > r.y - tolerance && mouseY < l.y + tolerance) {
                     console.log("Inside");
-                    // this.canvasWrapper.ctx.beginPath();
-                    // linePoint.x += this.canvasWrapper.offsetX;
-                    // linePoint.y += this.canvasWrapper.offsetY;
-                    console.log("lineN " + leftPoint + " " + rightPoint);
-                    // l.x += this.canvasWrapper.offsetX;
-                    // l.y += this.canvasWrapper.offsetY;
-                    // r.x += this.canvasWrapper.offsetX;
-                    // r.y += this.canvasWrapper.offsetY;
-
-                    this.graph.edges[i].isDecay = true;
-                    this.drawEdge(this.graph.edges[i].id);
-                    // this.canvasWrapper.drawLine(line);
-                    // this.canvasWrapper.ctx.save();
-                    // this.canvasWrapper.ctx.beginPath();
-                    // this.canvasWrapper.ctx.moveTo(l.x, l.y);
-                    // this.canvasWrapper.ctx.lineTo(r.x, r.y);
-                    // this.canvasWrapper.ctx.lineCap = 'round';
-                    // this.canvasWrapper.ctx.lineWidth = this.canvasWrapper.opts.bondThickness;
-                    // let gradient = this.canvasWrapper.ctx.createLinearGradient(l.x, l.y, r.x, r.y);
-                    // gradient.addColorStop(0.8, this.canvasWrapper.getColor("DECAY"));
-                    // this.canvasWrapper.ctx.strokeStyle = gradient;
-                    // this.canvasWrapper.ctx.stroke();
-                    // this.canvasWrapper.ctx.restore();
-                    // this.canvasWrapper.ctx.arc(linePoint.x, linePoint.y, tolerance, 0, Math.PI * 2);
-                    // this.canvasWrapper.ctx.closePath();
-                    // this.canvasWrapper.ctx.fill();
+                    this.graph.edges[i].isDecay = !this.graph.edges[i].isDecay;
+                    this.canvasWrapper.updateSize(this.opts.width, this.opts.height);
+                    this.canvasWrapper.scale(this.graph.vertices);
+                    this.drawEdges(this.opts.debug);
+                    this.drawVertices(this.opts.debug);
+                    this.canvasWrapper.reset();
                     break;
                 } else {
                     console.log("Outside");
                 }
             }
-        }
-    }, {
-        key: 'linepointNearestMouse',
-        value: function linepointNearestMouse(vertexA, vertexB, x, y) {
-            var dx = vertexB.x - vertexA.x;
-            var dy = vertexB.y - vertexA.y;
-            var t = ((x - vertexA.x) * dx + (y - vertexA.y) * dy) / (dx * dx + dy * dy);
-            var lineX = this.lerp(vertexA.x, vertexB.x, t);
-            var lineY = this.lerp(vertexA.y, vertexB.y, t);
-            return { x: lineX, y: lineY };
-        }
-    }, {
-        key: 'lerp',
-        value: function lerp(a, b, x) {
-            return a + x * (b - a);
         }
     }]);
 
