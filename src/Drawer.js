@@ -3043,6 +3043,9 @@ class Drawer {
         }
     }
 
+    buildBlockSmiles() {
+        this.graph.buildSmiles();
+    }
 
     /**
      * Find edge and mark it as decay point and redraw graph
