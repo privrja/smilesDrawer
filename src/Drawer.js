@@ -3094,31 +3094,13 @@ class Drawer {
      * @param {Number} edgeId
      */
     reDrawGraphWithEdgeAsDecay(edgeId) {
-        this.revertEdgeDecayPoint(edgeId);
+        this.graph.revertEdgeDecayPoint(edgeId);
         this.canvasWrapper.updateSize(this.opts.width, this.opts.height);
         this.canvasWrapper.scale(this.graph.vertices);
         this.drawEdges(this.opts.debug);
         this.drawVertices(this.opts.debug);
         this.canvasWrapper.reset();
         console.log(this.graph);
-    }
-
-    /**
-     * Revert decay point value and update list of decay points
-     * when edge isn't decay point -> change mark edge as decay point and add edge to decays list
-     * when edge is decay point -> unmark edge as decay point and remove edgeId from list of decays
-     * @param edgeId
-     */
-    revertEdgeDecayPoint(edgeId) {
-        this.graph.edges[edgeId].isDecay = !this.graph.edges[edgeId].isDecay;
-        if (this.graph.edges[edgeId].isDecay) {
-            this.graph.decays.push(edgeId);
-        } else {
-            let index = this.graph.decays.indexOf(edgeId);
-            if (index > -1) {
-                this.graph.decays.splice(index, 1);
-            }
-        }
     }
 
     /**

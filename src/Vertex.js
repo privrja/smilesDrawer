@@ -3,6 +3,7 @@ const MathHelper = require('./MathHelper')
 const ArrayHelper = require('./ArrayHelper')
 const Vector2 = require('./Vector2')
 const Atom = require('./Atom')
+const VertexState = require('./VertexState')
 
 /** 
  * A class representing a vertex.
@@ -48,6 +49,7 @@ class Vertex {
     this.neighbours = Array();
     this.neighbouringElements = Array();
     this.forcePositioned = false;
+    this.vertexState = VertexState.VALUES.NOT_FOUND;
   }
 
   /**

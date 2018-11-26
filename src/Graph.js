@@ -6,6 +6,7 @@ const Vertex = require('./Vertex')
 const Edge = require('./Edge')
 const Ring = require('./Ring')
 const Atom = require('./Atom')
+const VertexState = require('./VertexState')
 
 /**
  * A class representing the molecular graph.
@@ -1027,6 +1028,67 @@ class Graph {
       Graph._ccGetDfs(v, visited, adjacencyMatrix, component);
     }
   }
+
+    /**
+     * Revert decay point value and update list of decay points
+     * when edge isn't decay point -> change mark edge as decay point and add edge to decays list
+     * when edge is decay point -> unmark edge as decay point and remove edgeId from list of decays
+     * @param edgeId
+     */
+    revertEdgeDecayPoint(edgeId) {
+        this.edges[edgeId].isDecay = !this.edges[edgeId].isDecay;
+        if (this.edges[edgeId].isDecay) {
+            this.decays.push(edgeId);
+        } else {
+            let index = this.decays.indexOf(edgeId);
+            if (index > -1) {
+                this.decays.splice(index, 1);
+            }
+        }
+    }
+
+    buildSmiles() {
+      this.dfsSmilesInitialization();
+      this.dfsBuildSmilesStart();
+    }
+
+    dfsSmilesInitialization() {
+      for (let i = 0; i < this.vertices.length; ++i) {
+        this.vertices[i].vertexState = VertexState.VALUES.NOT_FOUND;
+      }
+    }
+
+    dfsBuildSmilesStart() {
+      for (let i = 0; i < this.decays.length; ++i) {
+        let edge = this.edges[this.decays[i]];
+        let sourceVertex = this.vertices[edge.sourceId];
+        this.dfsSmiles(sourceVertex);
+        let targetVertex = this.vertices[edge.sourceId];
+        this.dfsSmiles(targetVertex);
+        }
+    }
+
+    dfsSmiles(vertex) {
+      if (vertex.vertexState !== NOT_FOUND) { return; }
+      // print value
+      vertex.vertexState = VertexState.VALUES.OPEN;
+      let lastVertexId = vertex.edges.length - 1;
+      for (let i = 0; i < vertex.edges.length; ++i) {
+        // print (
+        let edge = this.edges[vertex.edges[i]];
+        // print edge bond type
+        this.dfsSmiles(this.getRightVertex(vertex.id, edge.sourceId, edge.targetId));
+        //print )
+      }
+      vertex.vertexState = VertexState.VALUES.CLOSED;
+    }
+
+
+    getRightVertex(vertexId, sourceId, targetId) {
+      if (vertexId === sourceId) return targetId;
+      else return sourceId;
+    }
+
 }
 
 module.exports = Graph
