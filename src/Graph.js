@@ -12,6 +12,7 @@ const Atom = require('./Atom')
  *
  * @property {Vertex[]} vertices The vertices of the graph.
  * @property {Edge[]} edges The edges of this graph.
+ * @property {Number[]} decays The id of edges marked as decay point of this graph.
  * @property {Object} vertexIdsToEdgeId A map mapping vertex ids to the edge between the two vertices. The key is defined as vertexAId + '_' + vertexBId.
  * @property {Boolean} isometric A boolean indicating whether or not the SMILES associated with this graph is isometric.
  */
@@ -25,6 +26,7 @@ class Graph {
   constructor(parseTree, isomeric = false) {
     this.vertices = Array();
     this.edges = Array();
+    this.decays = Array();
     this.vertexIdsToEdgeId = {};
     this.isomeric = isomeric;
 
@@ -32,6 +34,7 @@ class Graph {
     this._time = 0;
     this._init(parseTree);
     this.findDecayPoints();
+    console.log(this);
   }
 
   /**
@@ -126,6 +129,7 @@ class Graph {
         let dec = this.isDecayPoint(this.edges[i].sourceId, this.edges[i].targetId, i);
         if (dec !== false) {
             this.edges[dec].setDecay(true);
+            this.decays.push(dec);
         }
       }
     }
