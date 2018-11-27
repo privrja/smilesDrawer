@@ -5511,6 +5511,11 @@ var Drawer = function () {
                 }
             }
         }
+    }, {
+        key: 'buildBlockSmiles',
+        value: function buildBlockSmiles() {
+            this.graph.buildSmiles();
+        }
 
         /**
          * Find edge and mark it as decay point and redraw graph
@@ -5570,12 +5575,13 @@ var Drawer = function () {
     }, {
         key: 'reDrawGraphWithEdgeAsDecay',
         value: function reDrawGraphWithEdgeAsDecay(edgeId) {
-            this.graph.edges[edgeId].isDecay = !this.graph.edges[edgeId].isDecay;
+            this.graph.revertEdgeDecayPoint(edgeId);
             this.canvasWrapper.updateSize(this.opts.width, this.opts.height);
             this.canvasWrapper.scale(this.graph.vertices);
             this.drawEdges(this.opts.debug);
             this.drawVertices(this.opts.debug);
             this.canvasWrapper.reset();
+            console.log(this.graph);
         }
 
         /**
@@ -5752,1169 +5758,1380 @@ var Vertex = require('./Vertex');
 var Edge = require('./Edge');
 var Ring = require('./Ring');
 var Atom = require('./Atom');
+var VertexState = require('./VertexState');
 
 /**
  * A class representing the molecular graph.
  *
  * @property {Vertex[]} vertices The vertices of the graph.
  * @property {Edge[]} edges The edges of this graph.
+ * @property {Number[]} decays The id of edges marked as decay point of this graph.
  * @property {Object} vertexIdsToEdgeId A map mapping vertex ids to the edge between the two vertices. The key is defined as vertexAId + '_' + vertexBId.
  * @property {Boolean} isometric A boolean indicating whether or not the SMILES associated with this graph is isometric.
  */
 
 var Graph = function () {
-  /**
-   * The constructor of the class Graph.
-   *
-   * @param {Object} parseTree A SMILES parse tree.
-   * @param {Boolean} [isomeric=false] A boolean specifying whether or not the SMILES is isomeric.
-   */
-  function Graph(parseTree) {
-    var isomeric = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : false;
-
-    _classCallCheck(this, Graph);
-
-    this.vertices = Array();
-    this.edges = Array();
-    this.vertexIdsToEdgeId = {};
-    this.isomeric = isomeric;
-
-    // Used for the bridge detection algorithm
-    this._time = 0;
-    this._init(parseTree);
-    this.findDecayPoints();
-  }
-
-  /**
-   * PRIVATE FUNCTION. Initializing the graph from the parse tree.
-   *
-   * @param {Object} node The current node in the parse tree.
-   * @param {Number} parentVertexId=null The id of the previous vertex.
-   * @param {Boolean} isBranch=false Whether or not the bond leading to this vertex is a branch bond. Branches are represented by parentheses in smiles (e.g. CC(O)C).
-   */
-
-
-  _createClass(Graph, [{
-    key: '_init',
-    value: function _init(node) {
-      var order = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 0;
-      var parentVertexId = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : null;
-      var isBranch = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : false;
-
-      // Create a new vertex object
-      var atom = new Atom(node.atom.element ? node.atom.element : node.atom, node.bond);
-
-      atom.branchBond = node.branchBond;
-      atom.ringbonds = node.ringbonds;
-      atom.bracket = node.atom.element ? node.atom : null;
-
-      var vertex = new Vertex(atom);
-      var parentVertex = this.vertices[parentVertexId];
-
-      this.addVertex(vertex);
-
-      // Add the id of this node to the parent as child
-      if (parentVertexId !== null) {
-        vertex.setParentVertexId(parentVertexId);
-        vertex.value.addNeighbouringElement(parentVertex.value.element);
-        parentVertex.addChild(vertex.id);
-        parentVertex.value.addNeighbouringElement(atom.element);
-
-        // In addition create a spanningTreeChildren property, which later will
-        // not contain the children added through ringbonds
-        parentVertex.spanningTreeChildren.push(vertex.id);
-
-        // Add edge between this node and its parent
-        var edge = new Edge(parentVertexId, vertex.id, 1);
-        var vertexId = null;
-
-        if (isBranch) {
-          edge.setBondType(vertex.value.branchBond || '-');
-          vertexId = vertex.id;
-          edge.setBondType(vertex.value.branchBond || '-');
-          vertexId = vertex.id;
-        } else {
-          edge.setBondType(parentVertex.value.bondType || '-');
-          vertexId = parentVertex.id;
-        }
-
-        var edgeId = this.addEdge(edge);
-      }
-
-      var offset = node.ringbondCount + 1;
-
-      if (atom.bracket) {
-        offset += atom.bracket.hcount;
-      }
-
-      var stereoHydrogens = 0;
-      if (atom.bracket && atom.bracket.chirality) {
-        atom.isStereoCenter = true;
-        stereoHydrogens = atom.bracket.hcount;
-        for (var i = 0; i < stereoHydrogens; i++) {
-          this._init({
-            atom: 'H',
-            isBracket: 'false',
-            branches: Array(),
-            branchCount: 0,
-            ringbonds: Array(),
-            ringbondCount: false,
-            next: null,
-            hasNext: false,
-            bond: '-'
-          }, i, vertex.id, true);
-        }
-      }
-
-      for (var i = 0; i < node.branchCount; i++) {
-        this._init(node.branches[i], i + offset, vertex.id, true);
-      }
-
-      if (node.hasNext) {
-        this._init(node.next, node.branchCount + offset, vertex.id);
-      }
-    }
-
     /**
-     * Find decay points of molecule
-     * Types of decay points, declared in DecayPoint
-     */
-
-  }, {
-    key: 'findDecayPoints',
-    value: function findDecayPoints() {
-      for (var i = 0; i < this.edges.length; i++) {
-        if (this.edges[i].bondType === '=') {
-          var dec = this.isDecayPoint(this.edges[i].sourceId, this.edges[i].targetId, i);
-          if (dec !== false) {
-            this.edges[dec].setDecay(true);
-          }
-        }
-      }
-    }
-
-    /**
-     * check if its decay point of specific decay types
-     * @param sourceId
-     * @param targetId
-     * @param decayTypes DecayPoint
-     * @returns {int|boolean} return edge id when found, otherwise return false
-     */
-
-  }, {
-    key: 'isDecayPoint',
-    value: function isDecayPoint(sourceId, targetId, edgeBondId) {
-      var decayTypes = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : DecayPoint.VALUES.ALL;
-
-      switch (decayTypes) {
-        case DecayPoint.VALUES.ALL:
-          var found = this.getNeighbourEdgeDecayIdOfCONH(sourceId, targetId, edgeBondId);
-          if (found === false) {
-            return this.getNeighbourEdgeDecayIdOfCOO(sourceId, targetId, edgeBondId);
-          } else {
-            return found;
-          }
-        case DecayPoint.VALUES.COO:
-          return this.getNeighbourEdgeDecayIdOfCOO(sourceId, targetId, edgeBondId);
-        case DecayPoint.VALUES.CONH:
-          return this.getNeighbourEdgeDecayIdOfCONH(sourceId, targetId, edgeBondId);
-      }
-    }
-
-    /**
-     * Find decay points of -CO-O- type
-     * @param sourceId
-     * @param targetId
-     * @returns {int|boolean}
-     */
-
-  }, {
-    key: 'getNeighbourEdgeDecayIdOfCOO',
-    value: function getNeighbourEdgeDecayIdOfCOO(sourceId, targetId, edgeBondId) {
-      if (this.vertices[sourceId].value.element === 'O' && this.vertices[targetId].value.element === 'C') {
-        return this.getNeighbourEdgeDecayId(targetId, 'O', edgeBondId);
-      } else if (this.vertices[targetId].value.element === 'O' && this.vertices[sourceId].value.element === 'C') {
-        return this.getNeighbourEdgeDecayId(sourceId, 'O', edgeBondId);
-      }
-      return false;
-    }
-
-    /**
-     * Find decay points of -CO-NH- type
-     * @param sourceId
-     * @param targetId
-     * @returns {int|boolean}
-     */
-
-  }, {
-    key: 'getNeighbourEdgeDecayIdOfCONH',
-    value: function getNeighbourEdgeDecayIdOfCONH(sourceId, targetId, edgeBondId) {
-      if (this.vertices[sourceId].value.element === 'O' && this.vertices[targetId].value.element === 'C') {
-        return this.getNeighbourEdgeDecayId(targetId, 'N', edgeBondId);
-      } else if (this.vertices[targetId].value.element === 'O' && this.vertices[sourceId].value.element === 'C') {
-        return this.getNeighbourEdgeDecayId(sourceId, 'N', edgeBondId);
-      }
-      return false;
-    }
-
-    /**
-     * Find decay point edge id of right neighbour
-     * @param vertexId
-     * @param element
-     * @returns {int|boolean}
-     */
-
-  }, {
-    key: 'getNeighbourEdgeDecayId',
-    value: function getNeighbourEdgeDecayId(vertexId, element, edgeBondId) {
-      for (var i = 0; i < this.vertices[vertexId].edges.length; i++) {
-        var edgeId = this.checkNeighbourEdgeId(this.vertices[vertexId].edges[i], vertexId, element);
-        if (edgeId !== false && edgeId !== edgeBondId) {
-          return edgeId;
-        }
-      }
-      return false;
-    }
-
-    /**
-     * Find edge id of decay point
-     * @param edgeId
-     * @param vertexId
-     * @param element
-     * @returns {int|boolean}
-     */
-
-  }, {
-    key: 'checkNeighbourEdgeId',
-    value: function checkNeighbourEdgeId(edgeId, vertexId, element) {
-      if (this.edges[edgeId].sourceId === vertexId && this.vertices[this.edges[edgeId].targetId].value.element === element || this.edges[edgeId].targetId === vertexId && this.vertices[this.edges[edgeId].sourceId].value.element === element) {
-        return edgeId;
-      } else {
-        return false;
-      }
-    }
-
-    /**
-     * Clears all the elements in this graph (edges and vertices).
-     */
-
-  }, {
-    key: 'clear',
-    value: function clear() {
-      this.vertices = Array();
-      this.edges = Array();
-      this.vertexIdsToEdgeId = {};
-    }
-
-    /**
-     * Add a vertex to the graph.
+     * The constructor of the class Graph.
      *
-     * @param {Vertex} vertex A new vertex.
-     * @returns {Number} The vertex id of the new vertex.
+     * @param {Object} parseTree A SMILES parse tree.
+     * @param {Boolean} [isomeric=false] A boolean specifying whether or not the SMILES is isomeric.
      */
+    function Graph(parseTree) {
+        var isomeric = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : false;
 
-  }, {
-    key: 'addVertex',
-    value: function addVertex(vertex) {
-      vertex.id = this.vertices.length;
-      this.vertices.push(vertex);
+        _classCallCheck(this, Graph);
 
-      return vertex.id;
+        this.vertices = Array();
+        this.edges = Array();
+        this.decays = Array();
+        this.vertexIdsToEdgeId = {};
+        this.isomeric = isomeric;
+        this.isRing = false;
+
+        // Used for the bridge detection algorithm
+        this._time = 0;
+        this._init(parseTree);
+        this.findDecayPoints();
+        console.log(this);
     }
 
     /**
-     * Add an edge to the graph.
+     * PRIVATE FUNCTION. Initializing the graph from the parse tree.
      *
-     * @param {Edge} edge A new edge.
-     * @returns {Number} The edge id of the new edge.
+     * @param {Object} node The current node in the parse tree.
+     * @param {Number} parentVertexId=null The id of the previous vertex.
+     * @param {Boolean} isBranch=false Whether or not the bond leading to this vertex is a branch bond. Branches are represented by parentheses in smiles (e.g. CC(O)C).
      */
 
-  }, {
-    key: 'addEdge',
-    value: function addEdge(edge) {
-      var source = this.vertices[edge.sourceId];
-      var target = this.vertices[edge.targetId];
 
-      edge.id = this.edges.length;
-      this.edges.push(edge);
+    _createClass(Graph, [{
+        key: '_init',
+        value: function _init(node) {
+            var order = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 0;
+            var parentVertexId = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : null;
+            var isBranch = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : false;
 
-      this.vertexIdsToEdgeId[edge.sourceId + '_' + edge.targetId] = edge.id;
-      this.vertexIdsToEdgeId[edge.targetId + '_' + edge.sourceId] = edge.id;
-      edge.isPartOfAromaticRing = source.value.isPartOfAromaticRing && target.value.isPartOfAromaticRing;
+            // Create a new vertex object
+            var atom = new Atom(node.atom.element ? node.atom.element : node.atom, node.bond);
 
-      source.value.bondCount += edge.weight;
-      target.value.bondCount += edge.weight;
+            atom.branchBond = node.branchBond;
+            atom.ringbonds = node.ringbonds;
+            atom.bracket = node.atom.element ? node.atom : null;
 
-      source.edges.push(edge.id);
-      target.edges.push(edge.id);
+            var vertex = new Vertex(atom);
+            var parentVertex = this.vertices[parentVertexId];
 
-      return edge.id;
-    }
+            this.addVertex(vertex);
 
-    /**
-     * Returns the edge between two given vertices.
-     *
-     * @param {Number} vertexIdA A vertex id.
-     * @param {Number} vertexIdB A vertex id.
-     * @returns {(Edge|null)} The edge or, if no edge can be found, null.
-     */
+            // Add the id of this node to the parent as child
+            if (parentVertexId !== null) {
+                vertex.setParentVertexId(parentVertexId);
+                vertex.value.addNeighbouringElement(parentVertex.value.element);
+                parentVertex.addChild(vertex.id);
+                parentVertex.value.addNeighbouringElement(atom.element);
 
-  }, {
-    key: 'getEdge',
-    value: function getEdge(vertexIdA, vertexIdB) {
-      var edgeId = this.vertexIdsToEdgeId[vertexIdA + '_' + vertexIdB];
+                // In addition create a spanningTreeChildren property, which later will
+                // not contain the children added through ringbonds
+                parentVertex.spanningTreeChildren.push(vertex.id);
 
-      return edgeId === undefined ? null : this.edges[edgeId];
-    }
+                // Add edge between this node and its parent
+                var edge = new Edge(parentVertexId, vertex.id, 1);
+                var vertexId = null;
 
-    /**
-     * Returns the ids of edges connected to a vertex.
-     *
-     * @param {Number} vertexId A vertex id.
-     * @returns {Number[]} An array containing the ids of edges connected to the vertex.
-     */
+                if (isBranch) {
+                    edge.setBondType(vertex.value.branchBond || '-');
+                    vertexId = vertex.id;
+                    edge.setBondType(vertex.value.branchBond || '-');
+                    vertexId = vertex.id;
+                } else {
+                    edge.setBondType(parentVertex.value.bondType || '-');
+                    vertexId = parentVertex.id;
+                }
 
-  }, {
-    key: 'getEdges',
-    value: function getEdges(vertexId) {
-      var edgeIds = Array();
-      var vertex = this.vertices[vertexId];
-
-      for (var i = 0; i < vertex.neighbours.length; i++) {
-        edgeIds.push(this.vertexIdsToEdgeId[vertexId + '_' + vertex.neighbours[i]]);
-      }
-
-      return edgeIds;
-    }
-
-    /**
-     * Check whether or not two vertices are connected by an edge.
-     *
-     * @param {Number} vertexIdA A vertex id.
-     * @param {Number} vertexIdB A vertex id.
-     * @returns {Boolean} A boolean indicating whether or not two vertices are connected by an edge.
-     */
-
-  }, {
-    key: 'hasEdge',
-    value: function hasEdge(vertexIdA, vertexIdB) {
-      return this.vertexIdsToEdgeId[vertexIdA + '_' + vertexIdB] !== undefined;
-    }
-
-    /**
-     * Returns an array containing the vertex ids of this graph.
-     *
-     * @returns {Number[]} An array containing all vertex ids of this graph.
-     */
-
-  }, {
-    key: 'getVertexList',
-    value: function getVertexList() {
-      var arr = [this.vertices.length];
-
-      for (var i = 0; i < this.vertices.length; i++) {
-        arr[i] = this.vertices[i].id;
-      }
-
-      return arr;
-    }
-
-    /**
-     * Returns an array containing source, target arrays of this graphs edges.
-     *
-     * @returns {Array[]} An array containing source, target arrays of this graphs edges. Example: [ [ 2, 5 ], [ 6, 9 ] ].
-     */
-
-  }, {
-    key: 'getEdgeList',
-    value: function getEdgeList() {
-      var arr = Array(this.edges.length);
-
-      for (var i = 0; i < this.edges.length; i++) {
-        arr[i] = [this.edges[i].sourceId, this.edges[i].targetId];
-      }
-
-      return arr;
-    }
-
-    /**
-     * Get the adjacency matrix of the graph.
-     *
-     * @returns {Array[]} The adjancency matrix of the molecular graph.
-     */
-
-  }, {
-    key: 'getAdjacencyMatrix',
-    value: function getAdjacencyMatrix() {
-      var length = this.vertices.length;
-      var adjacencyMatrix = Array(length);
-
-      for (var i = 0; i < length; i++) {
-        adjacencyMatrix[i] = new Array(length);
-        adjacencyMatrix[i].fill(0);
-      }
-
-      for (var i = 0; i < this.edges.length; i++) {
-        var edge = this.edges[i];
-
-        adjacencyMatrix[edge.sourceId][edge.targetId] = 1;
-        adjacencyMatrix[edge.targetId][edge.sourceId] = 1;
-      }
-
-      return adjacencyMatrix;
-    }
-
-    /**
-     * Get the adjacency matrix of the graph with all bridges removed (thus the components). Thus the remaining vertices are all part of ring systems.
-     *
-     * @returns {Array[]} The adjancency matrix of the molecular graph with all bridges removed.
-     */
-
-  }, {
-    key: 'getComponentsAdjacencyMatrix',
-    value: function getComponentsAdjacencyMatrix() {
-      var length = this.vertices.length;
-      var adjacencyMatrix = Array(length);
-      var bridges = this.getBridges();
-
-      for (var i = 0; i < length; i++) {
-        adjacencyMatrix[i] = new Array(length);
-        adjacencyMatrix[i].fill(0);
-      }
-
-      for (var i = 0; i < this.edges.length; i++) {
-        var edge = this.edges[i];
-
-        adjacencyMatrix[edge.sourceId][edge.targetId] = 1;
-        adjacencyMatrix[edge.targetId][edge.sourceId] = 1;
-      }
-
-      for (var i = 0; i < bridges.length; i++) {
-        adjacencyMatrix[bridges[i][0]][bridges[i][1]] = 0;
-        adjacencyMatrix[bridges[i][1]][bridges[i][0]] = 0;
-      }
-
-      return adjacencyMatrix;
-    }
-
-    /**
-     * Get the adjacency matrix of a subgraph.
-     *
-     * @param {Number[]} vertexIds An array containing the vertex ids contained within the subgraph.
-     * @returns {Array[]} The adjancency matrix of the subgraph.
-     */
-
-  }, {
-    key: 'getSubgraphAdjacencyMatrix',
-    value: function getSubgraphAdjacencyMatrix(vertexIds) {
-      var length = vertexIds.length;
-      var adjacencyMatrix = Array(length);
-
-      for (var i = 0; i < length; i++) {
-        adjacencyMatrix[i] = new Array(length);
-        adjacencyMatrix[i].fill(0);
-
-        for (var j = 0; j < length; j++) {
-          if (i === j) {
-            continue;
-          }
-
-          if (this.hasEdge(vertexIds[i], vertexIds[j])) {
-            adjacencyMatrix[i][j] = 1;
-          }
-        }
-      }
-
-      return adjacencyMatrix;
-    }
-
-    /**
-     * Get the distance matrix of the graph.
-     *
-     * @returns {Array[]} The distance matrix of the graph.
-     */
-
-  }, {
-    key: 'getDistanceMatrix',
-    value: function getDistanceMatrix() {
-      var length = this.vertices.length;
-      var adja = this.getAdjacencyMatrix();
-      var dist = Array(length);
-
-      for (var i = 0; i < length; i++) {
-        dist[i] = Array(length);
-        dist[i].fill(Infinity);
-      }
-
-      for (var i = 0; i < length; i++) {
-        for (var j = 0; j < length; j++) {
-          if (adja[i][j] === 1) {
-            dist[i][j] = 1;
-          }
-        }
-      }
-
-      for (var k = 0; k < length; k++) {
-        for (var i = 0; i < length; i++) {
-          for (var j = 0; j < length; j++) {
-            if (dist[i][j] > dist[i][k] + dist[k][j]) {
-              dist[i][j] = dist[i][k] + dist[k][j];
+                var edgeId = this.addEdge(edge);
             }
-          }
-        }
-      }
 
-      return dist;
-    }
+            var offset = node.ringbondCount + 1;
 
-    /**
-     * Get the distance matrix of a subgraph.
-     *
-     * @param {Number[]} vertexIds An array containing the vertex ids contained within the subgraph.
-     * @returns {Array[]} The distance matrix of the subgraph.
-     */
-
-  }, {
-    key: 'getSubgraphDistanceMatrix',
-    value: function getSubgraphDistanceMatrix(vertexIds) {
-      var length = vertexIds.length;
-      var adja = this.getSubgraphAdjacencyMatrix(vertexIds);
-      var dist = Array(length);
-
-      for (var i = 0; i < length; i++) {
-        dist[i] = Array(length);
-        dist[i].fill(Infinity);
-      }
-
-      for (var i = 0; i < length; i++) {
-        for (var j = 0; j < length; j++) {
-          if (adja[i][j] === 1) {
-            dist[i][j] = 1;
-          }
-        }
-      }
-
-      for (var k = 0; k < length; k++) {
-        for (var i = 0; i < length; i++) {
-          for (var j = 0; j < length; j++) {
-            if (dist[i][j] > dist[i][k] + dist[k][j]) {
-              dist[i][j] = dist[i][k] + dist[k][j];
+            if (atom.bracket) {
+                offset += atom.bracket.hcount;
             }
-          }
-        }
-      }
 
-      return dist;
-    }
+            var stereoHydrogens = 0;
+            if (atom.bracket && atom.bracket.chirality) {
+                atom.isStereoCenter = true;
+                stereoHydrogens = atom.bracket.hcount;
+                for (var i = 0; i < stereoHydrogens; i++) {
+                    this._init({
+                        atom: 'H',
+                        isBracket: 'false',
+                        branches: Array(),
+                        branchCount: 0,
+                        ringbonds: Array(),
+                        ringbondCount: false,
+                        next: null,
+                        hasNext: false,
+                        bond: '-'
+                    }, i, vertex.id, true);
+                }
+            }
 
-    /**
-     * Get the adjacency list of the graph.
-     *
-     * @returns {Array[]} The adjancency list of the graph.
-     */
+            for (var i = 0; i < node.branchCount; i++) {
+                this._init(node.branches[i], i + offset, vertex.id, true);
+            }
 
-  }, {
-    key: 'getAdjacencyList',
-    value: function getAdjacencyList() {
-      var length = this.vertices.length;
-      var adjacencyList = Array(length);
-
-      for (var i = 0; i < length; i++) {
-        adjacencyList[i] = [];
-
-        for (var j = 0; j < length; j++) {
-          if (i === j) {
-            continue;
-          }
-
-          if (this.hasEdge(this.vertices[i].id, this.vertices[j].id)) {
-            adjacencyList[i].push(j);
-          }
-        }
-      }
-
-      return adjacencyList;
-    }
-
-    /**
-     * Get the adjacency list of a subgraph.
-     *
-     * @param {Number[]} vertexIds An array containing the vertex ids contained within the subgraph.
-     * @returns {Array[]} The adjancency list of the subgraph.
-     */
-
-  }, {
-    key: 'getSubgraphAdjacencyList',
-    value: function getSubgraphAdjacencyList(vertexIds) {
-      var length = vertexIds.length;
-      var adjacencyList = Array(length);
-
-      for (var i = 0; i < length; i++) {
-        adjacencyList[i] = Array();
-
-        for (var j = 0; j < length; j++) {
-          if (i === j) {
-            continue;
-          }
-
-          if (this.hasEdge(vertexIds[i], vertexIds[j])) {
-            adjacencyList[i].push(j);
-          }
-        }
-      }
-
-      return adjacencyList;
-    }
-
-    /**
-     * Returns an array containing the edge ids of bridges. A bridge splits the graph into multiple components when removed.
-     *
-     * @returns {Number[]} An array containing the edge ids of the bridges.
-     */
-
-  }, {
-    key: 'getBridges',
-    value: function getBridges() {
-      var length = this.vertices.length;
-      var visited = new Array(length);
-      var disc = new Array(length);
-      var low = new Array(length);
-      var parent = new Array(length);
-      var adj = this.getAdjacencyList();
-      var outBridges = Array();
-
-      visited.fill(false);
-      parent.fill(null);
-      this._time = 0;
-
-      for (var i = 0; i < length; i++) {
-        if (!visited[i]) {
-          this._bridgeDfs(i, visited, disc, low, parent, adj, outBridges);
-        }
-      }
-
-      return outBridges;
-    }
-
-    /**
-     * Traverses the graph in breadth-first order.
-     *
-     * @param {Number} startVertexId The id of the starting vertex.
-     * @param {Function} callback The callback function to be called on every vertex.
-     */
-
-  }, {
-    key: 'traverseBF',
-    value: function traverseBF(startVertexId, callback) {
-      var length = this.vertices.length;
-      var visited = new Array(length);
-
-      visited.fill(false);
-
-      var queue = [startVertexId];
-
-      while (queue.length > 0) {
-        // JavaScripts shift() is O(n) ... bad JavaScript, bad!
-        var u = queue.shift();
-        var vertex = this.vertices[u];
-
-        callback(vertex);
-
-        for (var i = 0; i < vertex.neighbours.length; i++) {
-          var v = vertex.neighbours[i];
-          if (!visited[v]) {
-            visited[v] = true;
-            queue.push(v);
-          }
-        }
-      }
-    }
-
-    /**
-     * Get the depth of a subtree in the direction opposite to the vertex specified as the parent vertex.
-     *
-     * @param {Number} vertexId A vertex id.
-     * @param {Number} parentVertexId The id of a neighbouring vertex.
-     * @returns {Number} The depth of the sub-tree.
-     */
-
-  }, {
-    key: 'getTreeDepth',
-    value: function getTreeDepth(vertexId, parentVertexId) {
-      if (vertexId === null || parentVertexId === null) {
-        return 0;
-      }
-
-      var neighbours = this.vertices[vertexId].getSpanningTreeNeighbours(parentVertexId);
-      var max = 0;
-
-      for (var i = 0; i < neighbours.length; i++) {
-        var childId = neighbours[i];
-        var d = this.getTreeDepth(childId, vertexId);
-
-        if (d > max) {
-          max = d;
-        }
-      }
-
-      return max + 1;
-    }
-
-    /**
-     * Traverse a sub-tree in the graph.
-     *
-     * @param {Number} vertexId A vertex id.
-     * @param {Number} parentVertexId A neighbouring vertex.
-     * @param {Function} callback The callback function that is called with each visited as an argument.
-     * @param {Number} [maxDepth=Number.MAX_SAFE_INTEGER] The maximum depth of the recursion.
-     * @param {Boolean} [ignoreFirst=false] Whether or not to ignore the starting vertex supplied as vertexId in the callback.
-     * @param {Number} [depth=1] The current depth in the tree.
-     * @param {Uint8Array} [visited=null] An array holding a flag on whether or not a node has been visited.
-     */
-
-  }, {
-    key: 'traverseTree',
-    value: function traverseTree(vertexId, parentVertexId, callback) {
-      var maxDepth = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : Number.MAX_SAFE_INTEGER;
-      var ignoreFirst = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : false;
-      var depth = arguments.length > 5 && arguments[5] !== undefined ? arguments[5] : 1;
-      var visited = arguments.length > 6 && arguments[6] !== undefined ? arguments[6] : null;
-
-      if (visited === null) {
-        visited = new Uint8Array(this.vertices.length);
-      }
-
-      if (depth > maxDepth + 1 || visited[vertexId] === 1) {
-        return;
-      }
-
-      visited[vertexId] = 1;
-
-      var vertex = this.vertices[vertexId];
-      var neighbours = vertex.getNeighbours(parentVertexId);
-
-      if (!ignoreFirst || depth > 1) {
-        callback(vertex);
-      }
-
-      for (var i = 0; i < neighbours.length; i++) {
-        this.traverseTree(neighbours[i], vertexId, callback, maxDepth, ignoreFirst, depth + 1, visited);
-      }
-    }
-
-    /**
-     * Positiones the (sub)graph using Kamada and Kawais algorithm for drawing general undirected graphs. https://pdfs.semanticscholar.org/b8d3/bca50ccc573c5cb99f7d201e8acce6618f04.pdf
-     *
-     * @param {Number[]} vertexIds An array containing vertexIds to be placed using the force based layout.
-     * @param {Vector2} center The center of the layout.
-     * @param {Number} startVertexId A vertex id. Should be the starting vertex - e.g. the first to be positioned and connected to a previously place vertex.
-     * @param {Ring} ring The bridged ring associated with this force-based layout.
-     */
-
-  }, {
-    key: 'kkLayout',
-    value: function kkLayout(vertexIds, center, startVertexId, ring, bondLength) {
-      var edgeStrength = bondLength;
-
-      // Add vertices that are directly connected to the ring
-      var i = vertexIds.length;
-      while (i--) {
-        var vertex = this.vertices[vertexIds[i]];
-        var j = vertex.neighbours.length;
-      }
-
-      var matDist = this.getSubgraphDistanceMatrix(vertexIds);
-      var length = vertexIds.length;
-
-      // Initialize the positions. Place all vertices on a ring around the center
-      var radius = MathHelper.polyCircumradius(500, length);
-      var angle = MathHelper.centralAngle(length);
-      var a = 0.0;
-      var arrPositionX = new Float32Array(length);
-      var arrPositionY = new Float32Array(length);
-      var arrPositioned = Array(length);
-
-      i = length;
-      while (i--) {
-        var _vertex = this.vertices[vertexIds[i]];
-        if (!_vertex.positioned) {
-          arrPositionX[i] = center.x + Math.cos(a) * radius;
-          arrPositionY[i] = center.y + Math.sin(a) * radius;
-        } else {
-          arrPositionX[i] = _vertex.position.x;
-          arrPositionY[i] = _vertex.position.y;
-        }
-        arrPositioned[i] = _vertex.positioned;
-        a += angle;
-      }
-
-      // Create the matrix containing the lengths
-      var matLength = Array(length);
-      i = length;
-      while (i--) {
-        matLength[i] = new Array(length);
-        var j = length;
-        while (j--) {
-          matLength[i][j] = bondLength * matDist[i][j];
-        }
-      }
-
-      // Create the matrix containing the spring strenghts
-      var matStrength = Array(length);
-      i = length;
-      while (i--) {
-        matStrength[i] = Array(length);
-        var j = length;
-        while (j--) {
-          matStrength[i][j] = edgeStrength * Math.pow(matDist[i][j], -2.0);
-        }
-      }
-
-      // Create the matrix containing the energies
-      var matEnergy = Array(length);
-      var arrEnergySumX = new Float32Array(length);
-      var arrEnergySumY = new Float32Array(length);
-      i = length;
-      while (i--) {
-        matEnergy[i] = Array(length);
-      }
-
-      i = length;
-      var ux = void 0,
-          uy = void 0,
-          dEx = void 0,
-          dEy = void 0,
-          vx = void 0,
-          vy = void 0,
-          denom = void 0;
-
-      while (i--) {
-        ux = arrPositionX[i];
-        uy = arrPositionY[i];
-        dEx = 0.0;
-        dEy = 0.0;
-        var _j = length;
-        while (_j--) {
-          if (i === _j) {
-            continue;
-          }
-          vx = arrPositionX[_j];
-          vy = arrPositionY[_j];
-          denom = 1.0 / Math.sqrt((ux - vx) * (ux - vx) + (uy - vy) * (uy - vy));
-          matEnergy[i][_j] = [matStrength[i][_j] * (ux - vx - matLength[i][_j] * (ux - vx) * denom), matStrength[i][_j] * (uy - vy - matLength[i][_j] * (uy - vy) * denom)];
-          matEnergy[_j][i] = matEnergy[i][_j];
-          dEx += matEnergy[i][_j][0];
-          dEy += matEnergy[i][_j][1];
-        }
-        arrEnergySumX[i] = dEx;
-        arrEnergySumY[i] = dEy;
-      }
-
-      // Utility functions, maybe inline them later
-      var energy = function energy(index) {
-        return [arrEnergySumX[index] * arrEnergySumX[index] + arrEnergySumY[index] * arrEnergySumY[index], arrEnergySumX[index], arrEnergySumY[index]];
-      };
-
-      var highestEnergy = function highestEnergy() {
-        var maxEnergy = 0.0;
-        var maxEnergyId = 0;
-        var maxDEX = 0.0;
-        var maxDEY = 0.0;
-
-        i = length;
-        while (i--) {
-          var _energy = energy(i),
-              _energy2 = _slicedToArray(_energy, 3),
-              _delta = _energy2[0],
-              _dEX = _energy2[1],
-              _dEY = _energy2[2];
-
-          if (_delta > maxEnergy && arrPositioned[i] === false) {
-            maxEnergy = _delta;
-            maxEnergyId = i;
-            maxDEX = _dEX;
-            maxDEY = _dEY;
-          }
+            if (node.hasNext) {
+                this._init(node.next, node.branchCount + offset, vertex.id);
+            }
         }
 
-        return [maxEnergyId, maxEnergy, maxDEX, maxDEY];
-      };
+        /**
+         * Find decay points of molecule
+         * Types of decay points, declared in DecayPoint
+         */
 
-      var update = function update(index, dEX, dEY) {
-        var dxx = 0.0;
-        var dyy = 0.0;
-        var dxy = 0.0;
-        var ux = arrPositionX[index];
-        var uy = arrPositionY[index];
-        var arrL = matLength[index];
-        var arrK = matStrength[index];
-
-        i = length;
-        while (i--) {
-          if (i === index) {
-            continue;
-          }
-
-          var _vx = arrPositionX[i];
-          var _vy = arrPositionY[i];
-          var l = arrL[i];
-          var k = arrK[i];
-          var m = (ux - _vx) * (ux - _vx);
-          var _denom = 1.0 / Math.pow(m + (uy - _vy) * (uy - _vy), 1.5);
-
-          dxx += k * (1 - l * (uy - _vy) * (uy - _vy) * _denom);
-          dyy += k * (1 - l * m * _denom);
-          dxy += k * (l * (ux - _vx) * (uy - _vy) * _denom);
+    }, {
+        key: 'findDecayPoints',
+        value: function findDecayPoints() {
+            for (var i = 0; i < this.edges.length; i++) {
+                if (this.edges[i].bondType === '=') {
+                    var dec = this.isDecayPoint(this.edges[i].sourceId, this.edges[i].targetId, i);
+                    if (dec !== false) {
+                        this.edges[dec].setDecay(true);
+                        this.decays.push(dec);
+                    }
+                }
+            }
         }
 
-        // Prevent division by zero
-        if (dxx === 0) {
-          dxx = 0.1;
+        /**
+         * check if its decay point of specific decay types
+         * @param sourceId
+         * @param targetId
+         * @param decayTypes DecayPoint
+         * @returns {int|boolean} return edge id when found, otherwise return false
+         */
+
+    }, {
+        key: 'isDecayPoint',
+        value: function isDecayPoint(sourceId, targetId, edgeBondId) {
+            var decayTypes = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : DecayPoint.VALUES.ALL;
+
+            switch (decayTypes) {
+                case DecayPoint.VALUES.ALL:
+                    var found = this.getNeighbourEdgeDecayIdOfCONH(sourceId, targetId, edgeBondId);
+                    if (found === false) {
+                        return this.getNeighbourEdgeDecayIdOfCOO(sourceId, targetId, edgeBondId);
+                    } else {
+                        return found;
+                    }
+                case DecayPoint.VALUES.COO:
+                    return this.getNeighbourEdgeDecayIdOfCOO(sourceId, targetId, edgeBondId);
+                case DecayPoint.VALUES.CONH:
+                    return this.getNeighbourEdgeDecayIdOfCONH(sourceId, targetId, edgeBondId);
+            }
         }
 
-        if (dyy === 0) {
-          dyy = 0.1;
+        /**
+         * Find decay points of -CO-O- type
+         * @param sourceId
+         * @param targetId
+         * @returns {int|boolean}
+         */
+
+    }, {
+        key: 'getNeighbourEdgeDecayIdOfCOO',
+        value: function getNeighbourEdgeDecayIdOfCOO(sourceId, targetId, edgeBondId) {
+            if (this.vertices[sourceId].value.element === 'O' && this.vertices[targetId].value.element === 'C') {
+                return this.getNeighbourEdgeDecayId(targetId, 'O', edgeBondId);
+            } else if (this.vertices[targetId].value.element === 'O' && this.vertices[sourceId].value.element === 'C') {
+                return this.getNeighbourEdgeDecayId(sourceId, 'O', edgeBondId);
+            }
+            return false;
         }
 
-        if (dxy === 0) {
-          dxy = 0.1;
+        /**
+         * Find decay points of -CO-NH- type
+         * @param sourceId
+         * @param targetId
+         * @returns {int|boolean}
+         */
+
+    }, {
+        key: 'getNeighbourEdgeDecayIdOfCONH',
+        value: function getNeighbourEdgeDecayIdOfCONH(sourceId, targetId, edgeBondId) {
+            if (this.vertices[sourceId].value.element === 'O' && this.vertices[targetId].value.element === 'C') {
+                return this.getNeighbourEdgeDecayId(targetId, 'N', edgeBondId);
+            } else if (this.vertices[targetId].value.element === 'O' && this.vertices[sourceId].value.element === 'C') {
+                return this.getNeighbourEdgeDecayId(sourceId, 'N', edgeBondId);
+            }
+            return false;
         }
 
-        var dy = dEX / dxx + dEY / dxy;
-        dy /= dxy / dxx - dyy / dxy; // had to split this onto two lines because the syntax highlighter went crazy.
-        var dx = -(dxy * dy + dEX) / dxx;
+        /**
+         * Find decay point edge id of right neighbour
+         * @param vertexId
+         * @param element
+         * @returns {int|boolean}
+         */
 
-        arrPositionX[index] += dx;
-        arrPositionY[index] += dy;
-
-        // Update the energies
-        var arrE = matEnergy[index];
-        dEX = 0.0;
-        dEY = 0.0;
-
-        ux = arrPositionX[index];
-        uy = arrPositionY[index];
-
-        var vx = void 0,
-            vy = void 0,
-            prevEx = void 0,
-            prevEy = void 0,
-            denom = void 0;
-
-        i = length;
-        while (i--) {
-          if (index === i) {
-            continue;
-          }
-          vx = arrPositionX[i];
-          vy = arrPositionY[i];
-          // Store old energies
-          prevEx = arrE[i][0];
-          prevEy = arrE[i][1];
-          denom = 1.0 / Math.sqrt((ux - vx) * (ux - vx) + (uy - vy) * (uy - vy));
-          dx = arrK[i] * (ux - vx - arrL[i] * (ux - vx) * denom);
-          dy = arrK[i] * (uy - vy - arrL[i] * (uy - vy) * denom);
-
-          arrE[i] = [dx, dy];
-          dEX += dx;
-          dEY += dy;
-          arrEnergySumX[i] += dx - prevEx;
-          arrEnergySumY[i] += dy - prevEy;
-        }
-        arrEnergySumX[index] = dEX;
-        arrEnergySumY[index] = dEY;
-      };
-
-      // Setting parameters
-      var threshold = 0.1;
-      var innerThreshold = 0.1;
-      var maxIteration = 2000;
-      var maxInnerIteration = 50;
-      var maxEnergy = 1e9;
-
-      // Setting up variables for the while loops
-      var maxEnergyId = 0;
-      var dEX = 0.0;
-      var dEY = 0.0;
-      var delta = 0.0;
-      var iteration = 0;
-      var innerIteration = 0;
-
-      while (maxEnergy > threshold && maxIteration > iteration) {
-        iteration++;
-
-        var _highestEnergy = highestEnergy();
-
-        var _highestEnergy2 = _slicedToArray(_highestEnergy, 4);
-
-        maxEnergyId = _highestEnergy2[0];
-        maxEnergy = _highestEnergy2[1];
-        dEX = _highestEnergy2[2];
-        dEY = _highestEnergy2[3];
-
-        delta = maxEnergy;
-        innerIteration = 0;
-        while (delta > innerThreshold && maxInnerIteration > innerIteration) {
-          innerIteration++;
-          update(maxEnergyId, dEX, dEY);
-
-          var _energy3 = energy(maxEnergyId);
-
-          var _energy4 = _slicedToArray(_energy3, 3);
-
-          delta = _energy4[0];
-          dEX = _energy4[1];
-          dEY = _energy4[2];
-        }
-      }
-
-      i = length;
-      while (i--) {
-        var index = vertexIds[i];
-        var _vertex2 = this.vertices[index];
-        _vertex2.position.x = arrPositionX[i];
-        _vertex2.position.y = arrPositionY[i];
-        _vertex2.positioned = true;
-        _vertex2.forcePositioned = true;
-      }
-    }
-
-    /**
-     * PRIVATE FUNCTION used by getBridges().
-     */
-
-  }, {
-    key: '_bridgeDfs',
-    value: function _bridgeDfs(u, visited, disc, low, parent, adj, outBridges) {
-      visited[u] = true;
-      disc[u] = low[u] = ++this._time;
-
-      for (var i = 0; i < adj[u].length; i++) {
-        var v = adj[u][i];
-
-        if (!visited[v]) {
-          parent[v] = u;
-
-          this._bridgeDfs(v, visited, disc, low, parent, adj, outBridges);
-
-          low[u] = Math.min(low[u], low[v]);
-
-          // If low > disc, we have a bridge
-          if (low[v] > disc[u]) {
-            outBridges.push([u, v]);
-          }
-        } else if (v !== parent[u]) {
-          low[u] = Math.min(low[u], disc[v]);
-        }
-      }
-    }
-
-    /**
-     * Returns the connected components of the graph.
-     *
-     * @param {Array[]} adjacencyMatrix An adjacency matrix.
-     * @returns {Set[]} Connected components as sets.
-     */
-
-  }], [{
-    key: 'getConnectedComponents',
-    value: function getConnectedComponents(adjacencyMatrix) {
-      var length = adjacencyMatrix.length;
-      var visited = new Array(length);
-      var components = new Array();
-      var count = 0;
-
-      visited.fill(false);
-
-      for (var u = 0; u < length; u++) {
-        if (!visited[u]) {
-          var component = Array();
-          visited[u] = true;
-          component.push(u);
-          count++;
-          Graph._ccGetDfs(u, visited, adjacencyMatrix, component);
-          if (component.length > 1) {
-            components.push(component);
-          }
-        }
-      }
-
-      return components;
-    }
-
-    /**
-     * Returns the number of connected components for the graph.
-     *
-     * @param {Array[]} adjacencyMatrix An adjacency matrix.
-     * @returns {Number} The number of connected components of the supplied graph.
-     */
-
-  }, {
-    key: 'getConnectedComponentCount',
-    value: function getConnectedComponentCount(adjacencyMatrix) {
-      var length = adjacencyMatrix.length;
-      var visited = new Array(length);
-      var count = 0;
-
-      visited.fill(false);
-
-      for (var u = 0; u < length; u++) {
-        if (!visited[u]) {
-          visited[u] = true;
-          count++;
-          Graph._ccCountDfs(u, visited, adjacencyMatrix);
-        }
-      }
-
-      return count;
-    }
-
-    /**
-     * PRIVATE FUNCTION used by getConnectedComponentCount().
-     */
-
-  }, {
-    key: '_ccCountDfs',
-    value: function _ccCountDfs(u, visited, adjacencyMatrix) {
-      for (var v = 0; v < adjacencyMatrix[u].length; v++) {
-        var c = adjacencyMatrix[u][v];
-
-        if (!c || visited[v] || u === v) {
-          continue;
+    }, {
+        key: 'getNeighbourEdgeDecayId',
+        value: function getNeighbourEdgeDecayId(vertexId, element, edgeBondId) {
+            for (var i = 0; i < this.vertices[vertexId].edges.length; i++) {
+                var edgeId = this.checkNeighbourEdgeId(this.vertices[vertexId].edges[i], vertexId, element);
+                if (edgeId !== false && edgeId !== edgeBondId) {
+                    return edgeId;
+                }
+            }
+            return false;
         }
 
-        visited[v] = true;
-        Graph._ccCountDfs(v, visited, adjacencyMatrix);
-      }
-    }
+        /**
+         * Find edge id of decay point
+         * @param edgeId
+         * @param vertexId
+         * @param element
+         * @returns {int|boolean}
+         */
 
-    /**
-     * PRIVATE FUNCTION used by getConnectedComponents().
-     */
-
-  }, {
-    key: '_ccGetDfs',
-    value: function _ccGetDfs(u, visited, adjacencyMatrix, component) {
-      for (var v = 0; v < adjacencyMatrix[u].length; v++) {
-        var c = adjacencyMatrix[u][v];
-
-        if (!c || visited[v] || u === v) {
-          continue;
+    }, {
+        key: 'checkNeighbourEdgeId',
+        value: function checkNeighbourEdgeId(edgeId, vertexId, element) {
+            if (this.edges[edgeId].sourceId === vertexId && this.vertices[this.edges[edgeId].targetId].value.element === element || this.edges[edgeId].targetId === vertexId && this.vertices[this.edges[edgeId].sourceId].value.element === element) {
+                return edgeId;
+            } else {
+                return false;
+            }
         }
 
-        visited[v] = true;
-        component.push(v);
-        Graph._ccGetDfs(v, visited, adjacencyMatrix, component);
-      }
-    }
-  }]);
+        /**
+         * Clears all the elements in this graph (edges and vertices).
+         */
 
-  return Graph;
+    }, {
+        key: 'clear',
+        value: function clear() {
+            this.vertices = Array();
+            this.edges = Array();
+            this.vertexIdsToEdgeId = {};
+        }
+
+        /**
+         * Add a vertex to the graph.
+         *
+         * @param {Vertex} vertex A new vertex.
+         * @returns {Number} The vertex id of the new vertex.
+         */
+
+    }, {
+        key: 'addVertex',
+        value: function addVertex(vertex) {
+            vertex.id = this.vertices.length;
+            this.vertices.push(vertex);
+
+            return vertex.id;
+        }
+
+        /**
+         * Add an edge to the graph.
+         *
+         * @param {Edge} edge A new edge.
+         * @returns {Number} The edge id of the new edge.
+         */
+
+    }, {
+        key: 'addEdge',
+        value: function addEdge(edge) {
+            var source = this.vertices[edge.sourceId];
+            var target = this.vertices[edge.targetId];
+
+            edge.id = this.edges.length;
+            this.edges.push(edge);
+
+            this.vertexIdsToEdgeId[edge.sourceId + '_' + edge.targetId] = edge.id;
+            this.vertexIdsToEdgeId[edge.targetId + '_' + edge.sourceId] = edge.id;
+            edge.isPartOfAromaticRing = source.value.isPartOfAromaticRing && target.value.isPartOfAromaticRing;
+
+            source.value.bondCount += edge.weight;
+            target.value.bondCount += edge.weight;
+
+            source.edges.push(edge.id);
+            target.edges.push(edge.id);
+
+            return edge.id;
+        }
+
+        /**
+         * Returns the edge between two given vertices.
+         *
+         * @param {Number} vertexIdA A vertex id.
+         * @param {Number} vertexIdB A vertex id.
+         * @returns {(Edge|null)} The edge or, if no edge can be found, null.
+         */
+
+    }, {
+        key: 'getEdge',
+        value: function getEdge(vertexIdA, vertexIdB) {
+            var edgeId = this.vertexIdsToEdgeId[vertexIdA + '_' + vertexIdB];
+
+            return edgeId === undefined ? null : this.edges[edgeId];
+        }
+
+        /**
+         * Returns the ids of edges connected to a vertex.
+         *
+         * @param {Number} vertexId A vertex id.
+         * @returns {Number[]} An array containing the ids of edges connected to the vertex.
+         */
+
+    }, {
+        key: 'getEdges',
+        value: function getEdges(vertexId) {
+            var edgeIds = Array();
+            var vertex = this.vertices[vertexId];
+
+            for (var i = 0; i < vertex.neighbours.length; i++) {
+                edgeIds.push(this.vertexIdsToEdgeId[vertexId + '_' + vertex.neighbours[i]]);
+            }
+
+            return edgeIds;
+        }
+
+        /**
+         * Check whether or not two vertices are connected by an edge.
+         *
+         * @param {Number} vertexIdA A vertex id.
+         * @param {Number} vertexIdB A vertex id.
+         * @returns {Boolean} A boolean indicating whether or not two vertices are connected by an edge.
+         */
+
+    }, {
+        key: 'hasEdge',
+        value: function hasEdge(vertexIdA, vertexIdB) {
+            return this.vertexIdsToEdgeId[vertexIdA + '_' + vertexIdB] !== undefined;
+        }
+
+        /**
+         * Returns an array containing the vertex ids of this graph.
+         *
+         * @returns {Number[]} An array containing all vertex ids of this graph.
+         */
+
+    }, {
+        key: 'getVertexList',
+        value: function getVertexList() {
+            var arr = [this.vertices.length];
+
+            for (var i = 0; i < this.vertices.length; i++) {
+                arr[i] = this.vertices[i].id;
+            }
+
+            return arr;
+        }
+
+        /**
+         * Returns an array containing source, target arrays of this graphs edges.
+         *
+         * @returns {Array[]} An array containing source, target arrays of this graphs edges. Example: [ [ 2, 5 ], [ 6, 9 ] ].
+         */
+
+    }, {
+        key: 'getEdgeList',
+        value: function getEdgeList() {
+            var arr = Array(this.edges.length);
+
+            for (var i = 0; i < this.edges.length; i++) {
+                arr[i] = [this.edges[i].sourceId, this.edges[i].targetId];
+            }
+
+            return arr;
+        }
+
+        /**
+         * Get the adjacency matrix of the graph.
+         *
+         * @returns {Array[]} The adjancency matrix of the molecular graph.
+         */
+
+    }, {
+        key: 'getAdjacencyMatrix',
+        value: function getAdjacencyMatrix() {
+            var length = this.vertices.length;
+            var adjacencyMatrix = Array(length);
+
+            for (var i = 0; i < length; i++) {
+                adjacencyMatrix[i] = new Array(length);
+                adjacencyMatrix[i].fill(0);
+            }
+
+            for (var i = 0; i < this.edges.length; i++) {
+                var edge = this.edges[i];
+
+                adjacencyMatrix[edge.sourceId][edge.targetId] = 1;
+                adjacencyMatrix[edge.targetId][edge.sourceId] = 1;
+            }
+
+            return adjacencyMatrix;
+        }
+
+        /**
+         * Get the adjacency matrix of the graph with all bridges removed (thus the components). Thus the remaining vertices are all part of ring systems.
+         *
+         * @returns {Array[]} The adjancency matrix of the molecular graph with all bridges removed.
+         */
+
+    }, {
+        key: 'getComponentsAdjacencyMatrix',
+        value: function getComponentsAdjacencyMatrix() {
+            var length = this.vertices.length;
+            var adjacencyMatrix = Array(length);
+            var bridges = this.getBridges();
+
+            for (var i = 0; i < length; i++) {
+                adjacencyMatrix[i] = new Array(length);
+                adjacencyMatrix[i].fill(0);
+            }
+
+            for (var i = 0; i < this.edges.length; i++) {
+                var edge = this.edges[i];
+
+                adjacencyMatrix[edge.sourceId][edge.targetId] = 1;
+                adjacencyMatrix[edge.targetId][edge.sourceId] = 1;
+            }
+
+            for (var i = 0; i < bridges.length; i++) {
+                adjacencyMatrix[bridges[i][0]][bridges[i][1]] = 0;
+                adjacencyMatrix[bridges[i][1]][bridges[i][0]] = 0;
+            }
+
+            return adjacencyMatrix;
+        }
+
+        /**
+         * Get the adjacency matrix of a subgraph.
+         *
+         * @param {Number[]} vertexIds An array containing the vertex ids contained within the subgraph.
+         * @returns {Array[]} The adjancency matrix of the subgraph.
+         */
+
+    }, {
+        key: 'getSubgraphAdjacencyMatrix',
+        value: function getSubgraphAdjacencyMatrix(vertexIds) {
+            var length = vertexIds.length;
+            var adjacencyMatrix = Array(length);
+
+            for (var i = 0; i < length; i++) {
+                adjacencyMatrix[i] = new Array(length);
+                adjacencyMatrix[i].fill(0);
+
+                for (var j = 0; j < length; j++) {
+                    if (i === j) {
+                        continue;
+                    }
+
+                    if (this.hasEdge(vertexIds[i], vertexIds[j])) {
+                        adjacencyMatrix[i][j] = 1;
+                    }
+                }
+            }
+
+            return adjacencyMatrix;
+        }
+
+        /**
+         * Get the distance matrix of the graph.
+         *
+         * @returns {Array[]} The distance matrix of the graph.
+         */
+
+    }, {
+        key: 'getDistanceMatrix',
+        value: function getDistanceMatrix() {
+            var length = this.vertices.length;
+            var adja = this.getAdjacencyMatrix();
+            var dist = Array(length);
+
+            for (var i = 0; i < length; i++) {
+                dist[i] = Array(length);
+                dist[i].fill(Infinity);
+            }
+
+            for (var i = 0; i < length; i++) {
+                for (var j = 0; j < length; j++) {
+                    if (adja[i][j] === 1) {
+                        dist[i][j] = 1;
+                    }
+                }
+            }
+
+            for (var k = 0; k < length; k++) {
+                for (var i = 0; i < length; i++) {
+                    for (var j = 0; j < length; j++) {
+                        if (dist[i][j] > dist[i][k] + dist[k][j]) {
+                            dist[i][j] = dist[i][k] + dist[k][j];
+                        }
+                    }
+                }
+            }
+
+            return dist;
+        }
+
+        /**
+         * Get the distance matrix of a subgraph.
+         *
+         * @param {Number[]} vertexIds An array containing the vertex ids contained within the subgraph.
+         * @returns {Array[]} The distance matrix of the subgraph.
+         */
+
+    }, {
+        key: 'getSubgraphDistanceMatrix',
+        value: function getSubgraphDistanceMatrix(vertexIds) {
+            var length = vertexIds.length;
+            var adja = this.getSubgraphAdjacencyMatrix(vertexIds);
+            var dist = Array(length);
+
+            for (var i = 0; i < length; i++) {
+                dist[i] = Array(length);
+                dist[i].fill(Infinity);
+            }
+
+            for (var i = 0; i < length; i++) {
+                for (var j = 0; j < length; j++) {
+                    if (adja[i][j] === 1) {
+                        dist[i][j] = 1;
+                    }
+                }
+            }
+
+            for (var k = 0; k < length; k++) {
+                for (var i = 0; i < length; i++) {
+                    for (var j = 0; j < length; j++) {
+                        if (dist[i][j] > dist[i][k] + dist[k][j]) {
+                            dist[i][j] = dist[i][k] + dist[k][j];
+                        }
+                    }
+                }
+            }
+
+            return dist;
+        }
+
+        /**
+         * Get the adjacency list of the graph.
+         *
+         * @returns {Array[]} The adjancency list of the graph.
+         */
+
+    }, {
+        key: 'getAdjacencyList',
+        value: function getAdjacencyList() {
+            var length = this.vertices.length;
+            var adjacencyList = Array(length);
+
+            for (var i = 0; i < length; i++) {
+                adjacencyList[i] = [];
+
+                for (var j = 0; j < length; j++) {
+                    if (i === j) {
+                        continue;
+                    }
+
+                    if (this.hasEdge(this.vertices[i].id, this.vertices[j].id)) {
+                        adjacencyList[i].push(j);
+                    }
+                }
+            }
+
+            return adjacencyList;
+        }
+
+        /**
+         * Get the adjacency list of a subgraph.
+         *
+         * @param {Number[]} vertexIds An array containing the vertex ids contained within the subgraph.
+         * @returns {Array[]} The adjancency list of the subgraph.
+         */
+
+    }, {
+        key: 'getSubgraphAdjacencyList',
+        value: function getSubgraphAdjacencyList(vertexIds) {
+            var length = vertexIds.length;
+            var adjacencyList = Array(length);
+
+            for (var i = 0; i < length; i++) {
+                adjacencyList[i] = Array();
+
+                for (var j = 0; j < length; j++) {
+                    if (i === j) {
+                        continue;
+                    }
+
+                    if (this.hasEdge(vertexIds[i], vertexIds[j])) {
+                        adjacencyList[i].push(j);
+                    }
+                }
+            }
+
+            return adjacencyList;
+        }
+
+        /**
+         * Returns an array containing the edge ids of bridges. A bridge splits the graph into multiple components when removed.
+         *
+         * @returns {Number[]} An array containing the edge ids of the bridges.
+         */
+
+    }, {
+        key: 'getBridges',
+        value: function getBridges() {
+            var length = this.vertices.length;
+            var visited = new Array(length);
+            var disc = new Array(length);
+            var low = new Array(length);
+            var parent = new Array(length);
+            var adj = this.getAdjacencyList();
+            var outBridges = Array();
+
+            visited.fill(false);
+            parent.fill(null);
+            this._time = 0;
+
+            for (var i = 0; i < length; i++) {
+                if (!visited[i]) {
+                    this._bridgeDfs(i, visited, disc, low, parent, adj, outBridges);
+                }
+            }
+
+            return outBridges;
+        }
+
+        /**
+         * Traverses the graph in breadth-first order.
+         *
+         * @param {Number} startVertexId The id of the starting vertex.
+         * @param {Function} callback The callback function to be called on every vertex.
+         */
+
+    }, {
+        key: 'traverseBF',
+        value: function traverseBF(startVertexId, callback) {
+            var length = this.vertices.length;
+            var visited = new Array(length);
+
+            visited.fill(false);
+
+            var queue = [startVertexId];
+
+            while (queue.length > 0) {
+                // JavaScripts shift() is O(n) ... bad JavaScript, bad!
+                var u = queue.shift();
+                var vertex = this.vertices[u];
+
+                callback(vertex);
+
+                for (var i = 0; i < vertex.neighbours.length; i++) {
+                    var v = vertex.neighbours[i];
+                    if (!visited[v]) {
+                        visited[v] = true;
+                        queue.push(v);
+                    }
+                }
+            }
+        }
+
+        /**
+         * Get the depth of a subtree in the direction opposite to the vertex specified as the parent vertex.
+         *
+         * @param {Number} vertexId A vertex id.
+         * @param {Number} parentVertexId The id of a neighbouring vertex.
+         * @returns {Number} The depth of the sub-tree.
+         */
+
+    }, {
+        key: 'getTreeDepth',
+        value: function getTreeDepth(vertexId, parentVertexId) {
+            if (vertexId === null || parentVertexId === null) {
+                return 0;
+            }
+
+            var neighbours = this.vertices[vertexId].getSpanningTreeNeighbours(parentVertexId);
+            var max = 0;
+
+            for (var i = 0; i < neighbours.length; i++) {
+                var childId = neighbours[i];
+                var d = this.getTreeDepth(childId, vertexId);
+
+                if (d > max) {
+                    max = d;
+                }
+            }
+
+            return max + 1;
+        }
+
+        /**
+         * Traverse a sub-tree in the graph.
+         *
+         * @param {Number} vertexId A vertex id.
+         * @param {Number} parentVertexId A neighbouring vertex.
+         * @param {Function} callback The callback function that is called with each visited as an argument.
+         * @param {Number} [maxDepth=Number.MAX_SAFE_INTEGER] The maximum depth of the recursion.
+         * @param {Boolean} [ignoreFirst=false] Whether or not to ignore the starting vertex supplied as vertexId in the callback.
+         * @param {Number} [depth=1] The current depth in the tree.
+         * @param {Uint8Array} [visited=null] An array holding a flag on whether or not a node has been visited.
+         */
+
+    }, {
+        key: 'traverseTree',
+        value: function traverseTree(vertexId, parentVertexId, callback) {
+            var maxDepth = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : Number.MAX_SAFE_INTEGER;
+            var ignoreFirst = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : false;
+            var depth = arguments.length > 5 && arguments[5] !== undefined ? arguments[5] : 1;
+            var visited = arguments.length > 6 && arguments[6] !== undefined ? arguments[6] : null;
+
+            if (visited === null) {
+                visited = new Uint8Array(this.vertices.length);
+            }
+
+            if (depth > maxDepth + 1 || visited[vertexId] === 1) {
+                return;
+            }
+
+            visited[vertexId] = 1;
+
+            var vertex = this.vertices[vertexId];
+            var neighbours = vertex.getNeighbours(parentVertexId);
+
+            if (!ignoreFirst || depth > 1) {
+                callback(vertex);
+            }
+
+            for (var i = 0; i < neighbours.length; i++) {
+                this.traverseTree(neighbours[i], vertexId, callback, maxDepth, ignoreFirst, depth + 1, visited);
+            }
+        }
+
+        /**
+         * Positiones the (sub)graph using Kamada and Kawais algorithm for drawing general undirected graphs. https://pdfs.semanticscholar.org/b8d3/bca50ccc573c5cb99f7d201e8acce6618f04.pdf
+         *
+         * @param {Number[]} vertexIds An array containing vertexIds to be placed using the force based layout.
+         * @param {Vector2} center The center of the layout.
+         * @param {Number} startVertexId A vertex id. Should be the starting vertex - e.g. the first to be positioned and connected to a previously place vertex.
+         * @param {Ring} ring The bridged ring associated with this force-based layout.
+         */
+
+    }, {
+        key: 'kkLayout',
+        value: function kkLayout(vertexIds, center, startVertexId, ring, bondLength) {
+            var edgeStrength = bondLength;
+
+            // Add vertices that are directly connected to the ring
+            var i = vertexIds.length;
+            while (i--) {
+                var vertex = this.vertices[vertexIds[i]];
+                var j = vertex.neighbours.length;
+            }
+
+            var matDist = this.getSubgraphDistanceMatrix(vertexIds);
+            var length = vertexIds.length;
+
+            // Initialize the positions. Place all vertices on a ring around the center
+            var radius = MathHelper.polyCircumradius(500, length);
+            var angle = MathHelper.centralAngle(length);
+            var a = 0.0;
+            var arrPositionX = new Float32Array(length);
+            var arrPositionY = new Float32Array(length);
+            var arrPositioned = Array(length);
+
+            i = length;
+            while (i--) {
+                var _vertex = this.vertices[vertexIds[i]];
+                if (!_vertex.positioned) {
+                    arrPositionX[i] = center.x + Math.cos(a) * radius;
+                    arrPositionY[i] = center.y + Math.sin(a) * radius;
+                } else {
+                    arrPositionX[i] = _vertex.position.x;
+                    arrPositionY[i] = _vertex.position.y;
+                }
+                arrPositioned[i] = _vertex.positioned;
+                a += angle;
+            }
+
+            // Create the matrix containing the lengths
+            var matLength = Array(length);
+            i = length;
+            while (i--) {
+                matLength[i] = new Array(length);
+                var j = length;
+                while (j--) {
+                    matLength[i][j] = bondLength * matDist[i][j];
+                }
+            }
+
+            // Create the matrix containing the spring strenghts
+            var matStrength = Array(length);
+            i = length;
+            while (i--) {
+                matStrength[i] = Array(length);
+                var j = length;
+                while (j--) {
+                    matStrength[i][j] = edgeStrength * Math.pow(matDist[i][j], -2.0);
+                }
+            }
+
+            // Create the matrix containing the energies
+            var matEnergy = Array(length);
+            var arrEnergySumX = new Float32Array(length);
+            var arrEnergySumY = new Float32Array(length);
+            i = length;
+            while (i--) {
+                matEnergy[i] = Array(length);
+            }
+
+            i = length;
+            var ux = void 0,
+                uy = void 0,
+                dEx = void 0,
+                dEy = void 0,
+                vx = void 0,
+                vy = void 0,
+                denom = void 0;
+
+            while (i--) {
+                ux = arrPositionX[i];
+                uy = arrPositionY[i];
+                dEx = 0.0;
+                dEy = 0.0;
+                var _j = length;
+                while (_j--) {
+                    if (i === _j) {
+                        continue;
+                    }
+                    vx = arrPositionX[_j];
+                    vy = arrPositionY[_j];
+                    denom = 1.0 / Math.sqrt((ux - vx) * (ux - vx) + (uy - vy) * (uy - vy));
+                    matEnergy[i][_j] = [matStrength[i][_j] * (ux - vx - matLength[i][_j] * (ux - vx) * denom), matStrength[i][_j] * (uy - vy - matLength[i][_j] * (uy - vy) * denom)];
+                    matEnergy[_j][i] = matEnergy[i][_j];
+                    dEx += matEnergy[i][_j][0];
+                    dEy += matEnergy[i][_j][1];
+                }
+                arrEnergySumX[i] = dEx;
+                arrEnergySumY[i] = dEy;
+            }
+
+            // Utility functions, maybe inline them later
+            var energy = function energy(index) {
+                return [arrEnergySumX[index] * arrEnergySumX[index] + arrEnergySumY[index] * arrEnergySumY[index], arrEnergySumX[index], arrEnergySumY[index]];
+            };
+
+            var highestEnergy = function highestEnergy() {
+                var maxEnergy = 0.0;
+                var maxEnergyId = 0;
+                var maxDEX = 0.0;
+                var maxDEY = 0.0;
+
+                i = length;
+                while (i--) {
+                    var _energy = energy(i),
+                        _energy2 = _slicedToArray(_energy, 3),
+                        _delta = _energy2[0],
+                        _dEX = _energy2[1],
+                        _dEY = _energy2[2];
+
+                    if (_delta > maxEnergy && arrPositioned[i] === false) {
+                        maxEnergy = _delta;
+                        maxEnergyId = i;
+                        maxDEX = _dEX;
+                        maxDEY = _dEY;
+                    }
+                }
+
+                return [maxEnergyId, maxEnergy, maxDEX, maxDEY];
+            };
+
+            var update = function update(index, dEX, dEY) {
+                var dxx = 0.0;
+                var dyy = 0.0;
+                var dxy = 0.0;
+                var ux = arrPositionX[index];
+                var uy = arrPositionY[index];
+                var arrL = matLength[index];
+                var arrK = matStrength[index];
+
+                i = length;
+                while (i--) {
+                    if (i === index) {
+                        continue;
+                    }
+
+                    var _vx = arrPositionX[i];
+                    var _vy = arrPositionY[i];
+                    var l = arrL[i];
+                    var k = arrK[i];
+                    var m = (ux - _vx) * (ux - _vx);
+                    var _denom = 1.0 / Math.pow(m + (uy - _vy) * (uy - _vy), 1.5);
+
+                    dxx += k * (1 - l * (uy - _vy) * (uy - _vy) * _denom);
+                    dyy += k * (1 - l * m * _denom);
+                    dxy += k * (l * (ux - _vx) * (uy - _vy) * _denom);
+                }
+
+                // Prevent division by zero
+                if (dxx === 0) {
+                    dxx = 0.1;
+                }
+
+                if (dyy === 0) {
+                    dyy = 0.1;
+                }
+
+                if (dxy === 0) {
+                    dxy = 0.1;
+                }
+
+                var dy = dEX / dxx + dEY / dxy;
+                dy /= dxy / dxx - dyy / dxy; // had to split this onto two lines because the syntax highlighter went crazy.
+                var dx = -(dxy * dy + dEX) / dxx;
+
+                arrPositionX[index] += dx;
+                arrPositionY[index] += dy;
+
+                // Update the energies
+                var arrE = matEnergy[index];
+                dEX = 0.0;
+                dEY = 0.0;
+
+                ux = arrPositionX[index];
+                uy = arrPositionY[index];
+
+                var vx = void 0,
+                    vy = void 0,
+                    prevEx = void 0,
+                    prevEy = void 0,
+                    denom = void 0;
+
+                i = length;
+                while (i--) {
+                    if (index === i) {
+                        continue;
+                    }
+                    vx = arrPositionX[i];
+                    vy = arrPositionY[i];
+                    // Store old energies
+                    prevEx = arrE[i][0];
+                    prevEy = arrE[i][1];
+                    denom = 1.0 / Math.sqrt((ux - vx) * (ux - vx) + (uy - vy) * (uy - vy));
+                    dx = arrK[i] * (ux - vx - arrL[i] * (ux - vx) * denom);
+                    dy = arrK[i] * (uy - vy - arrL[i] * (uy - vy) * denom);
+
+                    arrE[i] = [dx, dy];
+                    dEX += dx;
+                    dEY += dy;
+                    arrEnergySumX[i] += dx - prevEx;
+                    arrEnergySumY[i] += dy - prevEy;
+                }
+                arrEnergySumX[index] = dEX;
+                arrEnergySumY[index] = dEY;
+            };
+
+            // Setting parameters
+            var threshold = 0.1;
+            var innerThreshold = 0.1;
+            var maxIteration = 2000;
+            var maxInnerIteration = 50;
+            var maxEnergy = 1e9;
+
+            // Setting up variables for the while loops
+            var maxEnergyId = 0;
+            var dEX = 0.0;
+            var dEY = 0.0;
+            var delta = 0.0;
+            var iteration = 0;
+            var innerIteration = 0;
+
+            while (maxEnergy > threshold && maxIteration > iteration) {
+                iteration++;
+
+                var _highestEnergy = highestEnergy();
+
+                var _highestEnergy2 = _slicedToArray(_highestEnergy, 4);
+
+                maxEnergyId = _highestEnergy2[0];
+                maxEnergy = _highestEnergy2[1];
+                dEX = _highestEnergy2[2];
+                dEY = _highestEnergy2[3];
+
+                delta = maxEnergy;
+                innerIteration = 0;
+                while (delta > innerThreshold && maxInnerIteration > innerIteration) {
+                    innerIteration++;
+                    update(maxEnergyId, dEX, dEY);
+
+                    var _energy3 = energy(maxEnergyId);
+
+                    var _energy4 = _slicedToArray(_energy3, 3);
+
+                    delta = _energy4[0];
+                    dEX = _energy4[1];
+                    dEY = _energy4[2];
+                }
+            }
+
+            i = length;
+            while (i--) {
+                var index = vertexIds[i];
+                var _vertex2 = this.vertices[index];
+                _vertex2.position.x = arrPositionX[i];
+                _vertex2.position.y = arrPositionY[i];
+                _vertex2.positioned = true;
+                _vertex2.forcePositioned = true;
+            }
+        }
+
+        /**
+         * PRIVATE FUNCTION used by getBridges().
+         */
+
+    }, {
+        key: '_bridgeDfs',
+        value: function _bridgeDfs(u, visited, disc, low, parent, adj, outBridges) {
+            visited[u] = true;
+            disc[u] = low[u] = ++this._time;
+
+            for (var i = 0; i < adj[u].length; i++) {
+                var v = adj[u][i];
+
+                if (!visited[v]) {
+                    parent[v] = u;
+
+                    this._bridgeDfs(v, visited, disc, low, parent, adj, outBridges);
+
+                    low[u] = Math.min(low[u], low[v]);
+
+                    // If low > disc, we have a bridge
+                    if (low[v] > disc[u]) {
+                        outBridges.push([u, v]);
+                    }
+                } else if (v !== parent[u]) {
+                    low[u] = Math.min(low[u], disc[v]);
+                }
+            }
+        }
+
+        /**
+         * Returns the connected components of the graph.
+         *
+         * @param {Array[]} adjacencyMatrix An adjacency matrix.
+         * @returns {Set[]} Connected components as sets.
+         */
+
+    }, {
+        key: 'revertEdgeDecayPoint',
+
+
+        /**
+         * Revert decay point value and update list of decay points
+         * when edge isn't decay point -> change mark edge as decay point and add edge to decays list
+         * when edge is decay point -> unmark edge as decay point and remove edgeId from list of decays
+         * @param edgeId
+         */
+        value: function revertEdgeDecayPoint(edgeId) {
+            this.edges[edgeId].isDecay = !this.edges[edgeId].isDecay;
+            if (this.edges[edgeId].isDecay) {
+                this.decays.push(edgeId);
+            } else {
+                var index = this.decays.indexOf(edgeId);
+                if (index > -1) {
+                    this.decays.splice(index, 1);
+                }
+            }
+        }
+    }, {
+        key: 'buildSmiles',
+        value: function buildSmiles() {
+            this.isRing = false;
+            var smiles = [];
+            this.dfsSmilesInitialization();
+            console.log("Start DFS");
+            this.dfsBuildSmilesStart(smiles);
+            console.log("End DFS");
+            if (this.isRing) {
+                this.dfsSmilesInitialization();
+                // TODO second pass of DFS for cyclic structure
+            }
+        }
+    }, {
+        key: 'dfsSmilesInitialization',
+        value: function dfsSmilesInitialization() {
+            for (var i = 0; i < this.vertices.length; ++i) {
+                this.vertices[i].vertexState = VertexState.VALUES.NOT_FOUND;
+            }
+        }
+    }, {
+        key: 'dfsBuildSmilesStart',
+        value: function dfsBuildSmilesStart(smiles) {
+            for (var i = 0; i < this.decays.length; ++i) {
+                var stackSmiles = [];
+                var edge = this.edges[this.decays[i]];
+                var sourceVertex = this.vertices[edge.sourceId];
+                this.dfsSmiles(sourceVertex, stackSmiles);
+                console.log("Stack " + stackSmiles.join(""));
+                stackSmiles = Graph.removeUnnecessaryParentheses(stackSmiles);
+                console.log("Stack " + stackSmiles.join(""));
+                smiles.push(stackSmiles.join(""));
+                stackSmiles = [];
+                var targetVertex = this.vertices[edge.targetId];
+                this.dfsSmiles(targetVertex, stackSmiles);
+                console.log("Stack " + stackSmiles.join(""));
+                stackSmiles = Graph.removeUnnecessaryParentheses(stackSmiles);
+                console.log("Stack " + stackSmiles.join(""));
+                // TODO what about push when stack is empty?
+                smiles.push(stackSmiles.join(""));
+            }
+        }
+    }, {
+        key: 'dfsSmiles',
+        value: function dfsSmiles(vertex, stackSmiles) {
+            // console.log("BEfore exit Vertex " + vertex.id + " " + vertex.vertexState);
+            if (vertex.vertexState === VertexState.VALUES.OPEN) {
+                this.isRing = true;
+            }
+            if (vertex.vertexState !== VertexState.VALUES.NOT_FOUND) {
+                return;
+            }
+            // console.log("Vertex " + vertex.id);
+            stackSmiles.push(vertex.value.element);
+            vertex.vertexState = VertexState.VALUES.OPEN;
+            for (var i = 0; i < vertex.edges.length; ++i) {
+                var edge = this.edges[vertex.edges[i]];
+                if (edge.isDecay) continue;
+                stackSmiles.push("(");
+                // console.log("edge " + edge.id);
+                // console.log("edge vertexes " + edge.sourceId + " " + edge.targetId);
+                Graph.printBondType(edge, stackSmiles);
+                var nextVertex = Graph.getRightVertex(vertex.id, edge.sourceId, edge.targetId);
+                // console.log("next vertex " + nextVertex);
+                this.dfsSmiles(this.vertices[nextVertex], stackSmiles);
+                Graph.checkStack(stackSmiles);
+            }
+            vertex.vertexState = VertexState.VALUES.CLOSED;
+        }
+    }], [{
+        key: 'getConnectedComponents',
+        value: function getConnectedComponents(adjacencyMatrix) {
+            var length = adjacencyMatrix.length;
+            var visited = new Array(length);
+            var components = new Array();
+            var count = 0;
+
+            visited.fill(false);
+
+            for (var u = 0; u < length; u++) {
+                if (!visited[u]) {
+                    var component = Array();
+                    visited[u] = true;
+                    component.push(u);
+                    count++;
+                    Graph._ccGetDfs(u, visited, adjacencyMatrix, component);
+                    if (component.length > 1) {
+                        components.push(component);
+                    }
+                }
+            }
+
+            return components;
+        }
+
+        /**
+         * Returns the number of connected components for the graph.
+         *
+         * @param {Array[]} adjacencyMatrix An adjacency matrix.
+         * @returns {Number} The number of connected components of the supplied graph.
+         */
+
+    }, {
+        key: 'getConnectedComponentCount',
+        value: function getConnectedComponentCount(adjacencyMatrix) {
+            var length = adjacencyMatrix.length;
+            var visited = new Array(length);
+            var count = 0;
+
+            visited.fill(false);
+
+            for (var u = 0; u < length; u++) {
+                if (!visited[u]) {
+                    visited[u] = true;
+                    count++;
+                    Graph._ccCountDfs(u, visited, adjacencyMatrix);
+                }
+            }
+
+            return count;
+        }
+
+        /**
+         * PRIVATE FUNCTION used by getConnectedComponentCount().
+         */
+
+    }, {
+        key: '_ccCountDfs',
+        value: function _ccCountDfs(u, visited, adjacencyMatrix) {
+            for (var v = 0; v < adjacencyMatrix[u].length; v++) {
+                var c = adjacencyMatrix[u][v];
+
+                if (!c || visited[v] || u === v) {
+                    continue;
+                }
+
+                visited[v] = true;
+                Graph._ccCountDfs(v, visited, adjacencyMatrix);
+            }
+        }
+
+        /**
+         * PRIVATE FUNCTION used by getConnectedComponents().
+         */
+
+    }, {
+        key: '_ccGetDfs',
+        value: function _ccGetDfs(u, visited, adjacencyMatrix, component) {
+            for (var v = 0; v < adjacencyMatrix[u].length; v++) {
+                var c = adjacencyMatrix[u][v];
+
+                if (!c || visited[v] || u === v) {
+                    continue;
+                }
+
+                visited[v] = true;
+                component.push(v);
+                Graph._ccGetDfs(v, visited, adjacencyMatrix, component);
+            }
+        }
+    }, {
+        key: 'getRightVertex',
+        value: function getRightVertex(vertexId, sourceId, targetId) {
+            if (vertexId === sourceId) return targetId;else return sourceId;
+        }
+    }, {
+        key: 'removeUnnecessaryParentheses',
+        value: function removeUnnecessaryParentheses(stackRight) {
+            if (stackRight.length === 0) return [];
+            var stackLeft = [];
+            var lastLiteral = "";
+            while (stackRight.length > 0) {
+                var literal = stackRight.shift();
+                if (")".localeCompare(literal) === 0 && ")".localeCompare(lastLiteral) === 0) {
+                    Graph.removeParentheses(stackLeft, false, literal);
+                } else {
+                    stackLeft.push(literal);
+                }
+                lastLiteral = literal;
+            }
+
+            var lit = stackLeft.pop();
+            if (")".localeCompare(lit) === 0 && stackRight.length === 0) {
+                Graph.removeParentheses(stackLeft);
+            } else {
+                stackLeft.push(lit);
+            }
+            return stackLeft;
+        }
+    }, {
+        key: 'removeParentheses',
+        value: function removeParentheses(stackLeft) {
+            var end = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : true;
+            var literal = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : "";
+
+            var stackTmp = [];
+            var leftBraces = 0,
+                rightBraces = 1;
+            if (!end) {
+                stackLeft.pop();
+            }
+            while (true) {
+                var lit = stackLeft.pop();
+                if ("(".localeCompare(lit) === 0) {
+                    leftBraces++;
+                } else if (")".localeCompare(lit) === 0) {
+                    rightBraces++;
+                }
+                if (leftBraces === rightBraces) {
+                    Graph.copyStackTmpToLeftStack(stackTmp, stackLeft);
+                    if (!end) {
+                        stackLeft.push(literal);
+                    }
+                    break;
+                }
+                stackTmp.push(lit);
+            }
+        }
+    }, {
+        key: 'copyStackTmpToLeftStack',
+        value: function copyStackTmpToLeftStack(stackTmp, stackLeft) {
+            while (stackTmp.length > 0) {
+                stackLeft.push(stackTmp.pop());
+            }
+        }
+    }, {
+        key: 'removeBracketsOfLastAtom',
+        value: function removeBracketsOfLastAtom(stackSmiles) {
+            if (stackSmiles.length === 0) return;
+            var bracket = stackSmiles.pop();
+            if (bracket !== ")") {
+                stackSmiles.push(bracket);
+                return;
+            }
+            var tmpStack = [];
+            var literal = stackSmiles.pop();
+            while (literal !== "(") {
+                tmpStack.push(literal);
+                literal = stackSmiles.pop();
+            }
+            while (tmpStack.length !== 0) {
+                stackSmiles.push(tmpStack.pop());
+            }
+        }
+    }, {
+        key: 'checkStack',
+        value: function checkStack(stackSmiles) {
+            switch (stackSmiles[stackSmiles.length - 1]) {
+                case "(":
+                case "-":
+                case "=":
+                case "#":
+                    Graph.removeAllFromStackToFirstLeftBrace(stackSmiles);
+                    break;
+                default:
+                    stackSmiles.push(")");
+            }
+        }
+    }, {
+        key: 'removeAllFromStackToFirstLeftBrace',
+        value: function removeAllFromStackToFirstLeftBrace(stackSmiles) {
+            var literal = stackSmiles.pop();
+            while (literal !== "(") {
+                if (stackSmiles.length === 0) break;
+                literal = stackSmiles.pop();
+            }
+        }
+    }, {
+        key: 'printBondType',
+        value: function printBondType(edge, stackSmiles) {
+            if (edge.bondType === "=" || edge.bondType === "#") {
+                stackSmiles.push(edge.bondType);
+            }
+        }
+    }]);
+
+    return Graph;
 }();
 
 module.exports = Graph;
 
-},{"./Atom":3,"./DecayPoint":5,"./Edge":7,"./MathHelper":10,"./Ring":12,"./Vector2":15,"./Vertex":16}],9:[function(require,module,exports){
+},{"./Atom":3,"./DecayPoint":5,"./Edge":7,"./MathHelper":10,"./Ring":12,"./Vector2":15,"./Vertex":16,"./VertexState":17}],9:[function(require,module,exports){
 'use strict';
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
@@ -11220,6 +11437,7 @@ var MathHelper = require('./MathHelper');
 var ArrayHelper = require('./ArrayHelper');
 var Vector2 = require('./Vector2');
 var Atom = require('./Atom');
+var VertexState = require('./VertexState');
 
 /** 
  * A class representing a vertex.
@@ -11270,6 +11488,7 @@ var Vertex = function () {
     this.neighbours = Array();
     this.neighbouringElements = Array();
     this.forcePositioned = false;
+    this.vertexState = VertexState.VALUES.NOT_FOUND;
   }
 
   /**
@@ -11619,5 +11838,37 @@ var Vertex = function () {
 
 module.exports = Vertex;
 
-},{"./ArrayHelper":2,"./Atom":3,"./MathHelper":10,"./Vector2":15}]},{},[1])
+},{"./ArrayHelper":2,"./Atom":3,"./MathHelper":10,"./Vector2":15,"./VertexState":17}],17:[function(require,module,exports){
+"use strict";
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+//@ts-check
+
+var VertexState = function () {
+    function VertexState() {
+        _classCallCheck(this, VertexState);
+    }
+
+    _createClass(VertexState, null, [{
+        key: "VALUES",
+
+
+        /**
+         * Enum values of Vertex State for DFS
+         * @return {{NOT_FOUND: number, OPEN: number, CLOSED: number}}
+         */
+        get: function get() {
+            return { NOT_FOUND: 0, OPEN: 1, CLOSED: 2 };
+        }
+    }]);
+
+    return VertexState;
+}();
+
+module.exports = VertexState;
+
+},{}]},{},[1])
 

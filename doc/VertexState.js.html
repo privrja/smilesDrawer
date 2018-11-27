@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>DecayPoint.js - Documentation</title>
+    <title>VertexState.js - Documentation</title>
 
     <script src="scripts/prettify/prettify.js"></script>
     <script src="scripts/prettify/lang-css.js"></script>
@@ -27,7 +27,7 @@
 
 <div id="main">
     
-    <h1 class="page-title">DecayPoint.js</h1>
+    <h1 class="page-title">VertexState.js</h1>
     
 
     
@@ -39,21 +39,18 @@
         <article>
             <pre class="prettyprint source linenums"><code>//@ts-check
 
-class DecayPoint {
+class VertexState {
 
     /**
-     * Enum values for Decay points
-     * ALL use all variants of decay points
-     * COO -CO-O- type of decay
-     * CONH -CO-NH- type of decay
-     * @return {{ALL: number, COO: number, CONH: number}}
+     * Enum values of Vertex State for DFS
+     * @return {{NOT_FOUND: number, OPEN: number, CLOSED: number}}
      */
     static get VALUES() {
-        return { ALL: 0, COO: 1, CONH: 2 };
+        return { NOT_FOUND: 0, OPEN: 1, CLOSED: 2 };
     }
 }
 
-module.exports = DecayPoint;
+module.exports = VertexState;
 </code></pre>
         </article>
     </section>

@@ -1074,10 +1074,14 @@ class Graph {
             let sourceVertex = this.vertices[edge.sourceId];
             this.dfsSmiles(sourceVertex, stackSmiles);
             console.log("Stack " + stackSmiles.join(""));
+            stackSmiles = Graph.removeUnnecessaryParentheses(stackSmiles);
+            console.log("Stack " + stackSmiles.join(""));
             smiles.push(stackSmiles.join(""));
             stackSmiles = [];
             let targetVertex = this.vertices[edge.targetId];
             this.dfsSmiles(targetVertex, stackSmiles);
+            console.log("Stack " + stackSmiles.join(""));
+            stackSmiles = Graph.removeUnnecessaryParentheses(stackSmiles);
             console.log("Stack " + stackSmiles.join(""));
             // TODO what about push when stack is empty?
             smiles.push(stackSmiles.join(""));
@@ -1095,73 +1099,119 @@ class Graph {
         // console.log("Vertex " + vertex.id);
         stackSmiles.push(vertex.value.element);
         vertex.vertexState = VertexState.VALUES.OPEN;
-        let lastAtom = vertex.edges.length - 1;
         for (let i = 0; i < vertex.edges.length; ++i) {
             let edge = this.edges[vertex.edges[i]];
             if (edge.isDecay) continue;
             stackSmiles.push("(");
             // console.log("edge " + edge.id);
             // console.log("edge vertexes " + edge.sourceId + " " + edge.targetId);
-            this.printBondType(edge, stackSmiles);
-            let nextVertex = this.getRightVertex(vertex.id, edge.sourceId, edge.targetId);
-            // console.log(nextVertex);
+            Graph.printBondType(edge, stackSmiles);
+            let nextVertex = Graph.getRightVertex(vertex.id, edge.sourceId, edge.targetId);
+            // console.log("next vertex " + nextVertex);
             this.dfsSmiles(this.vertices[nextVertex], stackSmiles);
-            this.checkStack(stackSmiles);
+            Graph.checkStack(stackSmiles);
         }
-        // TODO remove last brackets?
         vertex.vertexState = VertexState.VALUES.CLOSED;
     }
 
-    getRightVertex(vertexId, sourceId, targetId) {
+    static getRightVertex(vertexId, sourceId, targetId) {
         if (vertexId === sourceId) return targetId;
         else return sourceId;
     }
 
-    removeBracketsOfLastAtom(stackSmiles) {
-        let bracket = stackSmiles.pop();
-        if (bracket !== ")") {
-            stackSmiles.push(bracket);
-            // TODO exception?
-            return;
+    static removeUnnecessaryParentheses(stackRight) {
+        if (stackRight.length === 0) return [];
+        let stackLeft = [];
+        let lastLiteral = "";
+        while (stackRight.length > 0) {
+            let literal = stackRight.shift();
+            if ((")".localeCompare(literal) === 0 && ")".localeCompare(lastLiteral) === 0)) {
+                Graph.removeParentheses(stackLeft, false, literal);
+            } else {
+                stackLeft.push(literal);
+            }
+            lastLiteral = literal;
         }
-        // let tmpStack = [];
-        // let literal = stackSmiles.pop();
-        // tmpStack.push(literal);
-        // while (literal !== "(") {
-        //     let literal = stackSmiles.pop();
-        //     tmpStack.push(literal);
-        // }
-        // let lengthWithoutLastBracket = stackSmiles.length - 1;
-        // for (let i = 0; i < lengthWithoutLastBracket; ++i) {
-        //     stackSmiles.push(tmpStack.pop());
-        // }
-        let literal = bracket;
-        while (literal !== "(") {
-            literal = stackSmiles.pop();
+
+        let lit = stackLeft.pop();
+        if ((")".localeCompare(lit) === 0 && stackRight.length === 0)) {
+            Graph.removeParentheses(stackLeft);
+        } else {
+            stackLeft.push(lit);
+        }
+        return stackLeft;
+    }
+
+    static removeParentheses(stackLeft, end = true, literal = "") {
+        let stackTmp = [];
+        let leftBraces = 0, rightBraces = 1;
+        if (!end) {
+            stackLeft.pop();
+        }
+        while (true) {
+            let lit = stackLeft.pop();
+            if ("(".localeCompare(lit) === 0) {
+                leftBraces++;
+            } else if (")".localeCompare(lit) === 0) {
+                rightBraces++;
+            }
+            if (leftBraces === rightBraces) {
+                Graph.copyStackTmpToLeftStack(stackTmp, stackLeft);
+                if (!end) {
+                    stackLeft.push(literal);
+                }
+                break;
+            }
+            stackTmp.push(lit);
         }
     }
 
-    checkStack(stackSmiles) {
+    static copyStackTmpToLeftStack(stackTmp, stackLeft) {
+        while (stackTmp.length > 0) {
+            stackLeft.push(stackTmp.pop());
+        }
+    }
+
+    static removeBracketsOfLastAtom(stackSmiles) {
+        if (stackSmiles.length === 0) return;
+        let bracket = stackSmiles.pop();
+        if (bracket !== ")") {
+            stackSmiles.push(bracket);
+            return;
+        }
+        let tmpStack = [];
+        let literal = stackSmiles.pop();
+        while (literal !== "(") {
+            tmpStack.push(literal);
+            literal = stackSmiles.pop();
+        }
+        while (tmpStack.length !== 0) {
+            stackSmiles.push(tmpStack.pop());
+        }
+    }
+
+    static checkStack(stackSmiles) {
         switch (stackSmiles[stackSmiles.length - 1]) {
             case "(":
             case "-":
             case "=":
             case "#":
-                this.removeAllFromStackToFirstLeftBrace(stackSmiles);
+                Graph.removeAllFromStackToFirstLeftBrace(stackSmiles);
                 break;
             default:
                 stackSmiles.push(")");
         }
     }
 
-    removeAllFromStackToFirstLeftBrace(stackSmiles) {
+    static removeAllFromStackToFirstLeftBrace(stackSmiles) {
         let literal = stackSmiles.pop();
         while (literal !== "(") {
+            if (stackSmiles.length === 0) break;
             literal = stackSmiles.pop();
         }
     }
 
-    printBondType(edge, stackSmiles) {
+    static printBondType(edge, stackSmiles) {
         if (edge.bondType === "=" || edge.bondType === "#") {
             stackSmiles.push(edge.bondType);
         }
