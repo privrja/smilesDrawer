@@ -1048,6 +1048,11 @@ class Graph {
         }
     }
 
+    /**
+     * Build block of SMILES based on decay points
+     * DFS pass through graph
+     * if there is a ring need second DFS pass for right SMILES notation
+     */
     buildSmiles() {
         this.isRing = false;
         let smiles = [];
@@ -1061,26 +1066,32 @@ class Graph {
         }
     }
 
+    /**
+     * Initialize graph for dfs
+     * set for all vertices vertexState to NotFound
+     */
     dfsSmilesInitialization() {
         for (let i = 0; i < this.vertices.length; ++i) {
             this.vertices[i].vertexState = VertexState.VALUES.NOT_FOUND;
         }
     }
 
+    /**
+     * Starting function for DFS
+     * @param {Array} smiles output param, array of SMILES blocks (string)
+     */
     dfsBuildSmilesStart(smiles) {
         for (let i = 0; i < this.decays.length; ++i) {
             let stackSmiles = [];
             let edge = this.edges[this.decays[i]];
             let sourceVertex = this.vertices[edge.sourceId];
             this.dfsSmiles(sourceVertex, stackSmiles);
-            console.log("Stack " + stackSmiles.join(""));
             stackSmiles = Graph.removeUnnecessaryParentheses(stackSmiles);
             console.log("Stack " + stackSmiles.join(""));
             smiles.push(stackSmiles.join(""));
             stackSmiles = [];
             let targetVertex = this.vertices[edge.targetId];
             this.dfsSmiles(targetVertex, stackSmiles);
-            console.log("Stack " + stackSmiles.join(""));
             stackSmiles = Graph.removeUnnecessaryParentheses(stackSmiles);
             console.log("Stack " + stackSmiles.join(""));
             // TODO what about push when stack is empty?
@@ -1088,8 +1099,14 @@ class Graph {
         }
     }
 
+    /**
+     * DFS for SMILES
+     * @param {Vertex} vertex
+     * @param {Array} stackSmiles output param
+     */
     dfsSmiles(vertex, stackSmiles) {
         // console.log("BEfore exit Vertex " + vertex.id + " " + vertex.vertexState);
+        // TODO need to treat with problem, when go back to OPEN vertex, because of neighbours, need to avoid because of ring detection
         if (vertex.vertexState === VertexState.VALUES.OPEN) {
             this.isRing = true;
         }
@@ -1105,8 +1122,8 @@ class Graph {
             stackSmiles.push("(");
             // console.log("edge " + edge.id);
             // console.log("edge vertexes " + edge.sourceId + " " + edge.targetId);
-            Graph.printBondType(edge, stackSmiles);
-            let nextVertex = Graph.getRightVertex(vertex.id, edge.sourceId, edge.targetId);
+            Graph.addBondTypeToStack(edge, stackSmiles);
+            let nextVertex = Graph.getProperVertex(vertex.id, edge.sourceId, edge.targetId);
             // console.log("next vertex " + nextVertex);
             this.dfsSmiles(this.vertices[nextVertex], stackSmiles);
             Graph.checkStack(stackSmiles);
@@ -1114,17 +1131,32 @@ class Graph {
         vertex.vertexState = VertexState.VALUES.CLOSED;
     }
 
-    static getRightVertex(vertexId, sourceId, targetId) {
+    /**
+     * Return other vertex id then the actual vertex id
+     * when vertexId === sourceId return targetId
+     * when vertexId === targetId return sourceId
+     * @param {Number} vertexId actual vertex id
+     * @param {Number} sourceId source vertex id
+     * @param {Number} targetId target vertex id
+     * @return {Number}
+     */
+    static getProperVertex(vertexId, sourceId, targetId) {
         if (vertexId === sourceId) return targetId;
         else return sourceId;
     }
 
+    /**
+     * Remove unnecessary parentheses from SMILES
+     * example CCC(CC)(C) -> CCC(CC)C
+     * example C(=O)C(C(C)) -> C(=O)CCC
+     * @param {Array} stackRight
+     * @return {Array}
+     */
     static removeUnnecessaryParentheses(stackRight) {
         if (stackRight.length === 0) return [];
-        let stackLeft = [];
-        let lastLiteral = "";
+        let stackLeft = [], lastLiteral = "", literal = "";
         while (stackRight.length > 0) {
-            let literal = stackRight.shift();
+            literal = stackRight.shift();
             if ((")".localeCompare(literal) === 0 && ")".localeCompare(lastLiteral) === 0)) {
                 Graph.removeParentheses(stackLeft, false, literal);
             } else {
@@ -1133,32 +1165,40 @@ class Graph {
             lastLiteral = literal;
         }
 
-        let lit = stackLeft.pop();
-        if ((")".localeCompare(lit) === 0 && stackRight.length === 0)) {
+        literal = stackLeft.pop();
+        if ((")".localeCompare(literal) === 0 && stackRight.length === 0)) {
             Graph.removeParentheses(stackLeft);
         } else {
-            stackLeft.push(lit);
+            stackLeft.push(literal);
         }
         return stackLeft;
     }
 
-    static removeParentheses(stackLeft, end = true, literal = "") {
+    /**
+     * Remove unnecessary parentheses from stack
+     * go through stack and when find proper closing bracket,
+     * then remove it and push back removed data when searching in stack
+     * @param {Array} stack with unnecessary parentheses to remove
+     * @param {Boolean} end treat with situation when ")" is last character of stack -> end = true, else where end = false
+     * @param {String} literal, when end = false, need to pop from stack and at the end add literal back to stack
+     */
+    static removeParentheses(stack, end = true, literal = "") {
         let stackTmp = [];
         let leftBraces = 0, rightBraces = 1;
         if (!end) {
-            stackLeft.pop();
+            stack.pop();
         }
         while (true) {
-            let lit = stackLeft.pop();
+            let lit = stack.pop();
             if ("(".localeCompare(lit) === 0) {
                 leftBraces++;
             } else if (")".localeCompare(lit) === 0) {
                 rightBraces++;
             }
             if (leftBraces === rightBraces) {
-                Graph.copyStackTmpToLeftStack(stackTmp, stackLeft);
+                Graph.moveAllValuesInStackToAnotherStack(stackTmp, stack);
                 if (!end) {
-                    stackLeft.push(literal);
+                    stack.push(literal);
                 }
                 break;
             }
@@ -1166,30 +1206,23 @@ class Graph {
         }
     }
 
-    static copyStackTmpToLeftStack(stackTmp, stackLeft) {
-        while (stackTmp.length > 0) {
-            stackLeft.push(stackTmp.pop());
+    /**
+     * Remove all values from stackSource and push it to stackDestination
+     * @param {Array} stackSource stack to remove values
+     * @param {Array} stackDestination stack to add values from stackSource
+     */
+    static moveAllValuesInStackToAnotherStack(stackSource, stackDestination) {
+        while (stackSource.length > 0) {
+            stackDestination.push(stackSource.pop());
         }
     }
 
-    static removeBracketsOfLastAtom(stackSmiles) {
-        if (stackSmiles.length === 0) return;
-        let bracket = stackSmiles.pop();
-        if (bracket !== ")") {
-            stackSmiles.push(bracket);
-            return;
-        }
-        let tmpStack = [];
-        let literal = stackSmiles.pop();
-        while (literal !== "(") {
-            tmpStack.push(literal);
-            literal = stackSmiles.pop();
-        }
-        while (tmpStack.length !== 0) {
-            stackSmiles.push(tmpStack.pop());
-        }
-    }
-
+    /**
+     * Check last value of stack
+     * if it one of (, -, = or # then remove all characters in stack to first ( from the end of stack
+     * elsewhere add ) to stack
+     * @param {Array} stackSmiles
+     */
     static checkStack(stackSmiles) {
         switch (stackSmiles[stackSmiles.length - 1]) {
             case "(":
@@ -1203,6 +1236,10 @@ class Graph {
         }
     }
 
+    /**
+     * Remove all characters from stack to first "("
+     * @param {Array} stackSmiles
+     */
     static removeAllFromStackToFirstLeftBrace(stackSmiles) {
         let literal = stackSmiles.pop();
         while (literal !== "(") {
@@ -1211,7 +1248,13 @@ class Graph {
         }
     }
 
-    static printBondType(edge, stackSmiles) {
+    /**
+     * Add bond type to stack
+     * if edge have = or # bond type add it to stack
+     * @param {Edge} edge
+     * @param {Array} stackSmiles
+     */
+    static addBondTypeToStack(edge, stackSmiles) {
         if (edge.bondType === "=" || edge.bondType === "#") {
             stackSmiles.push(edge.bondType);
         }
@@ -1219,4 +1262,4 @@ class Graph {
 
 }
 
-module.exports = Graph
+module.exports = Graph;

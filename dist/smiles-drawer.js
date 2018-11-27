@@ -6878,14 +6878,12 @@ var Graph = function () {
                 var edge = this.edges[this.decays[i]];
                 var sourceVertex = this.vertices[edge.sourceId];
                 this.dfsSmiles(sourceVertex, stackSmiles);
-                console.log("Stack " + stackSmiles.join(""));
                 stackSmiles = Graph.removeUnnecessaryParentheses(stackSmiles);
                 console.log("Stack " + stackSmiles.join(""));
                 smiles.push(stackSmiles.join(""));
                 stackSmiles = [];
                 var targetVertex = this.vertices[edge.targetId];
                 this.dfsSmiles(targetVertex, stackSmiles);
-                console.log("Stack " + stackSmiles.join(""));
                 stackSmiles = Graph.removeUnnecessaryParentheses(stackSmiles);
                 console.log("Stack " + stackSmiles.join(""));
                 // TODO what about push when stack is empty?
@@ -6911,14 +6909,25 @@ var Graph = function () {
                 stackSmiles.push("(");
                 // console.log("edge " + edge.id);
                 // console.log("edge vertexes " + edge.sourceId + " " + edge.targetId);
-                Graph.printBondType(edge, stackSmiles);
-                var nextVertex = Graph.getRightVertex(vertex.id, edge.sourceId, edge.targetId);
+                Graph.addBondTypeToStack(edge, stackSmiles);
+                var nextVertex = Graph.getProperVertex(vertex.id, edge.sourceId, edge.targetId);
                 // console.log("next vertex " + nextVertex);
                 this.dfsSmiles(this.vertices[nextVertex], stackSmiles);
                 Graph.checkStack(stackSmiles);
             }
             vertex.vertexState = VertexState.VALUES.CLOSED;
         }
+
+        /**
+         * Return other vertex id then the actual vertex id
+         * when vertexId === sourceId return targetId
+         * when vertexId === targetId return sourceId
+         * @param vertexId actual vertex id
+         * @param sourceId source vertex id
+         * @param targetId target vertex id
+         * @return {Number}
+         */
+
     }], [{
         key: 'getConnectedComponents',
         value: function getConnectedComponents(adjacencyMatrix) {
@@ -7011,18 +7020,19 @@ var Graph = function () {
             }
         }
     }, {
-        key: 'getRightVertex',
-        value: function getRightVertex(vertexId, sourceId, targetId) {
+        key: 'getProperVertex',
+        value: function getProperVertex(vertexId, sourceId, targetId) {
             if (vertexId === sourceId) return targetId;else return sourceId;
         }
     }, {
         key: 'removeUnnecessaryParentheses',
         value: function removeUnnecessaryParentheses(stackRight) {
             if (stackRight.length === 0) return [];
-            var stackLeft = [];
-            var lastLiteral = "";
+            var stackLeft = [],
+                lastLiteral = "",
+                literal = "";
             while (stackRight.length > 0) {
-                var literal = stackRight.shift();
+                literal = stackRight.shift();
                 if (")".localeCompare(literal) === 0 && ")".localeCompare(lastLiteral) === 0) {
                     Graph.removeParentheses(stackLeft, false, literal);
                 } else {
@@ -7031,11 +7041,11 @@ var Graph = function () {
                 lastLiteral = literal;
             }
 
-            var lit = stackLeft.pop();
-            if (")".localeCompare(lit) === 0 && stackRight.length === 0) {
+            literal = stackLeft.pop();
+            if (")".localeCompare(literal) === 0 && stackRight.length === 0) {
                 Graph.removeParentheses(stackLeft);
             } else {
-                stackLeft.push(lit);
+                stackLeft.push(literal);
             }
             return stackLeft;
         }
@@ -7059,7 +7069,7 @@ var Graph = function () {
                     rightBraces++;
                 }
                 if (leftBraces === rightBraces) {
-                    Graph.copyStackTmpToLeftStack(stackTmp, stackLeft);
+                    Graph.moveAllValuesInStackToAnotherStack(stackTmp, stackLeft);
                     if (!end) {
                         stackLeft.push(literal);
                     }
@@ -7068,32 +7078,28 @@ var Graph = function () {
                 stackTmp.push(lit);
             }
         }
+
+        /**
+         * Remove all values from stackSource and push it to stackDestination
+         * @param stackSource stack to remove values
+         * @param stackDestination stack to add values from stackSource
+         */
+
     }, {
-        key: 'copyStackTmpToLeftStack',
-        value: function copyStackTmpToLeftStack(stackTmp, stackLeft) {
-            while (stackTmp.length > 0) {
-                stackLeft.push(stackTmp.pop());
+        key: 'moveAllValuesInStackToAnotherStack',
+        value: function moveAllValuesInStackToAnotherStack(stackSource, stackDestination) {
+            while (stackSource.length > 0) {
+                stackDestination.push(stackSource.pop());
             }
         }
-    }, {
-        key: 'removeBracketsOfLastAtom',
-        value: function removeBracketsOfLastAtom(stackSmiles) {
-            if (stackSmiles.length === 0) return;
-            var bracket = stackSmiles.pop();
-            if (bracket !== ")") {
-                stackSmiles.push(bracket);
-                return;
-            }
-            var tmpStack = [];
-            var literal = stackSmiles.pop();
-            while (literal !== "(") {
-                tmpStack.push(literal);
-                literal = stackSmiles.pop();
-            }
-            while (tmpStack.length !== 0) {
-                stackSmiles.push(tmpStack.pop());
-            }
-        }
+
+        /**
+         * Check last value of stack
+         * if it one of (, -, = or # then remove all characters in stack to first ( from the end of stack
+         * elsewhere add ) to stack
+         * @param stackSmiles
+         */
+
     }, {
         key: 'checkStack',
         value: function checkStack(stackSmiles) {
@@ -7117,9 +7123,16 @@ var Graph = function () {
                 literal = stackSmiles.pop();
             }
         }
+
+        /**
+         * if edge have = or # bond add it to stack
+         * @param edge
+         * @param stackSmiles
+         */
+
     }, {
-        key: 'printBondType',
-        value: function printBondType(edge, stackSmiles) {
+        key: 'addBondTypeToStack',
+        value: function addBondTypeToStack(edge, stackSmiles) {
             if (edge.bondType === "=" || edge.bondType === "#") {
                 stackSmiles.push(edge.bondType);
             }
