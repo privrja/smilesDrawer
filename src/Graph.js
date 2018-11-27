@@ -1057,9 +1057,8 @@ class Graph {
         this.isRing = false;
         let smiles = [];
         this.dfsSmilesInitialization();
-        console.log("Start DFS");
         this.dfsBuildSmilesStart(smiles);
-        console.log("End DFS");
+        console.log(smiles);
         if (this.isRing) {
             this.dfsSmilesInitialization();
             // TODO second pass of DFS for cyclic structure
@@ -1078,23 +1077,27 @@ class Graph {
 
     /**
      * Starting function for DFS
+     * starts on decay points (on edge), so start on both side of edge
      * @param {Array} smiles output param, array of SMILES blocks (string)
      */
     dfsBuildSmilesStart(smiles) {
         for (let i = 0; i < this.decays.length; ++i) {
-            let stackSmiles = [];
             let edge = this.edges[this.decays[i]];
-            let sourceVertex = this.vertices[edge.sourceId];
-            this.dfsSmiles(sourceVertex, stackSmiles);
-            stackSmiles = Graph.removeUnnecessaryParentheses(stackSmiles);
-            console.log("Stack " + stackSmiles.join(""));
-            smiles.push(stackSmiles.join(""));
-            stackSmiles = [];
-            let targetVertex = this.vertices[edge.targetId];
-            this.dfsSmiles(targetVertex, stackSmiles);
-            stackSmiles = Graph.removeUnnecessaryParentheses(stackSmiles);
-            console.log("Stack " + stackSmiles.join(""));
-            // TODO what about push when stack is empty?
+            this.startDfs(this.vertices[edge.sourceId], smiles);
+            this.startDfs(this.vertices[edge.targetId], smiles);
+        }
+    }
+
+    /**
+     * Start DFS for build SMILES of blocks
+     * @param {Vertex} vertex to start DFS
+     * @param {Array} smiles output param, array od SMILES
+     */
+    startDfs(vertex, smiles) {
+        let stackSmiles = [];
+        this.dfsSmiles(vertex, stackSmiles);
+        stackSmiles = Graph.removeUnnecessaryParentheses(stackSmiles);
+        if (stackSmiles.length !== 0) {
             smiles.push(stackSmiles.join(""));
         }
     }

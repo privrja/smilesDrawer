@@ -6849,6 +6849,13 @@ var Graph = function () {
                 }
             }
         }
+
+        /**
+         * Build block of SMILES based on decay points
+         * DFS pass through graph
+         * if there is a ring need second DFS pass for right SMILES notation
+         */
+
     }, {
         key: 'buildSmiles',
         value: function buildSmiles() {
@@ -6858,11 +6865,18 @@ var Graph = function () {
             console.log("Start DFS");
             this.dfsBuildSmilesStart(smiles);
             console.log("End DFS");
+            console.log(smiles);
             if (this.isRing) {
                 this.dfsSmilesInitialization();
                 // TODO second pass of DFS for cyclic structure
             }
         }
+
+        /**
+         * Initialize graph for dfs
+         * set for all vertices vertexState to NotFound
+         */
+
     }, {
         key: 'dfsSmilesInitialization',
         value: function dfsSmilesInitialization() {
@@ -6870,30 +6884,52 @@ var Graph = function () {
                 this.vertices[i].vertexState = VertexState.VALUES.NOT_FOUND;
             }
         }
+
+        /**
+         * Starting function for DFS
+         * starts on decay points (on edge), so start on both side of edge
+         * @param {Array} smiles output param, array of SMILES blocks (string)
+         */
+
     }, {
         key: 'dfsBuildSmilesStart',
         value: function dfsBuildSmilesStart(smiles) {
             for (var i = 0; i < this.decays.length; ++i) {
-                var stackSmiles = [];
                 var edge = this.edges[this.decays[i]];
-                var sourceVertex = this.vertices[edge.sourceId];
-                this.dfsSmiles(sourceVertex, stackSmiles);
-                stackSmiles = Graph.removeUnnecessaryParentheses(stackSmiles);
-                console.log("Stack " + stackSmiles.join(""));
-                smiles.push(stackSmiles.join(""));
-                stackSmiles = [];
-                var targetVertex = this.vertices[edge.targetId];
-                this.dfsSmiles(targetVertex, stackSmiles);
-                stackSmiles = Graph.removeUnnecessaryParentheses(stackSmiles);
-                console.log("Stack " + stackSmiles.join(""));
-                // TODO what about push when stack is empty?
+                this.startDfs(this.vertices[edge.sourceId], smiles);
+                this.startDfs(this.vertices[edge.targetId], smiles);
+            }
+        }
+
+        /**
+         * Start DFS for build SMILES of blocks
+         * @param {Vertex} vertex to start DFS
+         * @param {Array} smiles output param, array od SMILES
+         */
+
+    }, {
+        key: 'startDfs',
+        value: function startDfs(vertex, smiles) {
+            var stackSmiles = [];
+            this.dfsSmiles(vertex, stackSmiles);
+            stackSmiles = Graph.removeUnnecessaryParentheses(stackSmiles);
+            console.log("Stack " + stackSmiles.join(""));
+            if (stackSmiles.length !== 0) {
                 smiles.push(stackSmiles.join(""));
             }
         }
+
+        /**
+         * DFS for SMILES
+         * @param {Vertex} vertex
+         * @param {Array} stackSmiles output param
+         */
+
     }, {
         key: 'dfsSmiles',
         value: function dfsSmiles(vertex, stackSmiles) {
             // console.log("BEfore exit Vertex " + vertex.id + " " + vertex.vertexState);
+            // TODO need to treat with problem, when go back to OPEN vertex, because of neighbours, need to avoid because of ring detection
             if (vertex.vertexState === VertexState.VALUES.OPEN) {
                 this.isRing = true;
             }
@@ -6922,9 +6958,9 @@ var Graph = function () {
          * Return other vertex id then the actual vertex id
          * when vertexId === sourceId return targetId
          * when vertexId === targetId return sourceId
-         * @param vertexId actual vertex id
-         * @param sourceId source vertex id
-         * @param targetId target vertex id
+         * @param {Number} vertexId actual vertex id
+         * @param {Number} sourceId source vertex id
+         * @param {Number} targetId target vertex id
          * @return {Number}
          */
 
@@ -7024,6 +7060,15 @@ var Graph = function () {
         value: function getProperVertex(vertexId, sourceId, targetId) {
             if (vertexId === sourceId) return targetId;else return sourceId;
         }
+
+        /**
+         * Remove unnecessary parentheses from SMILES
+         * example CCC(CC)(C) -> CCC(CC)C
+         * example C(=O)C(C(C)) -> C(=O)CCC
+         * @param {Array} stackRight
+         * @return {Array}
+         */
+
     }, {
         key: 'removeUnnecessaryParentheses',
         value: function removeUnnecessaryParentheses(stackRight) {
@@ -7049,9 +7094,19 @@ var Graph = function () {
             }
             return stackLeft;
         }
+
+        /**
+         * Remove unnecessary parentheses from stack
+         * go through stack and when find proper closing bracket,
+         * then remove it and push back removed data when searching in stack
+         * @param {Array} stack with unnecessary parentheses to remove
+         * @param {Boolean} end treat with situation when ")" is last character of stack -> end = true, else where end = false
+         * @param {String} literal, when end = false, need to pop from stack and at the end add literal back to stack
+         */
+
     }, {
         key: 'removeParentheses',
-        value: function removeParentheses(stackLeft) {
+        value: function removeParentheses(stack) {
             var end = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : true;
             var literal = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : "";
 
@@ -7059,19 +7114,19 @@ var Graph = function () {
             var leftBraces = 0,
                 rightBraces = 1;
             if (!end) {
-                stackLeft.pop();
+                stack.pop();
             }
             while (true) {
-                var lit = stackLeft.pop();
+                var lit = stack.pop();
                 if ("(".localeCompare(lit) === 0) {
                     leftBraces++;
                 } else if (")".localeCompare(lit) === 0) {
                     rightBraces++;
                 }
                 if (leftBraces === rightBraces) {
-                    Graph.moveAllValuesInStackToAnotherStack(stackTmp, stackLeft);
+                    Graph.moveAllValuesInStackToAnotherStack(stackTmp, stack);
                     if (!end) {
-                        stackLeft.push(literal);
+                        stack.push(literal);
                     }
                     break;
                 }
@@ -7081,8 +7136,8 @@ var Graph = function () {
 
         /**
          * Remove all values from stackSource and push it to stackDestination
-         * @param stackSource stack to remove values
-         * @param stackDestination stack to add values from stackSource
+         * @param {Array} stackSource stack to remove values
+         * @param {Array} stackDestination stack to add values from stackSource
          */
 
     }, {
@@ -7097,7 +7152,7 @@ var Graph = function () {
          * Check last value of stack
          * if it one of (, -, = or # then remove all characters in stack to first ( from the end of stack
          * elsewhere add ) to stack
-         * @param stackSmiles
+         * @param {Array} stackSmiles
          */
 
     }, {
@@ -7114,6 +7169,12 @@ var Graph = function () {
                     stackSmiles.push(")");
             }
         }
+
+        /**
+         * Remove all characters from stack to first "("
+         * @param {Array} stackSmiles
+         */
+
     }, {
         key: 'removeAllFromStackToFirstLeftBrace',
         value: function removeAllFromStackToFirstLeftBrace(stackSmiles) {
@@ -7125,9 +7186,10 @@ var Graph = function () {
         }
 
         /**
-         * if edge have = or # bond add it to stack
-         * @param edge
-         * @param stackSmiles
+         * Add bond type to stack
+         * if edge have = or # bond type add it to stack
+         * @param {Edge} edge
+         * @param {Array} stackSmiles
          */
 
     }, {
