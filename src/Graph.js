@@ -1061,8 +1061,9 @@ class Graph {
         console.log(smiles);
         if (this.isRing) {
             this.dfsSmilesInitialization();
-            // TODO second pass of DFS for cyclic structure
+            // TODO second pass of DFS for cyclic structures
         }
+        return smiles;
     }
 
     /**
