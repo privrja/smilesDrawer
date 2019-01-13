@@ -28,5 +28,6 @@
   },
   "dependencies": {
     "jasmine": "^3.3.0"
-  }
+  },
+  "scripts": { "test": "jasmine" }
 }
