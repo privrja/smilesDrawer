@@ -23,6 +23,7 @@ const VertexState = require('./VertexState')
  * @property {Number[]} neighbours The vertex ids of neighbouring vertices.
  * @property {String[]} neighbouringElements The element symbols associated with neighbouring vertices.
  * @property {Boolean} forcePositioned A boolean indicating whether or not this vertex was positioned using a force-based approach.
+ * @property {Number} vertexState enum of VertexState for DFS.
  */
 
 class Vertex {

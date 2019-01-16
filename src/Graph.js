@@ -36,7 +36,7 @@ class Graph {
         this._time = 0;
         this._init(parseTree);
         this.findDecayPoints();
-        console.log(this);
+        // console.log(this);
     }
 
     /**
@@ -1052,6 +1052,7 @@ class Graph {
      * Build block of SMILES based on decay points
      * DFS pass through graph
      * if there is a ring need second DFS pass for right SMILES notation
+     * but the numbers are already setup in vertex.value.ringbonds array so no need to second pass of dfs
      */
     buildSmiles() {
         this.isRing = false;
@@ -1059,11 +1060,6 @@ class Graph {
         this.dfsSmilesInitialization();
         this.dfsBuildSmilesStart(smiles);
         console.log(smiles);
-        if (this.isRing) {
-            this.dfsSmilesInitialization();
-            // TODO second pass of DFS for cyclic structures
-        }
-        return smiles;
     }
 
     /**
@@ -1071,6 +1067,13 @@ class Graph {
      * set for all vertices vertexState to NotFound
      */
     dfsSmilesInitialization() {
+        for (let i = 0; i < this.vertices.length; ++i) {
+            this.vertices[i].vertexState = VertexState.VALUES.NOT_FOUND;
+            this.vertices[i].smilesNumbers = [];
+        }
+    }
+
+    dfsSmilesInitializationForSecondDfs() {
         for (let i = 0; i < this.vertices.length; ++i) {
             this.vertices[i].vertexState = VertexState.VALUES.NOT_FOUND;
         }
@@ -1109,30 +1112,35 @@ class Graph {
      * @param {Array} stackSmiles output param
      */
     dfsSmiles(vertex, stackSmiles) {
-        // console.log("BEfore exit Vertex " + vertex.id + " " + vertex.vertexState);
-        // TODO need to treat with problem, when go back to OPEN vertex, because of neighbours, need to avoid because of ring detection
-        if (vertex.vertexState === VertexState.VALUES.OPEN) {
-            this.isRing = true;
-        }
         if (vertex.vertexState !== VertexState.VALUES.NOT_FOUND) {
             return;
         }
-        // console.log("Vertex " + vertex.id);
-        stackSmiles.push(vertex.value.element);
+        stackSmiles.push(vertex.value.element + Graph.smilesNumbersAdd(vertex));
         vertex.vertexState = VertexState.VALUES.OPEN;
         for (let i = 0; i < vertex.edges.length; ++i) {
             let edge = this.edges[vertex.edges[i]];
             if (edge.isDecay) continue;
             stackSmiles.push("(");
-            // console.log("edge " + edge.id);
-            // console.log("edge vertexes " + edge.sourceId + " " + edge.targetId);
             Graph.addBondTypeToStack(edge, stackSmiles);
             let nextVertex = Graph.getProperVertex(vertex.id, edge.sourceId, edge.targetId);
-            // console.log("next vertex " + nextVertex);
             this.dfsSmiles(this.vertices[nextVertex], stackSmiles);
             Graph.checkStack(stackSmiles);
         }
         vertex.vertexState = VertexState.VALUES.CLOSED;
+    }
+
+    static smilesNumbersAdd(vertex) {
+        let numbers = '';
+        console.log(numbers);
+        for (let i = 0; i < vertex.value.ringbonds.length; ++i) {
+            let num = vertex.value.ringbonds[i].id.toString();
+            if (num.length === 1) {
+                numbers += num;
+            } else {
+                numbers += '%' + num + '%';
+            }
+        }
+        return numbers;
     }
 
     /**
