@@ -3,6 +3,7 @@ const MathHelper = require('./MathHelper')
 const ArrayHelper = require('./ArrayHelper')
 const Vector2 = require('./Vector2')
 const Atom = require('./Atom')
+const VertexState = require('./VertexState')
 
 /** 
  * A class representing a vertex.
@@ -22,6 +23,7 @@ const Atom = require('./Atom')
  * @property {Number[]} neighbours The vertex ids of neighbouring vertices.
  * @property {String[]} neighbouringElements The element symbols associated with neighbouring vertices.
  * @property {Boolean} forcePositioned A boolean indicating whether or not this vertex was positioned using a force-based approach.
+ * @property {Number} vertexState enum of VertexState for DFS.
  */
 
 class Vertex {
@@ -48,6 +50,7 @@ class Vertex {
     this.neighbours = Array();
     this.neighbouringElements = Array();
     this.forcePositioned = false;
+    this.vertexState = VertexState.VALUES.NOT_FOUND;
   }
 
   /**

@@ -14,6 +14,8 @@ const Ring = require('./Ring')
  * @property {Object} opts The SmilesDrawer options.
  * @property {Number} drawingWidth The width of the canvas.
  * @property {Number} drawingHeight The height of the canvas.
+ * @property {Number} realWidth The width of the canvas real.
+ * @property {Number} realHeight The height of the canvas real.
  * @property {Number} offsetX The horizontal offset required for centering the drawing.
  * @property {Number} offsetY The vertical offset required for centering the drawing.
  * @property {Number} fontLarge The large font size in pt.
@@ -39,6 +41,8 @@ class CanvasWrapper {
         this.opts = options;
         this.drawingWidth = 0.0;
         this.drawingHeight = 0.0;
+        this.realWidth = 0.0;
+        this.realHeight = 0.0;
         this.offsetX = 0.0;
         this.offsetY = 0.0;
 
@@ -69,15 +73,14 @@ class CanvasWrapper {
             this.ctx.backingStorePixelRatio || 1;
         this.ratio = this.devicePixelRatio / this.backingStoreRatio;
 
+        this.canvas.width = width * this.ratio;
+        this.canvas.height = height * this.ratio;
         if (this.ratio !== 1) {
-            this.canvas.width = width * this.ratio;
-            this.canvas.height = height * this.ratio;
+            this.realWidth = width;
+            this.realHeight = height;
             this.canvas.style.width = width + 'px';
             this.canvas.style.height = height + 'px';
             this.ctx.setTransform(this.ratio, 0, 0, this.ratio, 0, 0);
-        } else {
-            this.canvas.width = width * this.ratio;
-            this.canvas.height = height * this.ratio;
         }
     }
 
@@ -266,10 +269,15 @@ class CanvasWrapper {
         ctx.lineWidth = this.opts.bondThickness;
 
         let gradient = this.ctx.createLinearGradient(l.x, l.y, r.x, r.y);
-        gradient.addColorStop(0.4, this.getColor(line.getLeftElement()) ||
-            this.getColor('C'));
-        gradient.addColorStop(0.6, this.getColor(line.getRightElement()) ||
-            this.getColor('C'));
+        if (line.isDecayPoint) {
+            gradient.addColorStop(0.4, this.getColor("DECAY"));
+            gradient.addColorStop(0.6, this.getColor("DECAY"));
+        } else {
+            gradient.addColorStop(0.4, this.getColor(line.getLeftElement()) ||
+                this.getColor('C'));
+            gradient.addColorStop(0.6, this.getColor(line.getRightElement()) ||
+                this.getColor('C'));
+        }
 
         if (dashed) {
             ctx.setLineDash([1, 1.5]);

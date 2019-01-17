@@ -21,14 +21,16 @@ class Line {
      * @param {string} [elementTo=null] A one-letter representation of the element associated with the vector marking the end of the line.
      * @param {Boolean} [chiralFrom=false] Whether or not the from atom is a chiral center.
      * @param {Boolean} [chiralTo=false] Whether or not the to atom is a chiral center.
+     * @param {Boolean} [isDecayPoint=false] Whether or not the edge is a decay point
      */
-    constructor(from = new Vector2(0,0), to = new Vector2(0, 0), elementFrom = null, elementTo = null, chiralFrom = false, chiralTo = false) {
+    constructor(from = new Vector2(0,0), to = new Vector2(0, 0), elementFrom = null, elementTo = null, chiralFrom = false, chiralTo = false, isDecayPoint = false) {
         this.from = from;
         this.to = to;
         this.elementFrom = elementFrom;
         this.elementTo = elementTo;
         this.chiralFrom = chiralFrom;
         this.chiralTo = chiralTo;
+        this.isDecayPoint = isDecayPoint;
     }
 
     /**

@@ -1,0 +1,17 @@
+language: node_js
+node_js:
+- "8.12.0"
+
+before_script:
+  - npm install -g gulp-cli
+
+script:
+  - gulp
+  - jasmine
+  - sonar-scanner
+
+addons:
+  sonarcloud:
+    organization: "privrja-github" # the key of the org you chose at step #3
+    token:
+      secure: 0127d472acc40c6b4f7af12e81c6b577d0eee064 # encrypted value of your token
