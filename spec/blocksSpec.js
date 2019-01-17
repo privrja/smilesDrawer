@@ -29,7 +29,7 @@ describe("blocks", function () {
 
     it("neaphamide A", function () {
         smilesDrawer.draw(SmilesDrawer.Parser.parse(NEAMPHAMIDE_A), 'output-canvas', 'light', true);
-        expect(smilesDrawer.graph.decays.length).toEqual(12); // 16 or 12? its about amide
+        expect(smilesDrawer.graph.decays.length).toEqual(16);
     });
 
     it("valinomycin", function () {

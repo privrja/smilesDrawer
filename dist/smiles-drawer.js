@@ -5514,7 +5514,9 @@ var Drawer = function () {
     }, {
         key: 'buildBlockSmiles',
         value: function buildBlockSmiles() {
-            this.graph.buildSmiles();
+            var tmpSmiles = this.graph.buildSmiles();
+            console.log(tmpSmiles);
+            return tmpSmiles;
         }
 
         /**
@@ -5793,7 +5795,7 @@ var Graph = function () {
         this._time = 0;
         this._init(parseTree);
         this.findDecayPoints();
-        console.log(this);
+        // console.log(this);
     }
 
     /**
@@ -6854,6 +6856,7 @@ var Graph = function () {
          * Build block of SMILES based on decay points
          * DFS pass through graph
          * if there is a ring need second DFS pass for right SMILES notation
+         * but the numbers are already setup in vertex.value.ringbonds array so no need to second pass of dfs
          */
 
     }, {
@@ -6862,14 +6865,8 @@ var Graph = function () {
             this.isRing = false;
             var smiles = [];
             this.dfsSmilesInitialization();
-            console.log("Start DFS");
             this.dfsBuildSmilesStart(smiles);
-            console.log("End DFS");
-            console.log(smiles);
-            if (this.isRing) {
-                this.dfsSmilesInitialization();
-                // TODO second pass of DFS for cyclic structure
-            }
+            return smiles;
         }
 
         /**
@@ -6880,6 +6877,14 @@ var Graph = function () {
     }, {
         key: 'dfsSmilesInitialization',
         value: function dfsSmilesInitialization() {
+            for (var i = 0; i < this.vertices.length; ++i) {
+                this.vertices[i].vertexState = VertexState.VALUES.NOT_FOUND;
+                this.vertices[i].smilesNumbers = [];
+            }
+        }
+    }, {
+        key: 'dfsSmilesInitializationForSecondDfs',
+        value: function dfsSmilesInitializationForSecondDfs() {
             for (var i = 0; i < this.vertices.length; ++i) {
                 this.vertices[i].vertexState = VertexState.VALUES.NOT_FOUND;
             }
@@ -6913,7 +6918,6 @@ var Graph = function () {
             var stackSmiles = [];
             this.dfsSmiles(vertex, stackSmiles);
             stackSmiles = Graph.removeUnnecessaryParentheses(stackSmiles);
-            console.log("Stack " + stackSmiles.join(""));
             if (stackSmiles.length !== 0) {
                 smiles.push(stackSmiles.join(""));
             }
@@ -6928,42 +6932,22 @@ var Graph = function () {
     }, {
         key: 'dfsSmiles',
         value: function dfsSmiles(vertex, stackSmiles) {
-            // console.log("BEfore exit Vertex " + vertex.id + " " + vertex.vertexState);
-            // TODO need to treat with problem, when go back to OPEN vertex, because of neighbours, need to avoid because of ring detection
-            if (vertex.vertexState === VertexState.VALUES.OPEN) {
-                this.isRing = true;
-            }
             if (vertex.vertexState !== VertexState.VALUES.NOT_FOUND) {
                 return;
             }
-            // console.log("Vertex " + vertex.id);
-            stackSmiles.push(vertex.value.element);
+            stackSmiles.push(vertex.value.element + Graph.smilesNumbersAdd(vertex));
             vertex.vertexState = VertexState.VALUES.OPEN;
             for (var i = 0; i < vertex.edges.length; ++i) {
                 var edge = this.edges[vertex.edges[i]];
                 if (edge.isDecay) continue;
                 stackSmiles.push("(");
-                // console.log("edge " + edge.id);
-                // console.log("edge vertexes " + edge.sourceId + " " + edge.targetId);
                 Graph.addBondTypeToStack(edge, stackSmiles);
                 var nextVertex = Graph.getProperVertex(vertex.id, edge.sourceId, edge.targetId);
-                // console.log("next vertex " + nextVertex);
                 this.dfsSmiles(this.vertices[nextVertex], stackSmiles);
                 Graph.checkStack(stackSmiles);
             }
             vertex.vertexState = VertexState.VALUES.CLOSED;
         }
-
-        /**
-         * Return other vertex id then the actual vertex id
-         * when vertexId === sourceId return targetId
-         * when vertexId === targetId return sourceId
-         * @param {Number} vertexId actual vertex id
-         * @param {Number} sourceId source vertex id
-         * @param {Number} targetId target vertex id
-         * @return {Number}
-         */
-
     }], [{
         key: 'getConnectedComponents',
         value: function getConnectedComponents(adjacencyMatrix) {
@@ -7055,6 +7039,31 @@ var Graph = function () {
                 Graph._ccGetDfs(v, visited, adjacencyMatrix, component);
             }
         }
+    }, {
+        key: 'smilesNumbersAdd',
+        value: function smilesNumbersAdd(vertex) {
+            var numbers = '';
+            for (var i = 0; i < vertex.value.ringbonds.length; ++i) {
+                var num = vertex.value.ringbonds[i].id.toString();
+                if (num.length === 1) {
+                    numbers += num;
+                } else {
+                    numbers += '%' + num + '%';
+                }
+            }
+            return numbers;
+        }
+
+        /**
+         * Return other vertex id then the actual vertex id
+         * when vertexId === sourceId return targetId
+         * when vertexId === targetId return sourceId
+         * @param {Number} vertexId actual vertex id
+         * @param {Number} sourceId source vertex id
+         * @param {Number} targetId target vertex id
+         * @return {Number}
+         */
+
     }, {
         key: 'getProperVertex',
         value: function getProperVertex(vertexId, sourceId, targetId) {
@@ -11532,6 +11541,7 @@ var VertexState = require('./VertexState');
  * @property {Number[]} neighbours The vertex ids of neighbouring vertices.
  * @property {String[]} neighbouringElements The element symbols associated with neighbouring vertices.
  * @property {Boolean} forcePositioned A boolean indicating whether or not this vertex was positioned using a force-based approach.
+ * @property {Number} vertexState enum of VertexState for DFS.
  */
 
 var Vertex = function () {
