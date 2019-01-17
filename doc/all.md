@@ -515,6 +515,8 @@ A class wrapping a canvas element.
 | opts | <code>Object</code> | The SmilesDrawer options. |
 | drawingWidth | <code>Number</code> | The width of the canvas. |
 | drawingHeight | <code>Number</code> | The height of the canvas. |
+| realWidth | <code>Number</code> | The width of the canvas real. |
+| realHeight | <code>Number</code> | The height of the canvas real. |
 | offsetX | <code>Number</code> | The horizontal offset required for centering the drawing. |
 | offsetY | <code>Number</code> | The vertical offset required for centering the drawing. |
 | fontLarge | <code>Number</code> | The large font size in pt. |
@@ -785,6 +787,8 @@ The main class of the application representing the smiles drawer
 * [Drawer](#Drawer)
     * [new Drawer(options)](#new_Drawer_new)
     * [.extend()](#Drawer+extend)
+    * [.isDrawDecayPoint(isDecay)](#Drawer+isDrawDecayPoint) ⇒ <code>Boolean</code>
+    * [.drawWithDecayPoints()](#Drawer+drawWithDecayPoints)
     * [.draw(data, target, themeName, infoOnly)](#Drawer+draw)
     * [.edgeRingCount(edgeId)](#Drawer+edgeRingCount) ⇒ <code>Number</code>
     * [.getBridgedRings()](#Drawer+getBridgedRings) ⇒ <code>[Array.&lt;Ring&gt;](#Ring)</code>
@@ -844,6 +848,13 @@ The main class of the application representing the smiles drawer
     * [.annotateStereochemistry()](#Drawer+annotateStereochemistry)
     * [.visitStereochemistry(vertexId, previousVertexId, visited, priority, maxDepth, depth)](#Drawer+visitStereochemistry)
     * [.initPseudoElements()](#Drawer+initPseudoElements)
+    * [.handleMouseClick(e, offsetX, offsetY)](#Drawer+handleMouseClick)
+    * [.findAndReDrawEdge(mouseX, mouseY)](#Drawer+findAndReDrawEdge)
+    * [.reDrawGraphWithEdgeAsDecay(edgeId)](#Drawer+reDrawGraphWithEdgeAsDecay)
+    * [.computeScale()](#Drawer+computeScale) ⇒ <code>number</code>
+    * [.computeEdgeLeftPoint(line, scale)](#Drawer+computeEdgeLeftPoint) ⇒ <code>[Vector2](#Vector2)</code>
+    * [.computeEdgeRightPoint(line, scale)](#Drawer+computeEdgeRightPoint) ⇒ <code>[Vector2](#Vector2)</code>
+    * [.computeEdgePoint(point, scale)](#Drawer+computeEdgePoint) ⇒ <code>[Vector2](#Vector2)</code>
 
 <a name="new_Drawer_new"></a>
 
@@ -861,6 +872,24 @@ The constructor for the class SmilesDrawer.
 A helper method to extend the default options with user supplied ones.
 
 **Kind**: instance method of <code>[Drawer](#Drawer)</code>  
+<a name="Drawer+isDrawDecayPoint"></a>
+
+### drawer.isDrawDecayPoint(isDecay) ⇒ <code>Boolean</code>
+Is setup to draw decay points?when boolean this.drawDecayPoint is true then return isDecay
+
+**Kind**: instance method of <code>[Drawer](#Drawer)</code>  
+
+| Param | Description |
+| --- | --- |
+| isDecay | bool - edge.isDecay |
+
+<a name="Drawer+drawWithDecayPoints"></a>
+
+### drawer.drawWithDecayPoints()
+Draws the parsed smiles data to a canvas, with decay points
+
+**Kind**: instance method of <code>[Drawer](#Drawer)</code>  
+**See**: #Drawer.draw  
 <a name="Drawer+draw"></a>
 
 ### drawer.draw(data, target, themeName, infoOnly)
@@ -1495,6 +1524,88 @@ Annotaed stereochemistry information for visualization.
 Creates pseudo-elements (such as Et, Me, Ac, Bz, ...) at the position of the carbon setsthe involved atoms not to be displayed.
 
 **Kind**: instance method of <code>[Drawer](#Drawer)</code>  
+<a name="Drawer+handleMouseClick"></a>
+
+### drawer.handleMouseClick(e, offsetX, offsetY)
+Find edge and mark it as decay point and redraw graph
+
+**Kind**: instance method of <code>[Drawer](#Drawer)</code>  
+
+| Param | Description |
+| --- | --- |
+| e | event |
+| offsetX | offset of canvas in page X. Typically canvas.offsetLeft |
+| offsetY | offset of canvas in page Y. Typically canvas.offsetTop |
+
+<a name="Drawer+findAndReDrawEdge"></a>
+
+### drawer.findAndReDrawEdge(mouseX, mouseY)
+Find edge which was clicked, mark edge as decay point and redraw graph
+
+**Kind**: instance method of <code>[Drawer](#Drawer)</code>  
+
+| Param | Description |
+| --- | --- |
+| mouseX | mouse positionX - offsetX |
+| mouseY | mouse positionY - offsetY |
+
+<a name="Drawer+reDrawGraphWithEdgeAsDecay"></a>
+
+### drawer.reDrawGraphWithEdgeAsDecay(edgeId)
+Make edge decay point and redraw graph
+
+**Kind**: instance method of <code>[Drawer](#Drawer)</code>  
+
+| Param | Type |
+| --- | --- |
+| edgeId | <code>Number</code> | 
+
+<a name="Drawer+computeScale"></a>
+
+### drawer.computeScale() ⇒ <code>number</code>
+Compute scale of canvas
+
+**Kind**: instance method of <code>[Drawer](#Drawer)</code>  
+**Returns**: <code>number</code> - scale  
+<a name="Drawer+computeEdgeLeftPoint"></a>
+
+### drawer.computeEdgeLeftPoint(line, scale) ⇒ <code>[Vector2](#Vector2)</code>
+Compute left point of edge for compare
+
+**Kind**: instance method of <code>[Drawer](#Drawer)</code>  
+**Returns**: <code>[Vector2](#Vector2)</code> - point  
+
+| Param | Type |
+| --- | --- |
+| line | <code>[Line](#Line)</code> | 
+| scale | <code>Number</code> | 
+
+<a name="Drawer+computeEdgeRightPoint"></a>
+
+### drawer.computeEdgeRightPoint(line, scale) ⇒ <code>[Vector2](#Vector2)</code>
+Compute right point of edge for compare
+
+**Kind**: instance method of <code>[Drawer](#Drawer)</code>  
+**Returns**: <code>[Vector2](#Vector2)</code> - point  
+
+| Param | Type |
+| --- | --- |
+| line | <code>[Line](#Line)</code> | 
+| scale | <code>Number</code> | 
+
+<a name="Drawer+computeEdgePoint"></a>
+
+### drawer.computeEdgePoint(point, scale) ⇒ <code>[Vector2](#Vector2)</code>
+Compute point coordinates for compareadd offset to coordinates and multiply coordinates with scale
+
+**Kind**: instance method of <code>[Drawer](#Drawer)</code>  
+**Returns**: <code>[Vector2](#Vector2)</code> - point  
+
+| Param | Type |
+| --- | --- |
+| point | <code>[Vector2](#Vector2)</code> | 
+| scale | <code>Number</code> | 
+
 <a name="Edge"></a>
 
 ## Edge
@@ -1519,6 +1630,7 @@ A class representing an edge.
     * [new Edge(sourceId, targetId, [weight])](#new_Edge_new)
     * _instance_
         * [.setBondType(bondType)](#Edge+setBondType)
+        * [.setDecay(decay)](#Edge+setDecay)
     * _static_
         * [.bonds](#Edge.bonds) ⇒ <code>Object</code>
 
@@ -1545,6 +1657,17 @@ Set the bond type of this edge. This also sets the edge weight.
 | --- | --- |
 | bondType | <code>String</code> | 
 
+<a name="Edge+setDecay"></a>
+
+### edge.setDecay(decay)
+Set decay
+
+**Kind**: instance method of <code>[Edge](#Edge)</code>  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| decay | <code>Boolean</code> | point |
+
 <a name="Edge.bonds"></a>
 
 ### Edge.bonds ⇒ <code>Object</code>
@@ -1564,6 +1687,7 @@ A class representing the molecular graph.
 | --- | --- | --- |
 | vertices | <code>[Array.&lt;Vertex&gt;](#Vertex)</code> | The vertices of the graph. |
 | edges | <code>[Array.&lt;Edge&gt;](#Edge)</code> | The edges of this graph. |
+| decays | <code>Array.&lt;Number&gt;</code> | The id of edges marked as decay point of this graph. |
 | vertexIdsToEdgeId | <code>Object</code> | A map mapping vertex ids to the edge between the two vertices. The key is defined as vertexAId + '_' + vertexBId. |
 | isometric | <code>Boolean</code> | A boolean indicating whether or not the SMILES associated with this graph is isometric. |
 
@@ -1572,6 +1696,12 @@ A class representing the molecular graph.
     * [new Graph(parseTree, [isomeric])](#new_Graph_new)
     * _instance_
         * [._init(node, parentVertexId, isBranch)](#Graph+_init)
+        * [.findDecayPoints()](#Graph+findDecayPoints)
+        * [.isDecayPoint(sourceId, targetId, decayTypes)](#Graph+isDecayPoint) ⇒ <code>int</code> &#124; <code>boolean</code>
+        * [.getNeighbourEdgeDecayIdOfCOO(sourceId, targetId)](#Graph+getNeighbourEdgeDecayIdOfCOO) ⇒ <code>int</code> &#124; <code>boolean</code>
+        * [.getNeighbourEdgeDecayIdOfCONH(sourceId, targetId)](#Graph+getNeighbourEdgeDecayIdOfCONH) ⇒ <code>int</code> &#124; <code>boolean</code>
+        * [.getNeighbourEdgeDecayId(vertexId, element)](#Graph+getNeighbourEdgeDecayId) ⇒ <code>int</code> &#124; <code>boolean</code>
+        * [.checkNeighbourEdgeId(edgeId, vertexId, element)](#Graph+checkNeighbourEdgeId) ⇒ <code>int</code> &#124; <code>boolean</code>
         * [.clear()](#Graph+clear)
         * [.addVertex(vertex)](#Graph+addVertex) ⇒ <code>Number</code>
         * [.addEdge(edge)](#Graph+addEdge) ⇒ <code>Number</code>
@@ -1593,11 +1723,24 @@ A class representing the molecular graph.
         * [.traverseTree(vertexId, parentVertexId, callback, [maxDepth], [ignoreFirst], [depth], [visited])](#Graph+traverseTree)
         * [.kkLayout(vertexIds, center, startVertexId, ring)](#Graph+kkLayout)
         * [._bridgeDfs()](#Graph+_bridgeDfs)
+        * [.revertEdgeDecayPoint(edgeId)](#Graph+revertEdgeDecayPoint)
+        * [.buildSmiles()](#Graph+buildSmiles)
+        * [.dfsSmilesInitialization()](#Graph+dfsSmilesInitialization)
+        * [.dfsBuildSmilesStart(smiles)](#Graph+dfsBuildSmilesStart)
+        * [.startDfs(vertex, smiles)](#Graph+startDfs)
+        * [.dfsSmiles(vertex, stackSmiles)](#Graph+dfsSmiles)
     * _static_
         * [.getConnectedComponents(adjacencyMatrix)](#Graph.getConnectedComponents) ⇒ <code>Array.&lt;Set&gt;</code>
         * [.getConnectedComponentCount(adjacencyMatrix)](#Graph.getConnectedComponentCount) ⇒ <code>Number</code>
         * [._ccCountDfs()](#Graph._ccCountDfs)
         * [._ccGetDfs()](#Graph._ccGetDfs)
+        * [.getProperVertex(vertexId, sourceId, targetId)](#Graph.getProperVertex) ⇒ <code>Number</code>
+        * [.removeUnnecessaryParentheses(stackRight)](#Graph.removeUnnecessaryParentheses) ⇒ <code>Array</code>
+        * [.removeParentheses(stack, end, literal,)](#Graph.removeParentheses)
+        * [.moveAllValuesInStackToAnotherStack(stackSource, stackDestination)](#Graph.moveAllValuesInStackToAnotherStack)
+        * [.checkStack(stackSmiles)](#Graph.checkStack)
+        * [.removeAllFromStackToFirstLeftBrace(stackSmiles)](#Graph.removeAllFromStackToFirstLeftBrace)
+        * [.addBondTypeToStack(edge, stackSmiles)](#Graph.addBondTypeToStack)
 
 <a name="new_Graph_new"></a>
 
@@ -1622,6 +1765,75 @@ PRIVATE FUNCTION. Initializing the graph from the parse tree.
 | node | <code>Object</code> |  | The current node in the parse tree. |
 | parentVertexId | <code>Number</code> | <code></code> | The id of the previous vertex. |
 | isBranch | <code>Boolean</code> | <code>false</code> | Whether or not the bond leading to this vertex is a branch bond. Branches are represented by parentheses in smiles (e.g. CC(O)C). |
+
+<a name="Graph+findDecayPoints"></a>
+
+### graph.findDecayPoints()
+Find decay points of moleculeTypes of decay points, declared in DecayPoint
+
+**Kind**: instance method of <code>[Graph](#Graph)</code>  
+<a name="Graph+isDecayPoint"></a>
+
+### graph.isDecayPoint(sourceId, targetId, decayTypes) ⇒ <code>int</code> &#124; <code>boolean</code>
+check if its decay point of specific decay types
+
+**Kind**: instance method of <code>[Graph](#Graph)</code>  
+**Returns**: <code>int</code> &#124; <code>boolean</code> - return edge id when found, otherwise return false  
+
+| Param | Description |
+| --- | --- |
+| sourceId |  |
+| targetId |  |
+| decayTypes | DecayPoint |
+
+<a name="Graph+getNeighbourEdgeDecayIdOfCOO"></a>
+
+### graph.getNeighbourEdgeDecayIdOfCOO(sourceId, targetId) ⇒ <code>int</code> &#124; <code>boolean</code>
+Find decay points of -CO-O- type
+
+**Kind**: instance method of <code>[Graph](#Graph)</code>  
+
+| Param |
+| --- |
+| sourceId | 
+| targetId | 
+
+<a name="Graph+getNeighbourEdgeDecayIdOfCONH"></a>
+
+### graph.getNeighbourEdgeDecayIdOfCONH(sourceId, targetId) ⇒ <code>int</code> &#124; <code>boolean</code>
+Find decay points of -CO-NH- type
+
+**Kind**: instance method of <code>[Graph](#Graph)</code>  
+
+| Param |
+| --- |
+| sourceId | 
+| targetId | 
+
+<a name="Graph+getNeighbourEdgeDecayId"></a>
+
+### graph.getNeighbourEdgeDecayId(vertexId, element) ⇒ <code>int</code> &#124; <code>boolean</code>
+Find decay point edge id of right neighbour
+
+**Kind**: instance method of <code>[Graph](#Graph)</code>  
+
+| Param |
+| --- |
+| vertexId | 
+| element | 
+
+<a name="Graph+checkNeighbourEdgeId"></a>
+
+### graph.checkNeighbourEdgeId(edgeId, vertexId, element) ⇒ <code>int</code> &#124; <code>boolean</code>
+Find edge id of decay point
+
+**Kind**: instance method of <code>[Graph](#Graph)</code>  
+
+| Param |
+| --- |
+| edgeId | 
+| vertexId | 
+| element | 
 
 <a name="Graph+clear"></a>
 
@@ -1838,6 +2050,64 @@ Positiones the (sub)graph using Kamada and Kawais algorithm for drawing general 
 PRIVATE FUNCTION used by getBridges().
 
 **Kind**: instance method of <code>[Graph](#Graph)</code>  
+<a name="Graph+revertEdgeDecayPoint"></a>
+
+### graph.revertEdgeDecayPoint(edgeId)
+Revert decay point value and update list of decay pointswhen edge isn't decay point -> change mark edge as decay point and add edge to decays listwhen edge is decay point -> unmark edge as decay point and remove edgeId from list of decays
+
+**Kind**: instance method of <code>[Graph](#Graph)</code>  
+
+| Param |
+| --- |
+| edgeId | 
+
+<a name="Graph+buildSmiles"></a>
+
+### graph.buildSmiles()
+Build block of SMILES based on decay pointsDFS pass through graphif there is a ring need second DFS pass for right SMILES notation
+
+**Kind**: instance method of <code>[Graph](#Graph)</code>  
+<a name="Graph+dfsSmilesInitialization"></a>
+
+### graph.dfsSmilesInitialization()
+Initialize graph for dfsset for all vertices vertexState to NotFound
+
+**Kind**: instance method of <code>[Graph](#Graph)</code>  
+<a name="Graph+dfsBuildSmilesStart"></a>
+
+### graph.dfsBuildSmilesStart(smiles)
+Starting function for DFSstarts on decay points (on edge), so start on both side of edge
+
+**Kind**: instance method of <code>[Graph](#Graph)</code>  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| smiles | <code>Array</code> | output param, array of SMILES blocks (string) |
+
+<a name="Graph+startDfs"></a>
+
+### graph.startDfs(vertex, smiles)
+Start DFS for build SMILES of blocks
+
+**Kind**: instance method of <code>[Graph](#Graph)</code>  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| vertex | <code>[Vertex](#Vertex)</code> | to start DFS |
+| smiles | <code>Array</code> | output param, array od SMILES |
+
+<a name="Graph+dfsSmiles"></a>
+
+### graph.dfsSmiles(vertex, stackSmiles)
+DFS for SMILES
+
+**Kind**: instance method of <code>[Graph](#Graph)</code>  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| vertex | <code>[Vertex](#Vertex)</code> |  |
+| stackSmiles | <code>Array</code> | output param |
+
 <a name="Graph.getConnectedComponents"></a>
 
 ### Graph.getConnectedComponents(adjacencyMatrix) ⇒ <code>Array.&lt;Set&gt;</code>
@@ -1874,6 +2144,89 @@ PRIVATE FUNCTION used by getConnectedComponentCount().
 PRIVATE FUNCTION used by getConnectedComponents().
 
 **Kind**: static method of <code>[Graph](#Graph)</code>  
+<a name="Graph.getProperVertex"></a>
+
+### Graph.getProperVertex(vertexId, sourceId, targetId) ⇒ <code>Number</code>
+Return other vertex id then the actual vertex idwhen vertexId === sourceId return targetIdwhen vertexId === targetId return sourceId
+
+**Kind**: static method of <code>[Graph](#Graph)</code>  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| vertexId | <code>Number</code> | actual vertex id |
+| sourceId | <code>Number</code> | source vertex id |
+| targetId | <code>Number</code> | target vertex id |
+
+<a name="Graph.removeUnnecessaryParentheses"></a>
+
+### Graph.removeUnnecessaryParentheses(stackRight) ⇒ <code>Array</code>
+Remove unnecessary parentheses from SMILESexample CCC(CC)(C) -> CCC(CC)Cexample C(=O)C(C(C)) -> C(=O)CCC
+
+**Kind**: static method of <code>[Graph](#Graph)</code>  
+
+| Param | Type |
+| --- | --- |
+| stackRight | <code>Array</code> | 
+
+<a name="Graph.removeParentheses"></a>
+
+### Graph.removeParentheses(stack, end, literal,)
+Remove unnecessary parentheses from stackgo through stack and when find proper closing bracket,then remove it and push back removed data when searching in stack
+
+**Kind**: static method of <code>[Graph](#Graph)</code>  
+
+| Param | Type | Default | Description |
+| --- | --- | --- | --- |
+| stack | <code>Array</code> |  | with unnecessary parentheses to remove |
+| end | <code>Boolean</code> | <code>true</code> | treat with situation when ")" is last character of stack -> end = true, else where end = false |
+| literal, | <code>String</code> |  | when end = false, need to pop from stack and at the end add literal back to stack |
+
+<a name="Graph.moveAllValuesInStackToAnotherStack"></a>
+
+### Graph.moveAllValuesInStackToAnotherStack(stackSource, stackDestination)
+Remove all values from stackSource and push it to stackDestination
+
+**Kind**: static method of <code>[Graph](#Graph)</code>  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| stackSource | <code>Array</code> | stack to remove values |
+| stackDestination | <code>Array</code> | stack to add values from stackSource |
+
+<a name="Graph.checkStack"></a>
+
+### Graph.checkStack(stackSmiles)
+Check last value of stackif it one of (, -, = or # then remove all characters in stack to first ( from the end of stackelsewhere add ) to stack
+
+**Kind**: static method of <code>[Graph](#Graph)</code>  
+
+| Param | Type |
+| --- | --- |
+| stackSmiles | <code>Array</code> | 
+
+<a name="Graph.removeAllFromStackToFirstLeftBrace"></a>
+
+### Graph.removeAllFromStackToFirstLeftBrace(stackSmiles)
+Remove all characters from stack to first "("
+
+**Kind**: static method of <code>[Graph](#Graph)</code>  
+
+| Param | Type |
+| --- | --- |
+| stackSmiles | <code>Array</code> | 
+
+<a name="Graph.addBondTypeToStack"></a>
+
+### Graph.addBondTypeToStack(edge, stackSmiles)
+Add bond type to stackif edge have = or # bond type add it to stack
+
+**Kind**: static method of <code>[Graph](#Graph)</code>  
+
+| Param | Type |
+| --- | --- |
+| edge | <code>[Edge](#Edge)</code> | 
+| stackSmiles | <code>Array</code> | 
+
 <a name="Line"></a>
 
 ## Line
@@ -1893,7 +2246,7 @@ A class representing a line.
 
 
 * [Line](#Line)
-    * [new Line([from], [to], [elementFrom], [elementTo], [chiralFrom], [chiralTo])](#new_Line_new)
+    * [new Line([from], [to], [elementFrom], [elementTo], [chiralFrom], [chiralTo], [isDecayPoint])](#new_Line_new)
     * [.clone()](#Line+clone) ⇒ <code>[Line](#Line)</code>
     * [.getLength()](#Line+getLength) ⇒ <code>Number</code>
     * [.getAngle()](#Line+getAngle) ⇒ <code>Number</code>
@@ -1915,7 +2268,7 @@ A class representing a line.
 
 <a name="new_Line_new"></a>
 
-### new Line([from], [to], [elementFrom], [elementTo], [chiralFrom], [chiralTo])
+### new Line([from], [to], [elementFrom], [elementTo], [chiralFrom], [chiralTo], [isDecayPoint])
 The constructor for the class Line.
 
 
@@ -1927,6 +2280,7 @@ The constructor for the class Line.
 | [elementTo] | <code>string</code> | <code>null</code> | A one-letter representation of the element associated with the vector marking the end of the line. |
 | [chiralFrom] | <code>Boolean</code> | <code>false</code> | Whether or not the from atom is a chiral center. |
 | [chiralTo] | <code>Boolean</code> | <code>false</code> | Whether or not the to atom is a chiral center. |
+| [isDecayPoint] | <code>Boolean</code> | <code>false</code> | Whether or not the edge is a decay point |
 
 <a name="Line+clone"></a>
 
@@ -3274,6 +3628,8 @@ A class representing a vertex.
 | neighbours | <code>Array.&lt;Number&gt;</code> | The vertex ids of neighbouring vertices. |
 | neighbouringElements | <code>Array.&lt;String&gt;</code> | The element symbols associated with neighbouring vertices. |
 | forcePositioned | <code>Boolean</code> | A boolean indicating whether or not this vertex was positioned using a force-based approach. |
+| vertexState | <code>Number</code> | enum of VertexState for DFS. |
+| smilesNumbers | <code>Array.&lt;Number&gt;</code> | Numbers in notation for SMILES, need for second pass of DFS. |
 
 
 * [Vertex](#Vertex)

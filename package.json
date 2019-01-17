@@ -24,6 +24,10 @@
     "vinyl-buffer": "^1.0.1",
     "vinyl-source-stream": "^2.0.0",
     "watchify": "^3.9.0",
-    "webpack-stream": "^4.0.0"
+    "webpack-stream": "^4.0.0",
+    "jasmine": "^3.3.0"
+  },
+  "scripts": {
+    "test": "jasmine"
   }
 }
