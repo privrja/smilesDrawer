@@ -3104,7 +3104,6 @@ class Drawer {
         this.drawEdges(this.opts.debug);
         this.drawVertices(this.opts.debug);
         this.canvasWrapper.reset();
-        console.log(this.graph);
     }
 
     /**

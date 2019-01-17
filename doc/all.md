@@ -2064,7 +2064,7 @@ Revert decay point value and update list of decay pointswhen edge isn't decay p
 <a name="Graph+buildSmiles"></a>
 
 ### graph.buildSmiles()
-Build block of SMILES based on decay pointsDFS pass through graphif there is a ring need second DFS pass for right SMILES notation
+Build block of SMILES based on decay pointsDFS pass through graphif there is a ring need second DFS pass for right SMILES notationbut the numbers are already setup in vertex.value.ringbonds array so no need to second pass of dfs
 
 **Kind**: instance method of <code>[Graph](#Graph)</code>  
 <a name="Graph+dfsSmilesInitialization"></a>
@@ -3629,7 +3629,6 @@ A class representing a vertex.
 | neighbouringElements | <code>Array.&lt;String&gt;</code> | The element symbols associated with neighbouring vertices. |
 | forcePositioned | <code>Boolean</code> | A boolean indicating whether or not this vertex was positioned using a force-based approach. |
 | vertexState | <code>Number</code> | enum of VertexState for DFS. |
-| smilesNumbers | <code>Array.&lt;Number&gt;</code> | Numbers in notation for SMILES, need for second pass of DFS. |
 
 
 * [Vertex](#Vertex)

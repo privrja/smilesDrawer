@@ -5515,7 +5515,6 @@ var Drawer = function () {
         key: 'buildBlockSmiles',
         value: function buildBlockSmiles() {
             var tmpSmiles = this.graph.buildSmiles();
-            console.log(tmpSmiles);
             return tmpSmiles;
         }
 
@@ -5583,7 +5582,6 @@ var Drawer = function () {
             this.drawEdges(this.opts.debug);
             this.drawVertices(this.opts.debug);
             this.canvasWrapper.reset();
-            console.log(this.graph);
         }
 
         /**
