@@ -3044,7 +3044,9 @@ class Drawer {
     }
 
     buildBlockSmiles() {
-        return this.graph.buildSmiles();
+        let tmpSmiles = this.graph.buildSmiles();
+        console.log(tmpSmiles);
+        return tmpSmiles;
     }
 
     /**

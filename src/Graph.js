@@ -1059,7 +1059,7 @@ class Graph {
         let smiles = [];
         this.dfsSmilesInitialization();
         this.dfsBuildSmilesStart(smiles);
-        console.log(smiles);
+        return smiles;
     }
 
     /**
@@ -1131,7 +1131,6 @@ class Graph {
 
     static smilesNumbersAdd(vertex) {
         let numbers = '';
-        console.log(numbers);
         for (let i = 0; i < vertex.value.ringbonds.length; ++i) {
             let num = vertex.value.ringbonds[i].id.toString();
             if (num.length === 1) {
