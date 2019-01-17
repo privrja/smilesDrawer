@@ -3045,7 +3045,6 @@ class Drawer {
 
     buildBlockSmiles() {
         let tmpSmiles = this.graph.buildSmiles();
-        console.log(tmpSmiles);
         return tmpSmiles;
     }
 
