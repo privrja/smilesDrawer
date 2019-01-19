@@ -5514,9 +5514,7 @@ var Drawer = function () {
     }, {
         key: 'buildBlockSmiles',
         value: function buildBlockSmiles() {
-            var tmpSmiles = this.graph.buildSmiles();
-            console.log(tmpSmiles);
-            return tmpSmiles;
+            return this.graph.buildSmiles();
         }
 
         /**
@@ -5583,7 +5581,6 @@ var Drawer = function () {
             this.drawEdges(this.opts.debug);
             this.drawVertices(this.opts.debug);
             this.canvasWrapper.reset();
-            console.log(this.graph);
         }
 
         /**
@@ -6918,8 +6915,9 @@ var Graph = function () {
             var stackSmiles = [];
             this.dfsSmiles(vertex, stackSmiles);
             stackSmiles = Graph.removeUnnecessaryParentheses(stackSmiles);
-            if (stackSmiles.length !== 0) {
-                smiles.push(stackSmiles.join(""));
+            var smile = Graph.removeUnnecessaryNumbers(stackSmiles.join(""));
+            if (smile.length !== 0) {
+                smiles.push(smile);
             }
         }
 
@@ -6948,6 +6946,13 @@ var Graph = function () {
             }
             vertex.vertexState = VertexState.VALUES.CLOSED;
         }
+
+        /**
+         * Remove numbers which is neighbours in SMILES notation -> need to perform in cyclic structures
+         * @param {String} smiles SMILES
+         * @return {String} repaired SMILES
+         */
+
     }], [{
         key: 'getConnectedComponents',
         value: function getConnectedComponents(adjacencyMatrix) {
@@ -7038,6 +7043,170 @@ var Graph = function () {
                 component.push(v);
                 Graph._ccGetDfs(v, visited, adjacencyMatrix, component);
             }
+        }
+    }, {
+        key: 'removeUnnecessaryNumbers',
+        value: function removeUnnecessaryNumbers(smiles) {
+            if (smiles === null) {
+                return '';
+            }
+            try {
+                var numbers = this.getNumbers(smiles);
+                var _iteratorNormalCompletion = true;
+                var _didIteratorError = false;
+                var _iteratorError = undefined;
+
+                try {
+                    for (var _iterator = numbers[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+                        var number = _step.value;
+
+                        var first = this.findFirst(smiles, number);
+                        var second = this.findSecond(smiles, first, number);
+                        var tmpRange = this.removeRangeLast(smiles, first, second);
+                        smiles = this.repairSmiles(smiles, tmpRange, first, second, number);
+                    }
+                } catch (err) {
+                    _didIteratorError = true;
+                    _iteratorError = err;
+                } finally {
+                    try {
+                        if (!_iteratorNormalCompletion && _iterator.return) {
+                            _iterator.return();
+                        }
+                    } finally {
+                        if (_didIteratorError) {
+                            throw _iteratorError;
+                        }
+                    }
+                }
+
+                return smiles;
+            } catch (ex) {
+                return smiles;
+            }
+        }
+
+        /**
+         * Remove unnecessary numbers from SMILES
+         * @param {String} smiles
+         * @param {Number} first
+         * @param {Number} second
+         * @return {*}
+         */
+
+    }, {
+        key: 'removeNumbers',
+        value: function removeNumbers(smiles, first, second) {
+            smiles = smiles.slice(0, first) + smiles.slice(first + 1);
+            return smiles.slice(0, second - 1) + smiles.slice(second);
+        }
+
+        /**
+         * Reapair SMILES
+         * @param {String} smiles
+         * @param {String} tmpRange
+         * @param {Number} first
+         * @param {Number} second
+         * @param {Number} number
+         * @return {String|*}
+         */
+
+    }, {
+        key: 'repairSmiles',
+        value: function repairSmiles(smiles, tmpRange, first, second, number) {
+            var pattern = new RegExp("^(Br|Cl|br|cl|[BCNOPSFIbcnopsfi])$");
+            if (pattern.test(tmpRange)) {
+                return this.removeNumbers(smiles, first, second);
+            }
+            var patternOrg = new RegExp("^(Br|Cl|br|cl|[BCNOPSFIbcnopsfi])");
+            if (patternOrg.test(tmpRange)) {
+                return smiles;
+            }
+
+            while (tmpRange.length !== 0) {
+                switch (tmpRange[0]) {
+                    case '(':
+                        tmpRange = tmpRange.substring(1);
+                        if (pattern.test(tmpRange)) {
+                            return this.removeNumbers(smiles, first, second);
+                        }
+                        break;
+                    case ')':
+                        tmpRange = tmpRange.substring(1);
+                        return this.repairSmiles(smiles, tmpRange, first, second, number);
+                    default:
+                        tmpRange = tmpRange.substring(1);
+                        break;
+                }
+            }
+            return smiles;
+        }
+        /**
+         * Substring in range and remove last Organic Subset
+         * @param smiles
+         * @param first
+         * @param second
+         * @return {string}
+         */
+
+    }, {
+        key: 'removeRangeLast',
+        value: function removeRangeLast(smiles, first, second) {
+            return smiles.substr(first + 1, second - first - 1);
+        }
+
+        /**
+         * Get numbers from SMILES
+         * @param smiles
+         * @return {Set<Number>}
+         */
+
+    }, {
+        key: 'getNumbers',
+        value: function getNumbers(smiles) {
+            var numbers = new Set();
+            for (var index = 0; index < smiles.length; ++index) {
+                if (!isNaN(smiles[index])) {
+                    numbers.add(smiles[index]);
+                }
+            }
+            return numbers;
+        }
+
+        /**
+         * return index of first occurrence number
+         * @param smiles
+         * @param number
+         * @return {number}
+         */
+
+    }, {
+        key: 'findFirst',
+        value: function findFirst(smiles, number) {
+            for (var index = 0; index < smiles.length; ++index) {
+                if (smiles[index] == number) {
+                    return index;
+                }
+            }
+        }
+
+        /**
+         * return index of first occurrence number from index + 1
+         * @param smiles
+         * @param from range no including this point (from, Infinity) = [from + 1, Infinity)
+         * @param number
+         * @return {*}
+         */
+
+    }, {
+        key: 'findSecond',
+        value: function findSecond(smiles, from, number) {
+            for (var index = from + 1; index < smiles.length; ++index) {
+                if (smiles[index] == number) {
+                    return index;
+                }
+            }
+            throw "Not Found";
         }
     }, {
         key: 'smilesNumbersAdd',
