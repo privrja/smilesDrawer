@@ -1734,6 +1734,12 @@ A class representing the molecular graph.
         * [.getConnectedComponentCount(adjacencyMatrix)](#Graph.getConnectedComponentCount) ⇒ <code>Number</code>
         * [._ccCountDfs()](#Graph._ccCountDfs)
         * [._ccGetDfs()](#Graph._ccGetDfs)
+        * [.removeUnnecessaryNumbers(smiles)](#Graph.removeUnnecessaryNumbers) ⇒ <code>String</code>
+        * [.repairSmiles(smiles, tmpRange, first, second, number)](#Graph.repairSmiles) ⇒ <code>String</code> &#124; <code>\*</code>
+        * [.removeRangeLast(smiles, first, second)](#Graph.removeRangeLast) ⇒ <code>string</code>
+        * [.getNumbers(smiles)](#Graph.getNumbers) ⇒ <code>Set.&lt;Number&gt;</code>
+        * [.findFirst(smiles, number)](#Graph.findFirst) ⇒ <code>number</code>
+        * [.findSecond(smiles, from, number)](#Graph.findSecond) ⇒ <code>\*</code>
         * [.getProperVertex(vertexId, sourceId, targetId)](#Graph.getProperVertex) ⇒ <code>Number</code>
         * [.removeUnnecessaryParentheses(stackRight)](#Graph.removeUnnecessaryParentheses) ⇒ <code>Array</code>
         * [.removeParentheses(stack, end, literal,)](#Graph.removeParentheses)
@@ -2144,6 +2150,81 @@ PRIVATE FUNCTION used by getConnectedComponentCount().
 PRIVATE FUNCTION used by getConnectedComponents().
 
 **Kind**: static method of <code>[Graph](#Graph)</code>  
+<a name="Graph.removeUnnecessaryNumbers"></a>
+
+### Graph.removeUnnecessaryNumbers(smiles) ⇒ <code>String</code>
+Remove numbers which is neighbours in SMILES notation -> need to perform in cyclic structures
+
+**Kind**: static method of <code>[Graph](#Graph)</code>  
+
+| Param | Type |
+| --- | --- |
+| smiles | <code>String</code> | 
+
+<a name="Graph.repairSmiles"></a>
+
+### Graph.repairSmiles(smiles, tmpRange, first, second, number) ⇒ <code>String</code> &#124; <code>\*</code>
+Reapair SMILES
+
+**Kind**: static method of <code>[Graph](#Graph)</code>  
+
+| Param | Type |
+| --- | --- |
+| smiles | <code>String</code> | 
+| tmpRange | <code>String</code> | 
+| first | <code>Number</code> | 
+| second | <code>Number</code> | 
+| number | <code>Number</code> | 
+
+<a name="Graph.removeRangeLast"></a>
+
+### Graph.removeRangeLast(smiles, first, second) ⇒ <code>string</code>
+Substring in range and remove last Organic Subset
+
+**Kind**: static method of <code>[Graph](#Graph)</code>  
+
+| Param |
+| --- |
+| smiles | 
+| first | 
+| second | 
+
+<a name="Graph.getNumbers"></a>
+
+### Graph.getNumbers(smiles) ⇒ <code>Set.&lt;Number&gt;</code>
+Get numbers from SMILES
+
+**Kind**: static method of <code>[Graph](#Graph)</code>  
+
+| Param |
+| --- |
+| smiles | 
+
+<a name="Graph.findFirst"></a>
+
+### Graph.findFirst(smiles, number) ⇒ <code>number</code>
+return index of first occurrence number
+
+**Kind**: static method of <code>[Graph](#Graph)</code>  
+
+| Param |
+| --- |
+| smiles | 
+| number | 
+
+<a name="Graph.findSecond"></a>
+
+### Graph.findSecond(smiles, from, number) ⇒ <code>\*</code>
+return index of first occurrence number from index + 1
+
+**Kind**: static method of <code>[Graph](#Graph)</code>  
+
+| Param | Description |
+| --- | --- |
+| smiles |  |
+| from | range no including this point (from, Infinity) = [from + 1, Infinity) |
+| number |  |
+
 <a name="Graph.getProperVertex"></a>
 
 ### Graph.getProperVertex(vertexId, sourceId, targetId) ⇒ <code>Number</code>

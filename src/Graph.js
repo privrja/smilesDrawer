@@ -1101,8 +1101,9 @@ class Graph {
         let stackSmiles = [];
         this.dfsSmiles(vertex, stackSmiles);
         stackSmiles = Graph.removeUnnecessaryParentheses(stackSmiles);
-        if (stackSmiles.length !== 0) {
-            smiles.push(stackSmiles.join(""));
+        let smile = Graph.removeUnnecessaryNumbers(stackSmiles.join(""));
+        if (smile.length !== 0) {
+            smiles.push(smile);
         }
     }
 
@@ -1127,6 +1128,134 @@ class Graph {
             Graph.checkStack(stackSmiles);
         }
         vertex.vertexState = VertexState.VALUES.CLOSED;
+    }
+
+    /**
+     * Remove numbers which is neighbours in SMILES notation -> need to perform in cyclic structures
+     * @param {String} smiles SMILES
+     * @return {String} repaired SMILES
+     */
+    static removeUnnecessaryNumbers(smiles) {
+        if (smiles === null) {
+            return '';
+        }
+        try {
+            let numbers = this.getNumbers(smiles);
+            for (let number of numbers) {
+                let first = this.findFirst(smiles, number);
+                let second = this.findSecond(smiles, first, number);
+                let tmpRange = this.removeRangeLast(smiles, first, second);
+                smiles = this.repairSmiles(smiles, tmpRange, first, second, number);
+            }
+            return smiles;
+        } catch (ex) {
+            return smiles;
+        }
+    }
+
+    /**
+     * Remove unnecessary numbers from SMILES
+     * @param {String} smiles
+     * @param {Number} first
+     * @param {Number} second
+     * @return {*}
+     */
+    static removeNumbers(smiles, first, second) {
+        smiles = smiles.slice(0, first) + smiles.slice(first + 1);
+        return smiles.slice(0, second-1) + smiles.slice(second);
+    }
+
+    /**
+     * Reapair SMILES
+     * @param {String} smiles
+     * @param {String} tmpRange
+     * @param {Number} first
+     * @param {Number} second
+     * @param {Number} number
+     * @return {String|*}
+     */
+    static repairSmiles(smiles, tmpRange, first, second, number) {
+        let pattern = new RegExp("^(Br|Cl|br|cl|[BCNOPSFIbcnopsfi])$");
+        if (pattern.test(tmpRange)) {
+            return this.removeNumbers(smiles, first, second);
+        }
+        let patternOrg = new RegExp("^(Br|Cl|br|cl|[BCNOPSFIbcnopsfi])");
+        if (patternOrg.test(tmpRange)) {
+            return smiles;
+        }
+
+        while (tmpRange.length !== 0) {
+            switch (tmpRange[0]) {
+                case '(':
+                    tmpRange = tmpRange.substring(1);
+                    if (pattern.test(tmpRange)) {
+                        return this.removeNumbers(smiles, first, second);
+                    }
+                    break;
+                case ')':
+                    tmpRange = tmpRange.substring(1);
+                    return this.repairSmiles(smiles, tmpRange, first, second, number);
+                default:
+                    tmpRange = tmpRange.substring(1);
+                    break;
+            }
+        }
+        return smiles;
+    }
+    /**
+     * Substring in range and remove last Organic Subset
+     * @param smiles
+     * @param first
+     * @param second
+     * @return {string}
+     */
+    static removeRangeLast(smiles, first, second) {
+        return smiles.substr(first + 1, second - first - 1);
+    }
+
+    /**
+     * Get numbers from SMILES
+     * @param smiles
+     * @return {Set<Number>}
+     */
+    static getNumbers(smiles) {
+       let numbers = new Set();
+       for(let index = 0; index < smiles.length; ++index) {
+           if (!isNaN(smiles[index])) {
+               numbers.add(smiles[index]);
+           }
+       }
+       return numbers;
+    }
+
+    /**
+     * return index of first occurrence number
+     * @param smiles
+     * @param number
+     * @return {number}
+     */
+    static findFirst(smiles, number) {
+        for (let index = 0; index < smiles.length; ++index) {
+            if (smiles[index] == number) {
+                return index;
+            }
+        }
+    }
+
+    /**
+     * return index of first occurrence number from index + 1
+     * @param smiles
+     * @param from range no including this point (from, Infinity) = [from + 1, Infinity)
+     * @param number
+     * @return {*}
+     */
+    static findSecond(smiles, from, number) {
+        for (let index = from + 1; index < smiles.length; ++index) {
+            if (smiles[index] == number) {
+                return index;
+            }
+        }
+        throw "Not Found";
     }
 
     static smilesNumbersAdd(vertex) {
