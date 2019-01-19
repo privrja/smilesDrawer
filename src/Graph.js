@@ -1100,11 +1100,10 @@ class Graph {
     startDfs(vertex, smiles) {
         let stackSmiles = [];
         this.dfsSmiles(vertex, stackSmiles);
-        // console.log(stackSmiles.join(""));
         stackSmiles = Graph.removeUnnecessaryParentheses(stackSmiles);
-        // console.log(stackSmiles.join(""));
-        if (stackSmiles.length !== 0) {
-            smiles.push(stackSmiles.join(""));
+        let smile = Graph.removeUnnecessaryNumbers(stackSmiles.join(""));
+        if (smile.length !== 0) {
+            smiles.push(smile);
         }
     }
 
@@ -1131,6 +1130,11 @@ class Graph {
         vertex.vertexState = VertexState.VALUES.CLOSED;
     }
 
+    /**
+     * Remove numbers which is neighbours in SMILES notation -> need to perform in cyclic structures
+     * @param {String} smiles SMILES
+     * @return {String} repaired SMILES
+     */
     static removeUnnecessaryNumbers(smiles) {
         if (smiles === null) {
             return '';
@@ -1141,7 +1145,7 @@ class Graph {
                 let first = this.findFirst(smiles, number);
                 let second = this.findSecond(smiles, first, number);
                 let tmpRange = this.removeRangeLast(smiles, first, second);
-                smiles = this.repairSmiles(smiles, tmpRange.split(''), first, second, number);
+                smiles = this.repairSmiles(smiles, tmpRange, first, second, number);
             }
             return smiles;
         } catch (ex) {
@@ -1149,40 +1153,50 @@ class Graph {
         }
     }
 
+    /**
+     * Remove unnecessary numbers from SMILES
+     * @param {String} smiles
+     * @param {Number} first
+     * @param {Number} second
+     * @return {*}
+     */
     static removeNumbers(smiles, first, second) {
         smiles = smiles.slice(0, first) + smiles.slice(first + 1);
         return smiles.slice(0, second-1) + smiles.slice(second);
     }
 
+    /**
+     * Reapair SMILES
+     * @param {String} smiles
+     * @param {String} tmpRange
+     * @param {Number} first
+     * @param {Number} second
+     * @param {Number} number
+     * @return {String|*}
+     */
     static repairSmiles(smiles, tmpRange, first, second, number) {
-        let stack = [];
-
-        if ('' === tmpRange) {
-            return this.removeNumbers(smiles, first, second);
-        }
-
         let pattern = new RegExp("^(Br|Cl|br|cl|[BCNOPSFIbcnopsfi])$");
-        if (pattern.test(tmpRange.join(""))) {
+        if (pattern.test(tmpRange)) {
             return this.removeNumbers(smiles, first, second);
         }
         let patternOrg = new RegExp("^(Br|Cl|br|cl|[BCNOPSFIbcnopsfi])");
-        if (patternOrg.test(tmpRange.join(""))) {
+        if (patternOrg.test(tmpRange)) {
             return smiles;
         }
 
         while (tmpRange.length !== 0) {
             switch (tmpRange[0]) {
                 case '(':
-                    tmpRange.shift();
-                    if (pattern.test(tmpRange.join(""))) {
+                    tmpRange = tmpRange.substring(1);
+                    if (pattern.test(tmpRange)) {
                         return this.removeNumbers(smiles, first, second);
                     }
                     break;
                 case ')':
-                    tmpRange.shift();
+                    tmpRange = tmpRange.substring(1);
                     return this.repairSmiles(smiles, tmpRange, first, second, number);
                 default:
-                    tmpRange.shift();
+                    tmpRange = tmpRange.substring(1);
                     break;
             }
         }
