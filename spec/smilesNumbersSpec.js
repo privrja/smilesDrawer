@@ -66,6 +66,9 @@ describe("smiles numbers", function () {
         expect(result).toEqual('');
     });
 
-
+    it("rightData 8", function () {
+        let result = Graph.removeUnnecessaryNumbers('N(C)C1(CC(C)(C)C(C)CC(C)C(N)C=O)C1=O');
+        expect(result).toEqual('N(C)C(CC(C)(C)C(C)CC(C)C(N)C=O)C=O');
+    });
 
 });

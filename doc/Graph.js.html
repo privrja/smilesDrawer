@@ -69,7 +69,6 @@ class Graph {
         this.decays = Array();
         this.vertexIdsToEdgeId = {};
         this.isomeric = isomeric;
-        this.isRing = false;
 
         // Used for the bridge detection algorithm
         this._time = 0;
@@ -1094,10 +1093,14 @@ class Graph {
      * but the numbers are already setup in vertex.value.ringbonds array so no need to second pass of dfs
      */
     buildSmiles() {
-        this.isRing = false;
         let smiles = [];
         this.dfsSmilesInitialization();
-        this.dfsBuildSmilesStart(smiles);
+        if (this.decays.length === 0) {
+            this.startDfs(this.vertices[0], smiles);
+        }
+        else {
+            this.dfsBuildSmilesStart(smiles);
+        }
         return smiles;
     }
 
@@ -1106,13 +1109,6 @@ class Graph {
      * set for all vertices vertexState to NotFound
      */
     dfsSmilesInitialization() {
-        for (let i = 0; i &lt; this.vertices.length; ++i) {
-            this.vertices[i].vertexState = VertexState.VALUES.NOT_FOUND;
-            this.vertices[i].smilesNumbers = [];
-        }
-    }
-
-    dfsSmilesInitializationForSecondDfs() {
         for (let i = 0; i &lt; this.vertices.length; ++i) {
             this.vertices[i].vertexState = VertexState.VALUES.NOT_FOUND;
         }
@@ -1155,11 +1151,27 @@ class Graph {
         if (vertex.vertexState !== VertexState.VALUES.NOT_FOUND) {
             return;
         }
-        stackSmiles.push(vertex.value.element + Graph.smilesNumbersAdd(vertex));
+
+        if (vertex.value.element === 'H') {
+            return;
+        }
+
+        if (vertex.value.isPartOfAromaticRing) {
+            stackSmiles.push(vertex.value.element.toLowerCase() + Graph.smilesNumbersAdd(vertex));
+        } else {
+            stackSmiles.push(vertex.value.element + Graph.smilesNumbersAdd(vertex));
+        }
         vertex.vertexState = VertexState.VALUES.OPEN;
         for (let i = 0; i &lt; vertex.edges.length; ++i) {
             let edge = this.edges[vertex.edges[i]];
-            if (edge.isDecay) continue;
+            if (edge.isDecay) {
+                if (vertex.value.element === "C") {
+                    stackSmiles.push("(");
+                    stackSmiles.push("O");
+                    stackSmiles.push(")");
+                }
+                continue;
+            }
             stackSmiles.push("(");
             Graph.addBondTypeToStack(edge, stackSmiles);
             let nextVertex = Graph.getProperVertex(vertex.id, edge.sourceId, edge.targetId);
@@ -1201,7 +1213,7 @@ class Graph {
      */
     static removeNumbers(smiles, first, second) {
         smiles = smiles.slice(0, first) + smiles.slice(first + 1);
-        return smiles.slice(0, second-1) + smiles.slice(second);
+        return smiles.slice(0, second - 1) + smiles.slice(second);
     }
 
     /**
@@ -1214,33 +1226,45 @@ class Graph {
      * @return {String|*}
      */
     static repairSmiles(smiles, tmpRange, first, second, number) {
-        let pattern = new RegExp("^(Br|Cl|br|cl|[BCNOPSFIbcnopsfi])$");
+        let pattern = new RegExp("^(Br|Cl|[BCNOPSFIbcnopsfi])$");
         if (pattern.test(tmpRange)) {
             return this.removeNumbers(smiles, first, second);
         }
-        let patternOrg = new RegExp("^(Br|Cl|br|cl|[BCNOPSFIbcnopsfi])");
+        let patternOrg = new RegExp("^(Br|Cl|[BCNOPSFIbcnopsfi])");
         if (patternOrg.test(tmpRange)) {
             return smiles;
         }
 
         while (tmpRange.length !== 0) {
-            switch (tmpRange[0]) {
-                case '(':
-                    tmpRange = tmpRange.substring(1);
-                    if (pattern.test(tmpRange)) {
-                        return this.removeNumbers(smiles, first, second);
+            if (tmpRange[0] === '(') {
+                tmpRange = tmpRange.substring(1);
+                if (pattern.test(tmpRange)) {
+                    return this.removeNumbers(smiles, first, second);
+                }
+                let leftBrackets = 1;
+                let rightBrackets = 0;
+                while (leftBrackets !== rightBrackets) {
+                    switch (tmpRange[0]) {
+                        case '(':
+                            leftBrackets++;
+                            break;
+                        case ')':
+                            rightBrackets++;
+                            break;
                     }
-                    break;
-                case ')':
+                    if ("" === tmpRange) {
+                        return smiles;
+                    }
                     tmpRange = tmpRange.substring(1);
-                    return this.repairSmiles(smiles, tmpRange, first, second, number);
-                default:
-                    tmpRange = tmpRange.substring(1);
-                    break;
+                }
+                return this.repairSmiles(smiles, tmpRange, first, second, number);
+            } else {
+                tmpRange = tmpRange.substring(1);
             }
         }
         return smiles;
     }
+
     /**
      * Substring in range and remove last Organic Subset
      * @param smiles
@@ -1249,7 +1273,7 @@ class Graph {
      * @return {string}
      */
     static removeRangeLast(smiles, first, second) {
-        return smiles.substr(first + 1, second - first - 1);
+        return smiles.substring(first + 1, second);
     }
 
     /**
@@ -1258,13 +1282,13 @@ class Graph {
      * @return {Set&lt;Number>}
      */
     static getNumbers(smiles) {
-       let numbers = new Set();
-       for(let index = 0; index &lt; smiles.length; ++index) {
-           if (!isNaN(smiles[index])) {
-               numbers.add(smiles[index]);
-           }
-       }
-       return numbers;
+        let numbers = new Set();
+        for (let index = 0; index &lt; smiles.length; ++index) {
+            if (!isNaN(smiles[index])) {
+                numbers.add(smiles[index]);
+            }
+        }
+        return numbers;
     }
 
     /**
@@ -1304,7 +1328,7 @@ class Graph {
             if (num.length === 1) {
                 numbers += num;
             } else {
-                numbers += '%' + num + '%';
+                numbers += '%' + num;
             }
         }
         return numbers;
@@ -1453,7 +1477,7 @@ module.exports = Graph;</code></pre>
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.5.5</a> on Sat Jan 19 2019 10:10:27 GMT+0100 (Střední Evropa (běžný čas)) using the <a href="https://github.com/clenemt/docdash">docdash</a> theme.
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.5.5</a> on Wed Jan 23 2019 16:51:02 GMT+0100 (Střední Evropa (běžný čas)) using the <a href="https://github.com/clenemt/docdash">docdash</a> theme.
 </footer>
 
 <script>prettyPrint();</script>

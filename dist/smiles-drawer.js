@@ -5786,7 +5786,6 @@ var Graph = function () {
         this.decays = Array();
         this.vertexIdsToEdgeId = {};
         this.isomeric = isomeric;
-        this.isRing = false;
 
         // Used for the bridge detection algorithm
         this._time = 0;
@@ -6859,10 +6858,13 @@ var Graph = function () {
     }, {
         key: 'buildSmiles',
         value: function buildSmiles() {
-            this.isRing = false;
             var smiles = [];
             this.dfsSmilesInitialization();
-            this.dfsBuildSmilesStart(smiles);
+            if (this.decays.length === 0) {
+                this.startDfs(this.vertices[0], smiles);
+            } else {
+                this.dfsBuildSmilesStart(smiles);
+            }
             return smiles;
         }
 
@@ -6874,14 +6876,6 @@ var Graph = function () {
     }, {
         key: 'dfsSmilesInitialization',
         value: function dfsSmilesInitialization() {
-            for (var i = 0; i < this.vertices.length; ++i) {
-                this.vertices[i].vertexState = VertexState.VALUES.NOT_FOUND;
-                this.vertices[i].smilesNumbers = [];
-            }
-        }
-    }, {
-        key: 'dfsSmilesInitializationForSecondDfs',
-        value: function dfsSmilesInitializationForSecondDfs() {
             for (var i = 0; i < this.vertices.length; ++i) {
                 this.vertices[i].vertexState = VertexState.VALUES.NOT_FOUND;
             }
@@ -6933,11 +6927,27 @@ var Graph = function () {
             if (vertex.vertexState !== VertexState.VALUES.NOT_FOUND) {
                 return;
             }
-            stackSmiles.push(vertex.value.element + Graph.smilesNumbersAdd(vertex));
+
+            if (vertex.value.element === 'H') {
+                return;
+            }
+
+            if (vertex.value.isPartOfAromaticRing) {
+                stackSmiles.push(vertex.value.element.toLowerCase() + Graph.smilesNumbersAdd(vertex));
+            } else {
+                stackSmiles.push(vertex.value.element + Graph.smilesNumbersAdd(vertex));
+            }
             vertex.vertexState = VertexState.VALUES.OPEN;
             for (var i = 0; i < vertex.edges.length; ++i) {
                 var edge = this.edges[vertex.edges[i]];
-                if (edge.isDecay) continue;
+                if (edge.isDecay) {
+                    if (vertex.value.element === "C") {
+                        stackSmiles.push("(");
+                        stackSmiles.push("O");
+                        stackSmiles.push(")");
+                    }
+                    continue;
+                }
                 stackSmiles.push("(");
                 Graph.addBondTypeToStack(edge, stackSmiles);
                 var nextVertex = Graph.getProperVertex(vertex.id, edge.sourceId, edge.targetId);
@@ -7114,33 +7124,45 @@ var Graph = function () {
     }, {
         key: 'repairSmiles',
         value: function repairSmiles(smiles, tmpRange, first, second, number) {
-            var pattern = new RegExp("^(Br|Cl|br|cl|[BCNOPSFIbcnopsfi])$");
+            var pattern = new RegExp("^(Br|Cl|[BCNOPSFIbcnopsfi])$");
             if (pattern.test(tmpRange)) {
                 return this.removeNumbers(smiles, first, second);
             }
-            var patternOrg = new RegExp("^(Br|Cl|br|cl|[BCNOPSFIbcnopsfi])");
+            var patternOrg = new RegExp("^(Br|Cl|[BCNOPSFIbcnopsfi])");
             if (patternOrg.test(tmpRange)) {
                 return smiles;
             }
 
             while (tmpRange.length !== 0) {
-                switch (tmpRange[0]) {
-                    case '(':
-                        tmpRange = tmpRange.substring(1);
-                        if (pattern.test(tmpRange)) {
-                            return this.removeNumbers(smiles, first, second);
+                if (tmpRange[0] === '(') {
+                    tmpRange = tmpRange.substring(1);
+                    if (pattern.test(tmpRange)) {
+                        return this.removeNumbers(smiles, first, second);
+                    }
+                    var leftBrackets = 1;
+                    var rightBrackets = 0;
+                    while (leftBrackets !== rightBrackets) {
+                        switch (tmpRange[0]) {
+                            case '(':
+                                leftBrackets++;
+                                break;
+                            case ')':
+                                rightBrackets++;
+                                break;
                         }
-                        break;
-                    case ')':
+                        if ("" === tmpRange) {
+                            return smiles;
+                        }
                         tmpRange = tmpRange.substring(1);
-                        return this.repairSmiles(smiles, tmpRange, first, second, number);
-                    default:
-                        tmpRange = tmpRange.substring(1);
-                        break;
+                    }
+                    return this.repairSmiles(smiles, tmpRange, first, second, number);
+                } else {
+                    tmpRange = tmpRange.substring(1);
                 }
             }
             return smiles;
         }
+
         /**
          * Substring in range and remove last Organic Subset
          * @param smiles
@@ -7152,7 +7174,7 @@ var Graph = function () {
     }, {
         key: 'removeRangeLast',
         value: function removeRangeLast(smiles, first, second) {
-            return smiles.substr(first + 1, second - first - 1);
+            return smiles.substring(first + 1, second);
         }
 
         /**
@@ -7217,7 +7239,7 @@ var Graph = function () {
                 if (num.length === 1) {
                     numbers += num;
                 } else {
-                    numbers += '%' + num + '%';
+                    numbers += '%' + num;
                 }
             }
             return numbers;
