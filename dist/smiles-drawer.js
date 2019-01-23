@@ -6937,7 +6937,14 @@ var Graph = function () {
             vertex.vertexState = VertexState.VALUES.OPEN;
             for (var i = 0; i < vertex.edges.length; ++i) {
                 var edge = this.edges[vertex.edges[i]];
-                if (edge.isDecay) continue;
+                if (edge.isDecay) {
+                    if (vertex.value.element === "C") {
+                        stackSmiles.push("(");
+                        stackSmiles.push("O");
+                        stackSmiles.push(")");
+                    }
+                    continue;
+                }
                 stackSmiles.push("(");
                 Graph.addBondTypeToStack(edge, stackSmiles);
                 var nextVertex = Graph.getProperVertex(vertex.id, edge.sourceId, edge.targetId);
