@@ -1272,7 +1272,7 @@ class Graph {
             if (num.length === 1) {
                 numbers += num;
             } else {
-                numbers += '%' + num + '%';
+                numbers += '%' + num;
             }
         }
         return numbers;
