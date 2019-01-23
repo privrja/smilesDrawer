@@ -6932,7 +6932,11 @@ var Graph = function () {
                 return;
             }
 
-            stackSmiles.push(vertex.value.element + Graph.smilesNumbersAdd(vertex));
+            if (vertex.value.isPartOfAromaticRing) {
+                stackSmiles.push(vertex.value.element.toLowerCase() + Graph.smilesNumbersAdd(vertex));
+            } else {
+                stackSmiles.push(vertex.value.element + Graph.smilesNumbersAdd(vertex));
+            }
             vertex.vertexState = VertexState.VALUES.OPEN;
             for (var i = 0; i < vertex.edges.length; ++i) {
                 var edge = this.edges[vertex.edges[i]];
@@ -7130,32 +7134,30 @@ var Graph = function () {
             }
 
             while (tmpRange.length !== 0) {
-                switch (tmpRange[0]) {
-                    case '(':
-                        tmpRange = tmpRange.substring(1);
-                        if (pattern.test(tmpRange)) {
-                            return this.removeNumbers(smiles, first, second);
+                if (tmpRange[0] === '(') {
+                    tmpRange = tmpRange.substring(1);
+                    if (pattern.test(tmpRange)) {
+                        return this.removeNumbers(smiles, first, second);
+                    }
+                    var leftBrackets = 1;
+                    var rightBrackets = 0;
+                    while (leftBrackets !== rightBrackets) {
+                        switch (tmpRange[0]) {
+                            case '(':
+                                leftBrackets++;
+                                break;
+                            case ')':
+                                rightBrackets++;
+                                break;
                         }
-                        var leftBrackets = 1;
-                        var rightBrackets = 0;
-                        while (leftBrackets !== rightBrackets) {
-                            switch (tmpRange[0]) {
-                                case '(':
-                                    leftBrackets++;
-                                    break;
-                                case ')':
-                                    rightBrackets++;
-                                    break;
-                            }
-                            if ("" === tmpRange) {
-                                return smiles;
-                            }
-                            tmpRange = tmpRange.substring(1);
+                        if ("" === tmpRange) {
+                            return smiles;
                         }
-                        return this.repairSmiles(smiles, tmpRange, first, second, number);
-                    default:
                         tmpRange = tmpRange.substring(1);
-                        break;
+                    }
+                    return this.repairSmiles(smiles, tmpRange, first, second, number);
+                } else {
+                    tmpRange = tmpRange.substring(1);
                 }
             }
             return smiles;
