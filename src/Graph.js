@@ -1169,7 +1169,7 @@ class Graph {
      */
     static removeNumbers(smiles, first, second) {
         smiles = smiles.slice(0, first) + smiles.slice(first + 1);
-        return smiles.slice(0, second-1) + smiles.slice(second);
+        return smiles.slice(0, second - 1) + smiles.slice(second);
     }
 
     /**
@@ -1198,9 +1198,22 @@ class Graph {
                     if (pattern.test(tmpRange)) {
                         return this.removeNumbers(smiles, first, second);
                     }
-                    break;
-                case ')':
-                    tmpRange = tmpRange.substring(1);
+                    let leftBrackets = 1;
+                    let rightBrackets = 0;
+                    while (leftBrackets !== rightBrackets) {
+                        switch (tmpRange[0]) {
+                            case '(':
+                                leftBrackets++;
+                                break;
+                            case ')':
+                                rightBrackets++;
+                                break;
+                        }
+                        if ("" === tmpRange) {
+                            return smiles;
+                        }
+                        tmpRange = tmpRange.substring(1);
+                    }
                     return this.repairSmiles(smiles, tmpRange, first, second, number);
                 default:
                     tmpRange = tmpRange.substring(1);
@@ -1209,6 +1222,7 @@ class Graph {
         }
         return smiles;
     }
+
     /**
      * Substring in range and remove last Organic Subset
      * @param smiles
@@ -1217,7 +1231,7 @@ class Graph {
      * @return {string}
      */
     static removeRangeLast(smiles, first, second) {
-        return smiles.substr(first + 1, second - first - 1);
+        return smiles.substring(first + 1, second);
     }
 
     /**
@@ -1226,13 +1240,13 @@ class Graph {
      * @return {Set<Number>}
      */
     static getNumbers(smiles) {
-       let numbers = new Set();
-       for(let index = 0; index < smiles.length; ++index) {
-           if (!isNaN(smiles[index])) {
-               numbers.add(smiles[index]);
-           }
-       }
-       return numbers;
+        let numbers = new Set();
+        for (let index = 0; index < smiles.length; ++index) {
+            if (!isNaN(smiles[index])) {
+                numbers.add(smiles[index]);
+            }
+        }
+        return numbers;
     }
 
     /**
