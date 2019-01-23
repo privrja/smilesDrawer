@@ -1182,11 +1182,11 @@ class Graph {
      * @return {String|*}
      */
     static repairSmiles(smiles, tmpRange, first, second, number) {
-        let pattern = new RegExp("^(Br|Cl|br|cl|[BCNOPSFIbcnopsfi])$");
+        let pattern = new RegExp("^(Br|Cl|[BCNOPSFIbcnopsfi])$");
         if (pattern.test(tmpRange)) {
             return this.removeNumbers(smiles, first, second);
         }
-        let patternOrg = new RegExp("^(Br|Cl|br|cl|[BCNOPSFIbcnopsfi])");
+        let patternOrg = new RegExp("^(Br|Cl|[BCNOPSFIbcnopsfi])");
         if (patternOrg.test(tmpRange)) {
             return smiles;
         }
