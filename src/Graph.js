@@ -30,7 +30,6 @@ class Graph {
         this.decays = Array();
         this.vertexIdsToEdgeId = {};
         this.isomeric = isomeric;
-        this.isRing = false;
 
         // Used for the bridge detection algorithm
         this._time = 0;
@@ -1055,10 +1054,14 @@ class Graph {
      * but the numbers are already setup in vertex.value.ringbonds array so no need to second pass of dfs
      */
     buildSmiles() {
-        this.isRing = false;
         let smiles = [];
         this.dfsSmilesInitialization();
-        this.dfsBuildSmilesStart(smiles);
+        if (this.decays.length === 0) {
+            this.startDfs(this.vertices[0], smiles);
+        }
+        else {
+            this.dfsBuildSmilesStart(smiles);
+        }
         return smiles;
     }
 
@@ -1067,13 +1070,6 @@ class Graph {
      * set for all vertices vertexState to NotFound
      */
     dfsSmilesInitialization() {
-        for (let i = 0; i < this.vertices.length; ++i) {
-            this.vertices[i].vertexState = VertexState.VALUES.NOT_FOUND;
-            this.vertices[i].smilesNumbers = [];
-        }
-    }
-
-    dfsSmilesInitializationForSecondDfs() {
         for (let i = 0; i < this.vertices.length; ++i) {
             this.vertices[i].vertexState = VertexState.VALUES.NOT_FOUND;
         }

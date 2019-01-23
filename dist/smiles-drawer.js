@@ -5786,7 +5786,6 @@ var Graph = function () {
         this.decays = Array();
         this.vertexIdsToEdgeId = {};
         this.isomeric = isomeric;
-        this.isRing = false;
 
         // Used for the bridge detection algorithm
         this._time = 0;
@@ -6859,10 +6858,13 @@ var Graph = function () {
     }, {
         key: 'buildSmiles',
         value: function buildSmiles() {
-            this.isRing = false;
             var smiles = [];
             this.dfsSmilesInitialization();
-            this.dfsBuildSmilesStart(smiles);
+            if (this.decays.length === 0) {
+                this.startDfs(this.vertices[0], smiles);
+            } else {
+                this.dfsBuildSmilesStart(smiles);
+            }
             return smiles;
         }
 
@@ -6874,14 +6876,6 @@ var Graph = function () {
     }, {
         key: 'dfsSmilesInitialization',
         value: function dfsSmilesInitialization() {
-            for (var i = 0; i < this.vertices.length; ++i) {
-                this.vertices[i].vertexState = VertexState.VALUES.NOT_FOUND;
-                this.vertices[i].smilesNumbers = [];
-            }
-        }
-    }, {
-        key: 'dfsSmilesInitializationForSecondDfs',
-        value: function dfsSmilesInitializationForSecondDfs() {
             for (var i = 0; i < this.vertices.length; ++i) {
                 this.vertices[i].vertexState = VertexState.VALUES.NOT_FOUND;
             }
@@ -7121,11 +7115,11 @@ var Graph = function () {
     }, {
         key: 'repairSmiles',
         value: function repairSmiles(smiles, tmpRange, first, second, number) {
-            var pattern = new RegExp("^(Br|Cl|br|cl|[BCNOPSFIbcnopsfi])$");
+            var pattern = new RegExp("^(Br|Cl|[BCNOPSFIbcnopsfi])$");
             if (pattern.test(tmpRange)) {
                 return this.removeNumbers(smiles, first, second);
             }
-            var patternOrg = new RegExp("^(Br|Cl|br|cl|[BCNOPSFIbcnopsfi])");
+            var patternOrg = new RegExp("^(Br|Cl|[BCNOPSFIbcnopsfi])");
             if (patternOrg.test(tmpRange)) {
                 return smiles;
             }
@@ -7137,9 +7131,22 @@ var Graph = function () {
                         if (pattern.test(tmpRange)) {
                             return this.removeNumbers(smiles, first, second);
                         }
-                        break;
-                    case ')':
-                        tmpRange = tmpRange.substring(1);
+                        var leftBrackets = 1;
+                        var rightBrackets = 0;
+                        while (leftBrackets !== rightBrackets) {
+                            switch (tmpRange[0]) {
+                                case '(':
+                                    leftBrackets++;
+                                    break;
+                                case ')':
+                                    rightBrackets++;
+                                    break;
+                            }
+                            if ("" === tmpRange) {
+                                return smiles;
+                            }
+                            tmpRange = tmpRange.substring(1);
+                        }
                         return this.repairSmiles(smiles, tmpRange, first, second, number);
                     default:
                         tmpRange = tmpRange.substring(1);
@@ -7148,6 +7155,7 @@ var Graph = function () {
             }
             return smiles;
         }
+
         /**
          * Substring in range and remove last Organic Subset
          * @param smiles
@@ -7159,7 +7167,7 @@ var Graph = function () {
     }, {
         key: 'removeRangeLast',
         value: function removeRangeLast(smiles, first, second) {
-            return smiles.substr(first + 1, second - first - 1);
+            return smiles.substring(first + 1, second);
         }
 
         /**
@@ -7224,7 +7232,7 @@ var Graph = function () {
                 if (num.length === 1) {
                     numbers += num;
                 } else {
-                    numbers += '%' + num + '%';
+                    numbers += '%' + num;
                 }
             }
             return numbers;
