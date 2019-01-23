@@ -6927,6 +6927,11 @@ var Graph = function () {
             if (vertex.vertexState !== VertexState.VALUES.NOT_FOUND) {
                 return;
             }
+
+            if (vertex.value.element === 'H') {
+                return;
+            }
+
             stackSmiles.push(vertex.value.element + Graph.smilesNumbersAdd(vertex));
             vertex.vertexState = VertexState.VALUES.OPEN;
             for (var i = 0; i < vertex.edges.length; ++i) {
