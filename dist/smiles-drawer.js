@@ -6932,11 +6932,31 @@ var Graph = function () {
                 return;
             }
 
-            if (vertex.value.isPartOfAromaticRing) {
-                stackSmiles.push(vertex.value.element.toLowerCase() + Graph.smilesNumbersAdd(vertex));
+            if (vertex.value.bracket) {
+                stackSmiles.push("[");
+                Graph.printVertexValue(stackSmiles, vertex);
+                if (vertex.value.bracket.hcount > 0) {
+                    stackSmiles.push('H');
+                    if (vertex.value.bracket.hcount > 1) {
+                        stackSmiles.push(vertex.value.bracket.hcount);
+                    }
+                }
+                if (vertex.value.bracket.charge > 0) {
+                    stackSmiles.push('+');
+                    stackSmiles.push(vertex.value.bracket.charge);
+                } else if (vertex.value.bracket.charge < 0) {
+                    stackSmiles.push(vertex.value.bracket.charge);
+                }
+                stackSmiles.push("]");
             } else {
-                stackSmiles.push(vertex.value.element + Graph.smilesNumbersAdd(vertex));
+                if (vertex.value.isPartOfAromaticRing) {
+                    stackSmiles.push(vertex.value.element.toLowerCase());
+                } else {
+                    stackSmiles.push(vertex.value.element);
+                }
             }
+            stackSmiles.push(Graph.smilesNumbersAdd(vertex));
+
             vertex.vertexState = VertexState.VALUES.OPEN;
             for (var i = 0; i < vertex.edges.length; ++i) {
                 var edge = this.edges[vertex.edges[i]];
@@ -6956,13 +6976,6 @@ var Graph = function () {
             }
             vertex.vertexState = VertexState.VALUES.CLOSED;
         }
-
-        /**
-         * Remove numbers which is neighbours in SMILES notation -> need to perform in cyclic structures
-         * @param {String} smiles SMILES
-         * @return {String} repaired SMILES
-         */
-
     }], [{
         key: 'getConnectedComponents',
         value: function getConnectedComponents(adjacencyMatrix) {
@@ -7054,6 +7067,22 @@ var Graph = function () {
                 Graph._ccGetDfs(v, visited, adjacencyMatrix, component);
             }
         }
+    }, {
+        key: 'printVertexValue',
+        value: function printVertexValue(stackSmiles, vertex) {
+            if (vertex.value.isPartOfAromaticRing) {
+                stackSmiles.push(vertex.value.element.toLowerCase());
+            } else {
+                stackSmiles.push(vertex.value.element);
+            }
+        }
+
+        /**
+         * Remove numbers which is neighbours in SMILES notation -> need to perform in cyclic structures
+         * @param {String} smiles SMILES
+         * @return {String} repaired SMILES
+         */
+
     }, {
         key: 'removeUnnecessaryNumbers',
         value: function removeUnnecessaryNumbers(smiles) {
