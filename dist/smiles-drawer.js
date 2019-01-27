@@ -6907,6 +6907,7 @@ var Graph = function () {
         key: 'startDfs',
         value: function startDfs(vertex, smiles) {
             var stackSmiles = [];
+            this.first = vertex.id;
             this.dfsSmiles(vertex, stackSmiles);
             stackSmiles = Graph.removeUnnecessaryParentheses(stackSmiles);
             var smile = Graph.removeUnnecessaryNumbers(stackSmiles.join(""));
@@ -6930,6 +6931,10 @@ var Graph = function () {
 
             if (vertex.value.element === 'H') {
                 return;
+            }
+
+            if (this.first === vertex.id && vertex.value.element === "C") {
+                stackSmiles.push("O");
             }
 
             if (vertex.value.bracket) {
@@ -6961,7 +6966,7 @@ var Graph = function () {
             for (var i = 0; i < vertex.edges.length; ++i) {
                 var edge = this.edges[vertex.edges[i]];
                 if (edge.isDecay) {
-                    if (vertex.value.element === "C") {
+                    if (vertex.value.element === "C" && vertex.id !== this.first) {
                         stackSmiles.push("(");
                         stackSmiles.push("O");
                         stackSmiles.push(")");

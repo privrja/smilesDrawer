@@ -1095,6 +1095,7 @@ class Graph {
      */
     startDfs(vertex, smiles) {
         let stackSmiles = [];
+        this.first = vertex.id;
         this.dfsSmiles(vertex, stackSmiles);
         stackSmiles = Graph.removeUnnecessaryParentheses(stackSmiles);
         let smile = Graph.removeUnnecessaryNumbers(stackSmiles.join(""));
@@ -1115,6 +1116,10 @@ class Graph {
 
         if (vertex.value.element === 'H') {
             return;
+        }
+
+        if (this.first === vertex.id && vertex.value.element === "C") {
+            stackSmiles.push("O");
         }
 
         if (vertex.value.bracket) {
@@ -1147,7 +1152,7 @@ class Graph {
         for (let i = 0; i < vertex.edges.length; ++i) {
             let edge = this.edges[vertex.edges[i]];
             if (edge.isDecay) {
-                if (vertex.value.element === "C") {
+                if (vertex.value.element === "C" && vertex.id !== this.first) {
                     stackSmiles.push("(");
                     stackSmiles.push("O");
                     stackSmiles.push(")");
