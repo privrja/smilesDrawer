@@ -6911,6 +6911,7 @@ var Graph = function () {
             this.dfsSmiles(vertex, stackSmiles);
             stackSmiles = Graph.removeUnnecessaryParentheses(stackSmiles);
             var smile = Graph.removeUnnecessaryNumbers(stackSmiles.join(""));
+            smile = Graph.repairNumbers(smile);
             if (smile.length !== 0) {
                 smiles.push(smile);
             }
@@ -7105,8 +7106,8 @@ var Graph = function () {
                         var number = _step.value;
 
                         var first = this.findFirst(smiles, number);
-                        var second = this.findSecond(smiles, first, number);
-                        var tmpRange = this.removeRangeLast(smiles, first, second);
+                        var second = this.findSecond(smiles, first + 1, number);
+                        var tmpRange = this.removeRangeLast(smiles, first, second, number);
                         smiles = this.repairSmiles(smiles, tmpRange, first, second, number);
                     }
                 } catch (err) {
@@ -7140,9 +7141,15 @@ var Graph = function () {
 
     }, {
         key: 'removeNumbers',
-        value: function removeNumbers(smiles, first, second) {
-            smiles = smiles.slice(0, first) + smiles.slice(first + 1);
-            return smiles.slice(0, second - 1) + smiles.slice(second);
+        value: function removeNumbers(smiles, first, second, number) {
+            if (number > 9) {
+                var numLength = number.toString().length;
+                smiles = smiles.slice(0, first - 1) + smiles.slice(first + numLength);
+                return smiles.slice(0, second - 2 - numLength) + smiles.slice(second - 1);
+            } else {
+                smiles = smiles.slice(0, first) + smiles.slice(first + 1);
+                return smiles.slice(0, second - 1) + smiles.slice(second);
+            }
         }
 
         /**
@@ -7160,7 +7167,7 @@ var Graph = function () {
         value: function repairSmiles(smiles, tmpRange, first, second, number) {
             var pattern = new RegExp("^(Br|Cl|[BCNOPSFIbcnopsfi])$");
             if (pattern.test(tmpRange)) {
-                return this.removeNumbers(smiles, first, second);
+                return this.removeNumbers(smiles, first, second, number);
             }
             var patternOrg = new RegExp("^(Br|Cl|[BCNOPSFIbcnopsfi])");
             if (patternOrg.test(tmpRange)) {
@@ -7171,7 +7178,7 @@ var Graph = function () {
                 if (tmpRange[0] === '(') {
                     tmpRange = tmpRange.substring(1);
                     if (pattern.test(tmpRange)) {
-                        return this.removeNumbers(smiles, first, second);
+                        return this.removeNumbers(smiles, first, second, number);
                     }
                     var leftBrackets = 1;
                     var rightBrackets = 0;
@@ -7207,8 +7214,12 @@ var Graph = function () {
 
     }, {
         key: 'removeRangeLast',
-        value: function removeRangeLast(smiles, first, second) {
-            return smiles.substring(first + 1, second);
+        value: function removeRangeLast(smiles, first, second, number) {
+            if (number > 9) {
+                return smiles.substring(first + number.toString().length, second - 1);
+            } else {
+                return smiles.substring(first + 1, second);
+            }
         }
 
         /**
@@ -7224,6 +7235,18 @@ var Graph = function () {
             for (var index = 0; index < smiles.length; ++index) {
                 if (!isNaN(smiles[index])) {
                     numbers.add(smiles[index]);
+                } else if (smiles[index] === '%') {
+                    index++;
+                    var num = "";
+                    while (!isNaN(smiles[index])) {
+                        num += smiles[index];
+                        index++;
+                        if (index >= smiles.length) {
+                            break;
+                        }
+                    }
+                    index--;
+                    numbers.add(num);
                 }
             }
             return numbers;
@@ -7239,11 +7262,7 @@ var Graph = function () {
     }, {
         key: 'findFirst',
         value: function findFirst(smiles, number) {
-            for (var index = 0; index < smiles.length; ++index) {
-                if (smiles[index] == number) {
-                    return index;
-                }
-            }
+            return smiles.indexOf(number);
         }
 
         /**
@@ -7257,12 +7276,11 @@ var Graph = function () {
     }, {
         key: 'findSecond',
         value: function findSecond(smiles, from, number) {
-            for (var index = from + 1; index < smiles.length; ++index) {
-                if (smiles[index] == number) {
-                    return index;
-                }
+            var result = smiles.indexOf(number, from);
+            if (result === -1) {
+                throw "Not Found";
             }
-            throw "Not Found";
+            return result;
         }
     }, {
         key: 'smilesNumbersAdd',
@@ -7293,6 +7311,55 @@ var Graph = function () {
         key: 'getProperVertex',
         value: function getProperVertex(vertexId, sourceId, targetId) {
             if (vertexId === sourceId) return targetId;else return sourceId;
+        }
+    }, {
+        key: 'repairNumbers',
+        value: function repairNumbers(smiles) {
+            var numbers = Array.from(this.getNumbers(smiles));
+            numbers.sort(function (a, b) {
+                return b - a;
+            });
+
+            var index = 1;
+            var _iteratorNormalCompletion2 = true;
+            var _didIteratorError2 = false;
+            var _iteratorError2 = undefined;
+
+            try {
+                for (var _iterator2 = numbers[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
+                    var number = _step2.value;
+
+                    if (index === number) {
+                        continue;
+                    }
+                    var first = this.findFirst(smiles, number);
+                    if (number > 9) {
+                        smiles = smiles.slice(0, first - 1) + index + smiles.slice(first + number.toString().length);
+                        var second = this.findSecond(smiles, first + 1, number);
+                        smiles = smiles.slice(0, second - 1) + index + smiles.slice(second + number.toString().length);
+                    } else {
+                        smiles = smiles.slice(0, first) + index + smiles.slice(first + 1);
+                        var _second = this.findSecond(smiles, first + 1, number);
+                        smiles = smiles.slice(0, _second) + index + smiles.slice(_second + 1);
+                    }
+                    index++;
+                }
+            } catch (err) {
+                _didIteratorError2 = true;
+                _iteratorError2 = err;
+            } finally {
+                try {
+                    if (!_iteratorNormalCompletion2 && _iterator2.return) {
+                        _iterator2.return();
+                    }
+                } finally {
+                    if (_didIteratorError2) {
+                        throw _iteratorError2;
+                    }
+                }
+            }
+
+            return smiles;
         }
 
         /**

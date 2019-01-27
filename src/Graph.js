@@ -1099,6 +1099,7 @@ class Graph {
         this.dfsSmiles(vertex, stackSmiles);
         stackSmiles = Graph.removeUnnecessaryParentheses(stackSmiles);
         let smile = Graph.removeUnnecessaryNumbers(stackSmiles.join(""));
+        smile = Graph.repairNumbers(smile);
         if (smile.length !== 0) {
             smiles.push(smile);
         }
@@ -1189,8 +1190,8 @@ class Graph {
             let numbers = this.getNumbers(smiles);
             for (let number of numbers) {
                 let first = this.findFirst(smiles, number);
-                let second = this.findSecond(smiles, first, number);
-                let tmpRange = this.removeRangeLast(smiles, first, second);
+                let second = this.findSecond(smiles, first + 1, number);
+                let tmpRange = this.removeRangeLast(smiles, first, second, number);
                 smiles = this.repairSmiles(smiles, tmpRange, first, second, number);
             }
             return smiles;
@@ -1206,9 +1207,15 @@ class Graph {
      * @param {Number} second
      * @return {*}
      */
-    static removeNumbers(smiles, first, second) {
-        smiles = smiles.slice(0, first) + smiles.slice(first + 1);
-        return smiles.slice(0, second - 1) + smiles.slice(second);
+    static removeNumbers(smiles, first, second, number) {
+        if (number > 9) {
+            let numLength = number.toString().length;
+            smiles = smiles.slice(0, first - 1) + smiles.slice(first + numLength);
+            return smiles.slice(0, second - 2 - numLength) + smiles.slice(second - 1);
+        } else {
+            smiles = smiles.slice(0, first) + smiles.slice(first + 1);
+            return smiles.slice(0, second - 1) + smiles.slice(second);
+        }
     }
 
     /**
@@ -1223,7 +1230,7 @@ class Graph {
     static repairSmiles(smiles, tmpRange, first, second, number) {
         let pattern = new RegExp("^(Br|Cl|[BCNOPSFIbcnopsfi])$");
         if (pattern.test(tmpRange)) {
-            return this.removeNumbers(smiles, first, second);
+            return this.removeNumbers(smiles, first, second, number);
         }
         let patternOrg = new RegExp("^(Br|Cl|[BCNOPSFIbcnopsfi])");
         if (patternOrg.test(tmpRange)) {
@@ -1234,7 +1241,7 @@ class Graph {
             if (tmpRange[0] === '(') {
                 tmpRange = tmpRange.substring(1);
                 if (pattern.test(tmpRange)) {
-                    return this.removeNumbers(smiles, first, second);
+                    return this.removeNumbers(smiles, first, second, number);
                 }
                 let leftBrackets = 1;
                 let rightBrackets = 0;
@@ -1267,8 +1274,12 @@ class Graph {
      * @param second
      * @return {string}
      */
-    static removeRangeLast(smiles, first, second) {
-        return smiles.substring(first + 1, second);
+    static removeRangeLast(smiles, first, second, number) {
+        if (number > 9) {
+            return smiles.substring(first + number.toString().length, second - 1);
+        } else {
+            return smiles.substring(first + 1, second);
+        }
     }
 
     /**
@@ -1281,6 +1292,18 @@ class Graph {
         for (let index = 0; index < smiles.length; ++index) {
             if (!isNaN(smiles[index])) {
                 numbers.add(smiles[index]);
+            } else if (smiles[index] === '%') {
+                index++;
+                let num = "";
+                while (!isNaN(smiles[index])) {
+                    num += smiles[index];
+                    index++;
+                    if (index >= smiles.length) {
+                        break;
+                    }
+                }
+                index--;
+                numbers.add(num);
             }
         }
         return numbers;
@@ -1293,11 +1316,7 @@ class Graph {
      * @return {number}
      */
     static findFirst(smiles, number) {
-        for (let index = 0; index < smiles.length; ++index) {
-            if (smiles[index] == number) {
-                return index;
-            }
-        }
+        return smiles.indexOf(number);
     }
 
     /**
@@ -1308,12 +1327,11 @@ class Graph {
      * @return {*}
      */
     static findSecond(smiles, from, number) {
-        for (let index = from + 1; index < smiles.length; ++index) {
-            if (smiles[index] == number) {
-                return index;
-            }
+        let result = smiles.indexOf(number, from);
+        if (result === -1) {
+            throw "Not Found";
         }
-        throw "Not Found";
+        return result;
     }
 
     static smilesNumbersAdd(vertex) {
@@ -1341,6 +1359,32 @@ class Graph {
     static getProperVertex(vertexId, sourceId, targetId) {
         if (vertexId === sourceId) return targetId;
         else return sourceId;
+    }
+
+    static repairNumbers(smiles) {
+        let numbers = Array.from(this.getNumbers(smiles));
+        numbers.sort(function (a, b) {
+            return b - a
+        });
+
+        let index = 1;
+        for (let number of numbers) {
+            if (index === number) {
+                continue;
+            }
+            let first = this.findFirst(smiles, number);
+            if (number > 9) {
+                smiles = smiles.slice(0, first - 1) + index + smiles.slice(first + number.toString().length);
+                let second = this.findSecond(smiles, first + 1, number);
+                smiles = smiles.slice(0, second - 1) + index + smiles.slice(second + number.toString().length);
+            } else {
+                smiles = smiles.slice(0, first) + index + smiles.slice(first + 1);
+                let second = this.findSecond(smiles, first + 1, number);
+                smiles = smiles.slice(0, second) + index + smiles.slice(second + 1);
+            }
+            index++;
+        }
+        return smiles;
     }
 
     /**
