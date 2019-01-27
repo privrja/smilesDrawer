@@ -6955,11 +6955,7 @@ var Graph = function () {
                 }
                 stackSmiles.push("]");
             } else {
-                if (vertex.value.isPartOfAromaticRing) {
-                    stackSmiles.push(vertex.value.element.toLowerCase());
-                } else {
-                    stackSmiles.push(vertex.value.element);
-                }
+                Graph.printVertexValue(stackSmiles, vertex);
             }
             stackSmiles.push(Graph.smilesNumbersAdd(vertex));
 
