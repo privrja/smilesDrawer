@@ -71,4 +71,13 @@ describe("smiles numbers", function () {
         expect(result).toEqual('N(C)C(CC(C)(C)C(C)CC(C)C(N)C=O)C=O');
     });
 
+    it("rightData 9", function () {
+        let result = Graph.removeUnnecessaryNumbers('N(C)C%15(CC(C)(C)C(C)CC(C)C(N)C=O)C%15=O');
+        expect(result).toEqual('N(C)C(CC(C)(C)C(C)CC(C)C(N)C=O)C=O');
+    });
+
+    it("righData 10", function () {
+        let result = Graph.removeUnnecessaryNumbers('C%21%10C(CC(=O)CC%10CC%31(C%31C)C%21)CC');
+        expect(result).toEqual('C%21%10C(CC(=O)CC%10CC(CC)C%21)CC');
+    });
 });
