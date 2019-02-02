@@ -80,4 +80,10 @@ describe("smiles numbers", function () {
         let result = Graph.removeUnnecessaryNumbers('C%21%10C(CC(=O)CC%10CC%31(C%31C)C%21)CC');
         expect(result).toEqual('C%21%10C(CC(=O)CC%10CC(CC)C%21)CC');
     });
+
+    it("righData", function () {
+        let result = Graph.removeUnnecessaryNumbers('CC(=CC(=O)N(CCCC1C(=O)NC(C(=O)N1)CCCN(C(=O)C=C(C)CCOC(=O)C(CCCN(C(=O)C=C(C)CCO)[O-])NC(=O)C)[O-])[O-])CCO');
+        expect(result).toEqual('CC(=CC(=O)N(CCCC1C(=O)NC(C(=O)N1)CCCN(C(=O)C=C(C)CCOC(=O)C(CCCN(C(=O)C=C(C)CCO)[O-])NC(=O)C)[O-])[O-])CCO');
+    });
+
 });

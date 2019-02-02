@@ -1358,27 +1358,31 @@ class Graph {
     }
 
     static repairNumbers(smiles) {
-        let numbers = Array.from(this.getNumbers(smiles));
-        numbers.sort(function (a, b) {
-            return b - a
-        });
+        try {
+            let numbers = Array.from(this.getNumbers(smiles));
+            numbers.sort(function (a, b) {
+                return b - a
+            });
 
-        let index = 1;
-        for (let number of numbers) {
-            if (index === number) {
-                continue;
+            let index = 1;
+            for (let number of numbers) {
+                if (index === number) {
+                    continue;
+                }
+                let first = this.findFirst(smiles, number);
+                if (number > 9) {
+                    smiles = smiles.slice(0, first - 1) + index + smiles.slice(first + number.toString().length);
+                    let second = this.findSecond(smiles, first + 1, number);
+                    smiles = smiles.slice(0, second - 1) + index + smiles.slice(second + number.toString().length);
+                } else {
+                    smiles = smiles.slice(0, first) + index + smiles.slice(first + 1);
+                    let second = this.findSecond(smiles, first + 1, number);
+                    smiles = smiles.slice(0, second) + index + smiles.slice(second + 1);
+                }
+                index++;
             }
-            let first = this.findFirst(smiles, number);
-            if (number > 9) {
-                smiles = smiles.slice(0, first - 1) + index + smiles.slice(first + number.toString().length);
-                let second = this.findSecond(smiles, first + 1, number);
-                smiles = smiles.slice(0, second - 1) + index + smiles.slice(second + number.toString().length);
-            } else {
-                smiles = smiles.slice(0, first) + index + smiles.slice(first + 1);
-                let second = this.findSecond(smiles, first + 1, number);
-                smiles = smiles.slice(0, second) + index + smiles.slice(second + 1);
-            }
-            index++;
+        } catch (e) {
+            return smiles;
         }
         return smiles;
     }

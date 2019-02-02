@@ -36,4 +36,9 @@ describe("smiles numbers", function () {
         expect(result).toEqual('C1CCC2CCCC2CCCC1');
     });
 
+    it("righData", function () {
+        let result = Graph.repairNumbers('CC(=CC(=O)N(CCCC1C(=O)NC(C(=O)N1)CCCN(C(=O)C=C(C)CCOC(=O)C(CCCN(C(=O)C=C(C)CCO)[O-])NC(=O)C)[O-])[O-])CCO');
+        expect(result).toEqual('CC(=CC(=O)N(CCCC1C(=O)NC(C(=O)N1)CCCN(C(=O)C=C(C)CCOC(=O)C(CCCN(C(=O)C=C(C)CCO)[O-])NC(=O)C)[O-])[O-])CCO');
+    });
+
 });

@@ -7311,50 +7311,53 @@ var Graph = function () {
     }, {
         key: 'repairNumbers',
         value: function repairNumbers(smiles) {
-            var numbers = Array.from(this.getNumbers(smiles));
-            numbers.sort(function (a, b) {
-                return b - a;
-            });
-
-            var index = 1;
-            var _iteratorNormalCompletion2 = true;
-            var _didIteratorError2 = false;
-            var _iteratorError2 = undefined;
-
             try {
-                for (var _iterator2 = numbers[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
-                    var number = _step2.value;
+                var numbers = Array.from(this.getNumbers(smiles));
+                numbers.sort(function (a, b) {
+                    return b - a;
+                });
 
-                    if (index === number) {
-                        continue;
-                    }
-                    var first = this.findFirst(smiles, number);
-                    if (number > 9) {
-                        smiles = smiles.slice(0, first - 1) + index + smiles.slice(first + number.toString().length);
-                        var second = this.findSecond(smiles, first + 1, number);
-                        smiles = smiles.slice(0, second - 1) + index + smiles.slice(second + number.toString().length);
-                    } else {
-                        smiles = smiles.slice(0, first) + index + smiles.slice(first + 1);
-                        var _second = this.findSecond(smiles, first + 1, number);
-                        smiles = smiles.slice(0, _second) + index + smiles.slice(_second + 1);
-                    }
-                    index++;
-                }
-            } catch (err) {
-                _didIteratorError2 = true;
-                _iteratorError2 = err;
-            } finally {
+                var index = 1;
+                var _iteratorNormalCompletion2 = true;
+                var _didIteratorError2 = false;
+                var _iteratorError2 = undefined;
+
                 try {
-                    if (!_iteratorNormalCompletion2 && _iterator2.return) {
-                        _iterator2.return();
+                    for (var _iterator2 = numbers[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
+                        var number = _step2.value;
+
+                        if (index === number) {
+                            continue;
+                        }
+                        var first = this.findFirst(smiles, number);
+                        if (number > 9) {
+                            smiles = smiles.slice(0, first - 1) + index + smiles.slice(first + number.toString().length);
+                            var second = this.findSecond(smiles, first + 1, number);
+                            smiles = smiles.slice(0, second - 1) + index + smiles.slice(second + number.toString().length);
+                        } else {
+                            smiles = smiles.slice(0, first) + index + smiles.slice(first + 1);
+                            var _second = this.findSecond(smiles, first + 1, number);
+                            smiles = smiles.slice(0, _second) + index + smiles.slice(_second + 1);
+                        }
+                        index++;
                     }
+                } catch (err) {
+                    _didIteratorError2 = true;
+                    _iteratorError2 = err;
                 } finally {
-                    if (_didIteratorError2) {
-                        throw _iteratorError2;
+                    try {
+                        if (!_iteratorNormalCompletion2 && _iterator2.return) {
+                            _iterator2.return();
+                        }
+                    } finally {
+                        if (_didIteratorError2) {
+                            throw _iteratorError2;
+                        }
                     }
                 }
+            } catch (e) {
+                return smiles;
             }
-
             return smiles;
         }
 
