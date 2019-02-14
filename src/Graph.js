@@ -7,6 +7,8 @@ const Edge = require('./Edge')
 const Ring = require('./Ring')
 const Atom = require('./Atom')
 const VertexState = require('./VertexState')
+const SmallGraph = require('./SmallGraph')
+const Node = require('./Node')
 
 /**
  * A class representing the molecular graph.
@@ -1050,7 +1052,6 @@ class Graph {
     /**
      * Build block of SMILES based on decay points
      * DFS pass through graph
-     * if there is a ring need second DFS pass for right SMILES notation
      * but the numbers are already setup in vertex.value.ringbonds array so no need to second pass of dfs
      */
     buildSmiles() {
@@ -1062,7 +1063,19 @@ class Graph {
         else {
             this.dfsBuildSmilesStart(smiles);
         }
+        this.dfsSmilesInitialization();
+        console.log(this);
+        this.dfsSmallStart();
+        console.log(this._smallGraphs);
         return smiles;
+    }
+
+
+    dfsSmallStart() {
+        this._smallGraph = new SmallGraph();
+        this._startingVertexes.forEach(e => {
+            this.dfsSmall(e);
+        });
     }
 
     /**
@@ -1081,10 +1094,22 @@ class Graph {
      * @param {Array} smiles output param, array of SMILES blocks (string)
      */
     dfsBuildSmilesStart(smiles) {
+        this._cnt = 0;
+        this._markComponent = false;
+        this._startingVertexes = [];
         for (let i = 0; i < this.decays.length; ++i) {
             let edge = this.edges[this.decays[i]];
             this.startDfs(this.vertices[edge.sourceId], smiles);
+            this.markingComponents();
             this.startDfs(this.vertices[edge.targetId], smiles);
+            this.markingComponents();
+        }
+    }
+
+    markingComponents() {
+        if (this._markComponent) {
+            this._cnt++;
+            this._markComponent = false;
         }
     }
 
@@ -1144,7 +1169,11 @@ class Graph {
         }
         stackSmiles.push(Graph.smilesNumbersAdd(vertex));
 
-
+        if (!this._markComponent) {
+            this._startingVertexes.push(vertex);
+        }
+        vertex.component = this._cnt;
+        this._markComponent = true;
         vertex.vertexState = VertexState.VALUES.OPEN;
         for (let i = 0; i < vertex.edges.length; ++i) {
             let edge = this.edges[vertex.edges[i]];
@@ -1161,6 +1190,25 @@ class Graph {
             let nextVertex = Graph.getProperVertex(vertex.id, edge.sourceId, edge.targetId);
             this.dfsSmiles(this.vertices[nextVertex], stackSmiles);
             Graph.checkStack(stackSmiles);
+        }
+        vertex.vertexState = VertexState.VALUES.CLOSED;
+    }
+
+    dfsSmall(vertex) {
+        if (vertex.vertexState !== VertexState.VALUES.NOT_FOUND) {
+            return;
+        }
+
+        vertex.vertexState = VertexState.VALUES.OPEN;
+        for (let i = 0; i < vertex.edges.length; ++i) {
+            let edge = this.edges[vertex.edges[i]];
+            if (edge.isDecay) {
+
+
+                continue;
+            }
+            let nextVertex = Graph.getProperVertex(vertex.id, edge.sourceId, edge.targetId);
+            this.dfsSmall(this.vertices[nextVertex]);
         }
         vertex.vertexState = VertexState.VALUES.CLOSED;
     }
@@ -1201,6 +1249,7 @@ class Graph {
      * @param {String} smiles
      * @param {Number} first
      * @param {Number} second
+     * @param {Number} number
      * @return {*}
      */
     static removeNumbers(smiles, first, second, number) {
@@ -1268,6 +1317,7 @@ class Graph {
      * @param smiles
      * @param first
      * @param second
+     * @param number
      * @return {string}
      */
     static removeRangeLast(smiles, first, second, number) {

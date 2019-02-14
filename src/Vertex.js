@@ -51,6 +51,7 @@ class Vertex {
     this.neighbouringElements = Array();
     this.forcePositioned = false;
     this.vertexState = VertexState.VALUES.NOT_FOUND;
+    this.component = -1;
   }
 
   /**
