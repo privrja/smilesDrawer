@@ -1213,6 +1213,7 @@ class Graph {
         vertex.vertexState = VertexState.VALUES.CLOSED;
     }
 
+
     static printVertexValue(stackSmiles, vertex) {
         if (vertex.value.isPartOfAromaticRing) {
             stackSmiles.push(vertex.value.element.toLowerCase());
