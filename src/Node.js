@@ -7,6 +7,7 @@ class Node {
     }
 
     addNeighbour(neighbour) {
+        console.log(neighbour);
         this.neighbours.push(neighbour);
     }
 

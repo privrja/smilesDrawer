@@ -1066,7 +1066,7 @@ class Graph {
         this.dfsSmilesInitialization();
         console.log(this);
         this.dfsSmallStart();
-        console.log(this._smallGraphs);
+        console.log(this._smallGraph);
         return smiles;
     }
 
@@ -1074,6 +1074,7 @@ class Graph {
     dfsSmallStart() {
         this._smallGraph = new SmallGraph();
         this._startingVertexes.forEach(e => {
+            this._smallGraph.addVertex(new Node());
             this.dfsSmall(e);
         });
     }
@@ -1203,8 +1204,7 @@ class Graph {
         for (let i = 0; i < vertex.edges.length; ++i) {
             let edge = this.edges[vertex.edges[i]];
             if (edge.isDecay) {
-
-
+                this._smallGraph.addNeighbour(vertex.component, this.vertices[Graph.getProperVertex(vertex.id, edge.sourceId, edge.targetId)].component);
                 continue;
             }
             let nextVertex = Graph.getProperVertex(vertex.id, edge.sourceId, edge.targetId);
