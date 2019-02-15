@@ -71,7 +71,7 @@ class SmallGraph {
             this.dfsSequence(this.getSourceNode(), false, -1);
         }
         if (this.sequence.charAt(this.sequence.length - 1) === '-') {
-            this.sequence.substr(0, this.sequence.length - 1);
+            this.sequence = this.sequence.substr(0, this.sequence.length - 1);
         }
         return this.sequence;
     }
