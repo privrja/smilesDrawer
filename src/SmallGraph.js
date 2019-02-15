@@ -6,7 +6,8 @@ class SmallGraph {
 
     constructor() {
         this._nodes = [];
-        this.isOneCyclic = false;
+        this.isCyclic = false;
+        this._nodeOnRing = null;
     }
 
     addVertex(node) {
@@ -27,28 +28,29 @@ class SmallGraph {
         }
         this.dfsInitialization();
         this.isCyclic = false;
-        this.ringsMoreThanOne = false;
-        this.dfsCyclic(this._nodes[0]);
-        this.isOneCyclic =  !this.ringsMoreThanOne && this.isCyclic;
-        return this.isOneCyclic;
+        console.log("before iscyclic");
+        console.log(this);
+        this.dfsCyclic(this._nodes[0], -1);
     }
 
-    dfsCyclic(vertex) {
-        if (vertex.vertexState !== VertexState.VALUES.OPEN) {
-            if (this.isCyclic) {
-                this.ringsMoreThanOne = true;
-            } else {
-                this.isCyclic = true;
-            }
+    dfsCyclic(vertex, vertexFromId) {
+        if (vertex.vertexState === VertexState.VALUES.OPEN) {
+            this.isCyclic = true;
+            this._nodeOnRing = vertex;
         }
 
         if (vertex.vertexState !== VertexState.VALUES.NOT_FOUND) {
             return;
         }
 
+        console.log(vertex);
         vertex.vertexState = VertexState.VALUES.OPEN;
         for (let i = 0; i < vertex.neighbours.length; ++i) {
-            this.dfsCyclic(this._nodes[i]);
+            console.log("nighbours");
+            console.log(vertex.neighbours[i]);
+            if (vertexFromId !== vertex.neighbours[i]) {
+                this.dfsCyclic(this._nodes[vertex.neighbours[i]], vertex.id);
+            }
         }
         vertex.vertexState = VertexState.VALUES.CLOSED;
     }
@@ -59,11 +61,16 @@ class SmallGraph {
         }
         this.dfsInitialization();
         this.sequence = "";
-        this.dfsSequence(this._nodes[0]);
+        if (this.isCyclic) {
+            this.dfsSequenceCyclic(this._nodeOnRing);
+        } else {
+            // TODO zdroj
+            this.dfsSequence(this._nodes[0], false);
+        }
         return this.sequence;
     }
 
-    dfsSequence(vertex) {
+    dfsSequenceCyclic(vertex) {
         if (vertex.vertexState !== VertexState.VALUES.NOT_FOUND) {
             return;
         }
@@ -71,7 +78,34 @@ class SmallGraph {
         vertex.vertexState = VertexState.VALUES.OPEN;
         for (let i = 0; i < vertex.neighbours.length; ++i) {
 
-            this.dfsSequence(this._nodes[i]);
+
+            this.dfsSequenceCyclic(this._nodes[vertex.neighbours[i]]);
+        }
+        vertex.vertexState = VertexState.VALUES.CLOSED;
+    }
+
+    dfsSequence(vertex, branch) {
+        if (vertex.vertexState !== VertexState.VALUES.NOT_FOUND) {
+            return;
+        }
+
+        vertex.vertexState = VertexState.VALUES.OPEN;
+        if (vertex.neighbours.length > 1) {
+            this.sequence += "\\([" + vertex.id + "]";
+            branch = true;
+        } else {
+            this.sequence += "[" + vertex.id + "]";
+        }
+        for (let i = 0; i < vertex.neighbours.length; ++i) {
+            if (branch && i === 0) {
+                this.sequence += "-";
+            }
+
+            this.dfsSequence(this._nodes[vertex.neighbours[i]], branch);
+            if (branch && i === 0) {
+                this.sequence += "\\)";
+                branch = false;
+            }
         }
         vertex.vertexState = VertexState.VALUES.CLOSED;
     }

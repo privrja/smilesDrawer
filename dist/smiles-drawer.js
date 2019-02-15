@@ -6870,18 +6870,22 @@ var Graph = function () {
             console.log(this);
             this.dfsSmallStart();
             console.log(this._smallGraph);
+            this._smallGraph.oneCyclic();
+            console.log(this._smallGraph);
+            // let sequence = this._smallGraph.dfsSequenceStart();
+            // console.log(sequence);
+
+
             return smiles;
         }
     }, {
         key: 'dfsSmallStart',
         value: function dfsSmallStart() {
-            var _this = this;
-
             this._smallGraph = new SmallGraph();
-            this._startingVertexes.forEach(function (e) {
-                _this._smallGraph.addVertex(new Node());
-                _this.dfsSmall(e);
-            });
+            for (var index = 0; index < this._startingVertexes.length; ++index) {
+                this._smallGraph.addVertex(new Node(this._startingVertexes[index].component));
+                this.dfsSmall(this._startingVertexes[index]);
+            }
         }
 
         /**
@@ -8160,12 +8164,15 @@ var _createClass = function () { function defineProperties(target, props) { for 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 //@ts-check
+var VertexState = require("./VertexState");
 
 var Node = function () {
-    function Node() {
+    function Node(id) {
         _classCallCheck(this, Node);
 
+        this.id = id;
         this.neighbours = [];
+        this.vertexState = VertexState.VALUES.NOT_FOUND;
     }
 
     _createClass(Node, [{
@@ -8181,7 +8188,7 @@ var Node = function () {
 
 module.exports = Node;
 
-},{}],12:[function(require,module,exports){
+},{"./VertexState":19}],12:[function(require,module,exports){
 "use strict";
 
 // WHEN REPLACING, CHECK FOR:
@@ -11136,12 +11143,15 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 //@ts-check
 var Node = require('./Node');
+var VertexState = require('./VertexState');
 
 var SmallGraph = function () {
     function SmallGraph() {
         _classCallCheck(this, SmallGraph);
 
         this._nodes = [];
+        this.isCyclic = false;
+        this._nodeOnRing = null;
     }
 
     _createClass(SmallGraph, [{
@@ -11154,6 +11164,105 @@ var SmallGraph = function () {
         value: function addNeighbour(nodeId, neighbour) {
             this._nodes[nodeId].addNeighbour(neighbour);
         }
+    }, {
+        key: 'dfsInitialization',
+        value: function dfsInitialization() {
+            this._nodes.forEach(function (e) {
+                return e.vertexState = VertexState.VALUES.NOT_FOUND;
+            });
+        }
+    }, {
+        key: 'oneCyclic',
+        value: function oneCyclic() {
+            if (this._nodes.length === 0) {
+                return false;
+            }
+            this.dfsInitialization();
+            this.isCyclic = false;
+            console.log("before iscyclic");
+            console.log(this);
+            this.dfsCyclic(this._nodes[0], -1);
+        }
+    }, {
+        key: 'dfsCyclic',
+        value: function dfsCyclic(vertex, vertexFromId) {
+            if (vertex.vertexState === VertexState.VALUES.OPEN) {
+                this.isCyclic = true;
+                this._nodeOnRing = vertex;
+            }
+
+            if (vertex.vertexState !== VertexState.VALUES.NOT_FOUND) {
+                return;
+            }
+
+            console.log(vertex);
+            vertex.vertexState = VertexState.VALUES.OPEN;
+            for (var i = 0; i < vertex.neighbours.length; ++i) {
+                console.log("nighbours");
+                console.log(vertex.neighbours[i]);
+                if (vertexFromId !== vertex.neighbours[i]) {
+                    this.dfsCyclic(this._nodes[vertex.neighbours[i]], vertex.id);
+                }
+            }
+            vertex.vertexState = VertexState.VALUES.CLOSED;
+        }
+    }, {
+        key: 'dfsSequenceStart',
+        value: function dfsSequenceStart() {
+            if (this._nodes.length === 0) {
+                return "";
+            }
+            this.dfsInitialization();
+            this.sequence = "";
+            if (this.isCyclic) {
+                this.dfsSequenceCyclic(this._nodeOnRing);
+            } else {
+                // TODO zdroj
+                this.dfsSequence(this._nodes[0], false);
+            }
+            return this.sequence;
+        }
+    }, {
+        key: 'dfsSequenceCyclic',
+        value: function dfsSequenceCyclic(vertex) {
+            if (vertex.vertexState !== VertexState.VALUES.NOT_FOUND) {
+                return;
+            }
+
+            vertex.vertexState = VertexState.VALUES.OPEN;
+            for (var i = 0; i < vertex.neighbours.length; ++i) {
+
+                this.dfsSequenceCyclic(this._nodes[vertex.neighbours[i]]);
+            }
+            vertex.vertexState = VertexState.VALUES.CLOSED;
+        }
+    }, {
+        key: 'dfsSequence',
+        value: function dfsSequence(vertex, branch) {
+            if (vertex.vertexState !== VertexState.VALUES.NOT_FOUND) {
+                return;
+            }
+
+            vertex.vertexState = VertexState.VALUES.OPEN;
+            if (vertex.neighbours.length > 1) {
+                this.sequence += "\\([" + vertex.id + "]";
+                branch = true;
+            } else {
+                this.sequence += "[" + vertex.id + "]";
+            }
+            for (var i = 0; i < vertex.neighbours.length; ++i) {
+                if (branch && i === 0) {
+                    this.sequence += "-";
+                }
+
+                this.dfsSequence(this._nodes[vertex.neighbours[i]], branch);
+                if (branch && i === 0) {
+                    this.sequence += "\\)";
+                    branch = false;
+                }
+            }
+            vertex.vertexState = VertexState.VALUES.CLOSED;
+        }
     }]);
 
     return SmallGraph;
@@ -11161,7 +11270,7 @@ var SmallGraph = function () {
 
 module.exports = SmallGraph;
 
-},{"./Node":11}],17:[function(require,module,exports){
+},{"./Node":11,"./VertexState":19}],17:[function(require,module,exports){
 'use strict';
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();

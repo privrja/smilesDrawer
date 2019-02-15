@@ -1063,24 +1063,24 @@ class Graph {
             this.dfsBuildSmilesStart(smiles);
         }
         this.dfsSmilesInitialization();
-        // console.log(this);
+        console.log(this);
         this.dfsSmallStart();
-        // console.log(this._smallGraph);
+        console.log(this._smallGraph);
         this._smallGraph.oneCyclic();
-        let sequence = this._smallGraph.dfsSequenceStart();
+        console.log(this._smallGraph);
+        // let sequence = this._smallGraph.dfsSequenceStart();
         // console.log(sequence);
 
 
         return smiles;
     }
 
-
     dfsSmallStart() {
         this._smallGraph = new SmallGraph();
-        this._startingVertexes.forEach(e => {
-            this._smallGraph.addVertex(new Node());
-            this.dfsSmall(e);
-        });
+        for (let index = 0; index < this._startingVertexes.length; ++index) {
+            this._smallGraph.addVertex(new Node(this._startingVertexes[index].component));
+            this.dfsSmall(this._startingVertexes[index]);
+        }
     }
 
     /**

@@ -3,7 +3,8 @@ const VertexState = require("./VertexState")
 
 class Node {
 
-    constructor() {
+    constructor(id) {
+        this.id = id;
         this.neighbours = [];
         this.vertexState = VertexState.VALUES.NOT_FOUND;
     }
