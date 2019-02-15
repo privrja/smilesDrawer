@@ -53,6 +53,16 @@ class SmallGraph {
         vertex.vertexState = VertexState.VALUES.CLOSED;
     }
 
+    dfsSequenceStart() {
+        if (this._nodes.length === 0) {
+            return "";
+        }
+        this.dfsInitialization();
+        this.sequence = "";
+        this.dfsSequence(this._nodes[0]);
+        return this.sequence;
+    }
+
     dfsSequence(vertex) {
         if (vertex.vertexState !== VertexState.VALUES.NOT_FOUND) {
             return;
