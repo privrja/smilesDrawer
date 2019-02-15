@@ -6867,14 +6867,10 @@ var Graph = function () {
                 this.dfsBuildSmilesStart(smiles);
             }
             this.dfsSmilesInitialization();
-            console.log(this);
             this.dfsSmallStart();
-            console.log(this._smallGraph);
             this._smallGraph.oneCyclic();
-            console.log(this._smallGraph);
-            // let sequence = this._smallGraph.dfsSequenceStart();
-            // console.log(sequence);
-
+            var sequence = this._smallGraph.dfsSequenceStart();
+            console.log(sequence);
 
             return smiles;
         }
@@ -8178,7 +8174,6 @@ var Node = function () {
     _createClass(Node, [{
         key: "addNeighbour",
         value: function addNeighbour(neighbour) {
-            console.log(neighbour);
             this.neighbours.push(neighbour);
         }
     }]);
@@ -11172,6 +11167,16 @@ var SmallGraph = function () {
             });
         }
     }, {
+        key: 'getSourceNode',
+        value: function getSourceNode() {
+            for (var index = 0; index < this._nodes.length; ++index) {
+                if (this._nodes[index].neighbours.length === 1) {
+                    return this._nodes[index];
+                }
+            }
+            return null;
+        }
+    }, {
         key: 'oneCyclic',
         value: function oneCyclic() {
             if (this._nodes.length === 0) {
@@ -11179,8 +11184,6 @@ var SmallGraph = function () {
             }
             this.dfsInitialization();
             this.isCyclic = false;
-            console.log("before iscyclic");
-            console.log(this);
             this.dfsCyclic(this._nodes[0], -1);
         }
     }, {
@@ -11195,11 +11198,8 @@ var SmallGraph = function () {
                 return;
             }
 
-            console.log(vertex);
             vertex.vertexState = VertexState.VALUES.OPEN;
             for (var i = 0; i < vertex.neighbours.length; ++i) {
-                console.log("nighbours");
-                console.log(vertex.neighbours[i]);
                 if (vertexFromId !== vertex.neighbours[i]) {
                     this.dfsCyclic(this._nodes[vertex.neighbours[i]], vertex.id);
                 }
@@ -11217,8 +11217,10 @@ var SmallGraph = function () {
             if (this.isCyclic) {
                 this.dfsSequenceCyclic(this._nodeOnRing);
             } else {
-                // TODO zdroj
-                this.dfsSequence(this._nodes[0], false);
+                this.dfsSequence(this.getSourceNode(), false, -1);
+            }
+            if (this.sequence.charAt(this.sequence.length - 1) === ']') {
+                this.sequence.substr(0, this.sequence.length - 1);
             }
             return this.sequence;
         }
@@ -11238,24 +11240,27 @@ var SmallGraph = function () {
         }
     }, {
         key: 'dfsSequence',
-        value: function dfsSequence(vertex, branch) {
+        value: function dfsSequence(vertex, branch, vertexFromId) {
             if (vertex.vertexState !== VertexState.VALUES.NOT_FOUND) {
                 return;
             }
 
             vertex.vertexState = VertexState.VALUES.OPEN;
-            if (vertex.neighbours.length > 1) {
+            if (vertex.neighbours.length > 2) {
                 this.sequence += "\\([" + vertex.id + "]";
+                this.isBranched = true;
                 branch = true;
             } else {
                 this.sequence += "[" + vertex.id + "]";
             }
             for (var i = 0; i < vertex.neighbours.length; ++i) {
-                if (branch && i === 0) {
+                if (this.sequence.charAt(this.sequence.length - 1) === ']') {
                     this.sequence += "-";
                 }
 
-                this.dfsSequence(this._nodes[vertex.neighbours[i]], branch);
+                if (vertexFromId !== vertex.neighbours[i]) {
+                    this.dfsSequence(this._nodes[vertex.neighbours[i]], branch, vertex.id);
+                }
                 if (branch && i === 0) {
                     this.sequence += "\\)";
                     branch = false;

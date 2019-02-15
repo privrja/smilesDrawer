@@ -1065,9 +1065,8 @@ class Graph {
         this.dfsSmilesInitialization();
         this.dfsSmallStart();
         this._smallGraph.oneCyclic();
-        // let sequence = this._smallGraph.dfsSequenceStart();
-        // console.log(sequence);
-
+        let sequence = this._smallGraph.dfsSequenceStart();
+        console.log(sequence);
 
         return smiles;
     }
