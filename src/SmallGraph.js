@@ -28,8 +28,6 @@ class SmallGraph {
         }
         this.dfsInitialization();
         this.isCyclic = false;
-        console.log("before iscyclic");
-        console.log(this);
         this.dfsCyclic(this._nodes[0], -1);
     }
 
@@ -43,11 +41,8 @@ class SmallGraph {
             return;
         }
 
-        console.log(vertex);
         vertex.vertexState = VertexState.VALUES.OPEN;
         for (let i = 0; i < vertex.neighbours.length; ++i) {
-            console.log("nighbours");
-            console.log(vertex.neighbours[i]);
             if (vertexFromId !== vertex.neighbours[i]) {
                 this.dfsCyclic(this._nodes[vertex.neighbours[i]], vertex.id);
             }

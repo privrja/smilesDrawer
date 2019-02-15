@@ -1063,11 +1063,8 @@ class Graph {
             this.dfsBuildSmilesStart(smiles);
         }
         this.dfsSmilesInitialization();
-        console.log(this);
         this.dfsSmallStart();
-        console.log(this._smallGraph);
         this._smallGraph.oneCyclic();
-        console.log(this._smallGraph);
         // let sequence = this._smallGraph.dfsSequenceStart();
         // console.log(sequence);
 
