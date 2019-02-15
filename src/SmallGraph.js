@@ -6,6 +6,7 @@ class SmallGraph {
 
     constructor() {
         this._nodes = [];
+        this.isOneCyclic = false;
     }
 
     addVertex(node) {
@@ -20,7 +21,7 @@ class SmallGraph {
         this._nodes.forEach(e => e.vertexState = VertexState.VALUES.NOT_FOUND);
     }
 
-    isOneCyclic() {
+    oneCyclic() {
         if (this._nodes.length === 0) {
             return false;
         }
@@ -28,7 +29,8 @@ class SmallGraph {
         this.isCyclic = false;
         this.ringsMoreThanOne = false;
         this.dfsCyclic(this._nodes[0]);
-        return !this.ringsMoreThanOne && this.isCyclic;
+        this.isOneCyclic =  !this.ringsMoreThanOne && this.isCyclic;
+        return this.isOneCyclic;
     }
 
     dfsCyclic(vertex) {
@@ -45,14 +47,21 @@ class SmallGraph {
         }
 
         vertex.vertexState = VertexState.VALUES.OPEN;
-        for (let i = 0; i < vertex.edges.length; ++i) {
-            let edge = this.edges[vertex.edges[i]];
-            if (edge.isDecay) {
-                this._smallGraph.addNeighbour(vertex.component, this.vertices[Graph.getProperVertex(vertex.id, edge.sourceId, edge.targetId)].component);
-                continue;
-            }
-            let nextVertex = Graph.getProperVertex(vertex.id, edge.sourceId, edge.targetId);
-            this.dfsSmall(this.vertices[nextVertex]);
+        for (let i = 0; i < vertex.neighbours.length; ++i) {
+            this.dfsCyclic(this._nodes[i]);
+        }
+        vertex.vertexState = VertexState.VALUES.CLOSED;
+    }
+
+    dfsSequence(vertex) {
+        if (vertex.vertexState !== VertexState.VALUES.NOT_FOUND) {
+            return;
+        }
+
+        vertex.vertexState = VertexState.VALUES.OPEN;
+        for (let i = 0; i < vertex.neighbours.length; ++i) {
+
+            this.dfsSequence(this._nodes[i]);
         }
         vertex.vertexState = VertexState.VALUES.CLOSED;
     }

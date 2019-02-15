@@ -1059,14 +1059,17 @@ class Graph {
         this.dfsSmilesInitialization();
         if (this.decays.length === 0) {
             this.startDfs(this.vertices[0], smiles);
-        }
-        else {
+        } else {
             this.dfsBuildSmilesStart(smiles);
         }
         this.dfsSmilesInitialization();
         console.log(this);
         this.dfsSmallStart();
         console.log(this._smallGraph);
+        this._smallGraph.isOneCyclic();
+
+
+
         return smiles;
     }
 
