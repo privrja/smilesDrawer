@@ -76,6 +76,34 @@ class SmallGraph {
         return this.sequence;
     }
 
+    findRing(vertex) {
+        let queue = [];
+        let firstPath = [start];
+        let firstPass = true;
+        queue.push(firstPath);
+        while(!(queue.length === 0)) {
+            let path = queue.pop();
+            let last = path[path.length - 1];
+            let node = this._nodes[last];
+            if (last === start && !firstPass) {
+                path.forEach(v => this._nodes[v].inRing = true);
+                continue;
+            }
+            node.neighbours.forEach(
+                neighbour => {
+                    if (path.some(e => e === neighbour)) {
+                        let newPath = [...path];
+                        newPath.push(neighbour);
+                        queue.push(newPath);
+                    }
+                }
+            );
+            firstPass = false;
+        }
+
+
+    }
+
     dfsSequenceCyclic(vertex) {
         if (vertex.vertexState !== VertexState.VALUES.NOT_FOUND) {
             return;
