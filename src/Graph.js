@@ -7,6 +7,9 @@ const Edge = require('./Edge')
 const Ring = require('./Ring')
 const Atom = require('./Atom')
 const VertexState = require('./VertexState')
+const SmallGraph = require('./SmallGraph')
+const Node = require('./Node')
+const SequenceType = require('./SequenceType')
 
 /**
  * A class representing the molecular graph.
@@ -30,12 +33,12 @@ class Graph {
         this.decays = Array();
         this.vertexIdsToEdgeId = {};
         this.isomeric = isomeric;
+        this._startingVertexes = [];
 
         // Used for the bridge detection algorithm
         this._time = 0;
         this._init(parseTree);
         this.findDecayPoints();
-        // console.log(this);
     }
 
     /**
@@ -1050,7 +1053,6 @@ class Graph {
     /**
      * Build block of SMILES based on decay points
      * DFS pass through graph
-     * if there is a ring need second DFS pass for right SMILES notation
      * but the numbers are already setup in vertex.value.ringbonds array so no need to second pass of dfs
      */
     buildSmiles() {
@@ -1058,11 +1060,23 @@ class Graph {
         this.dfsSmilesInitialization();
         if (this.decays.length === 0) {
             this.startDfs(this.vertices[0], smiles);
-        }
-        else {
+            return [smiles, '[0]', SequenceType.VALUES.OTHER];
+        } else {
             this.dfsBuildSmilesStart(smiles);
         }
-        return smiles;
+        this.dfsSmilesInitialization();
+        this.dfsSmallStart();
+        this._smallGraph.oneCyclic();
+        this._smallGraph.dfsSequenceStart();
+        return [smiles, this._smallGraph.sequence, this._smallGraph.sequenceType];
+    }
+
+    dfsSmallStart() {
+        this._smallGraph = new SmallGraph();
+        for (let index = 0; index < this._startingVertexes.length; ++index) {
+            this._smallGraph.addVertex(new Node(this._startingVertexes[index].component));
+            this.dfsSmall(this._startingVertexes[index]);
+        }
     }
 
     /**
@@ -1081,10 +1095,22 @@ class Graph {
      * @param {Array} smiles output param, array of SMILES blocks (string)
      */
     dfsBuildSmilesStart(smiles) {
+        this._cnt = 0;
+        this._markComponent = false;
+        this._startingVertexes = [];
         for (let i = 0; i < this.decays.length; ++i) {
             let edge = this.edges[this.decays[i]];
             this.startDfs(this.vertices[edge.sourceId], smiles);
+            this.markingComponents();
             this.startDfs(this.vertices[edge.targetId], smiles);
+            this.markingComponents();
+        }
+    }
+
+    markingComponents() {
+        if (this._markComponent) {
+            this._cnt++;
+            this._markComponent = false;
         }
     }
 
@@ -1144,7 +1170,11 @@ class Graph {
         }
         stackSmiles.push(Graph.smilesNumbersAdd(vertex));
 
-
+        if (!this._markComponent) {
+            this._startingVertexes.push(vertex);
+        }
+        vertex.component = this._cnt;
+        this._markComponent = true;
         vertex.vertexState = VertexState.VALUES.OPEN;
         for (let i = 0; i < vertex.edges.length; ++i) {
             let edge = this.edges[vertex.edges[i]];
@@ -1164,6 +1194,25 @@ class Graph {
         }
         vertex.vertexState = VertexState.VALUES.CLOSED;
     }
+
+    dfsSmall(vertex) {
+        if (vertex.vertexState !== VertexState.VALUES.NOT_FOUND) {
+            return;
+        }
+
+        vertex.vertexState = VertexState.VALUES.OPEN;
+        for (let i = 0; i < vertex.edges.length; ++i) {
+            let edge = this.edges[vertex.edges[i]];
+            if (edge.isDecay) {
+                this._smallGraph.addNeighbour(vertex.component, this.vertices[Graph.getProperVertex(vertex.id, edge.sourceId, edge.targetId)].component);
+                continue;
+            }
+            let nextVertex = Graph.getProperVertex(vertex.id, edge.sourceId, edge.targetId);
+            this.dfsSmall(this.vertices[nextVertex]);
+        }
+        vertex.vertexState = VertexState.VALUES.CLOSED;
+    }
+
 
     static printVertexValue(stackSmiles, vertex) {
         if (vertex.value.isPartOfAromaticRing) {
@@ -1201,6 +1250,7 @@ class Graph {
      * @param {String} smiles
      * @param {Number} first
      * @param {Number} second
+     * @param {Number} number
      * @return {*}
      */
     static removeNumbers(smiles, first, second, number) {
@@ -1268,6 +1318,7 @@ class Graph {
      * @param smiles
      * @param first
      * @param second
+     * @param number
      * @return {string}
      */
     static removeRangeLast(smiles, first, second, number) {
@@ -1358,27 +1409,31 @@ class Graph {
     }
 
     static repairNumbers(smiles) {
-        let numbers = Array.from(this.getNumbers(smiles));
-        numbers.sort(function (a, b) {
-            return b - a
-        });
+        try {
+            let numbers = Array.from(this.getNumbers(smiles));
+            numbers.sort(function (a, b) {
+                return b - a
+            });
 
-        let index = 1;
-        for (let number of numbers) {
-            if (index === number) {
-                continue;
+            let index = 1;
+            for (let number of numbers) {
+                if (index === number) {
+                    continue;
+                }
+                let first = this.findFirst(smiles, number);
+                if (number > 9) {
+                    smiles = smiles.slice(0, first - 1) + index + smiles.slice(first + number.toString().length);
+                    let second = this.findSecond(smiles, first + 1, number);
+                    smiles = smiles.slice(0, second - 1) + index + smiles.slice(second + number.toString().length);
+                } else {
+                    smiles = smiles.slice(0, first) + index + smiles.slice(first + 1);
+                    let second = this.findSecond(smiles, first + 1, number);
+                    smiles = smiles.slice(0, second) + index + smiles.slice(second + 1);
+                }
+                index++;
             }
-            let first = this.findFirst(smiles, number);
-            if (number > 9) {
-                smiles = smiles.slice(0, first - 1) + index + smiles.slice(first + number.toString().length);
-                let second = this.findSecond(smiles, first + 1, number);
-                smiles = smiles.slice(0, second - 1) + index + smiles.slice(second + number.toString().length);
-            } else {
-                smiles = smiles.slice(0, first) + index + smiles.slice(first + 1);
-                let second = this.findSecond(smiles, first + 1, number);
-                smiles = smiles.slice(0, second) + index + smiles.slice(second + 1);
-            }
-            index++;
+        } catch (e) {
+            return smiles;
         }
         return smiles;
     }

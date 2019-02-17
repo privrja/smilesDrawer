@@ -132,7 +132,7 @@ if (!Array.prototype.fill) {
 
 module.exports = SmilesDrawer;
 
-},{"./src/Drawer":6,"./src/Parser":11}],2:[function(require,module,exports){
+},{"./src/Drawer":6,"./src/Parser":12}],2:[function(require,module,exports){
 'use strict';
 
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
@@ -1190,7 +1190,7 @@ var Atom = function () {
 
 module.exports = Atom;
 
-},{"./ArrayHelper":2,"./Ring":12,"./Vertex":16}],4:[function(require,module,exports){
+},{"./ArrayHelper":2,"./Ring":13,"./Vertex":19}],4:[function(require,module,exports){
 'use strict';
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
@@ -2151,7 +2151,7 @@ var CanvasWrapper = function () {
 
 module.exports = CanvasWrapper;
 
-},{"./Line":9,"./MathHelper":10,"./Ring":12,"./Vector2":15,"./Vertex":16}],5:[function(require,module,exports){
+},{"./Line":9,"./MathHelper":10,"./Ring":13,"./Vector2":18,"./Vertex":19}],5:[function(require,module,exports){
 "use strict";
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
@@ -5646,7 +5646,7 @@ var Drawer = function () {
 
 module.exports = Drawer;
 
-},{"./ArrayHelper":2,"./Atom":3,"./CanvasWrapper":4,"./Edge":7,"./Graph":8,"./Line":9,"./MathHelper":10,"./Ring":12,"./RingConnection":13,"./SSSR":14,"./Vector2":15,"./Vertex":16}],7:[function(require,module,exports){
+},{"./ArrayHelper":2,"./Atom":3,"./CanvasWrapper":4,"./Edge":7,"./Graph":8,"./Line":9,"./MathHelper":10,"./Ring":13,"./RingConnection":14,"./SSSR":15,"./Vector2":18,"./Vertex":19}],7:[function(require,module,exports){
 'use strict';
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
@@ -5758,6 +5758,9 @@ var Edge = require('./Edge');
 var Ring = require('./Ring');
 var Atom = require('./Atom');
 var VertexState = require('./VertexState');
+var SmallGraph = require('./SmallGraph');
+var Node = require('./Node');
+var SequenceType = require('./SequenceType');
 
 /**
  * A class representing the molecular graph.
@@ -5786,12 +5789,12 @@ var Graph = function () {
         this.decays = Array();
         this.vertexIdsToEdgeId = {};
         this.isomeric = isomeric;
+        this._startingVertexes = [];
 
         // Used for the bridge detection algorithm
         this._time = 0;
         this._init(parseTree);
         this.findDecayPoints();
-        // console.log(this);
     }
 
     /**
@@ -6851,7 +6854,6 @@ var Graph = function () {
         /**
          * Build block of SMILES based on decay points
          * DFS pass through graph
-         * if there is a ring need second DFS pass for right SMILES notation
          * but the numbers are already setup in vertex.value.ringbonds array so no need to second pass of dfs
          */
 
@@ -6862,10 +6864,24 @@ var Graph = function () {
             this.dfsSmilesInitialization();
             if (this.decays.length === 0) {
                 this.startDfs(this.vertices[0], smiles);
+                return [smiles, '[0]', SequenceType.VALUES.OTHER];
             } else {
                 this.dfsBuildSmilesStart(smiles);
             }
-            return smiles;
+            this.dfsSmilesInitialization();
+            this.dfsSmallStart();
+            this._smallGraph.oneCyclic();
+            this._smallGraph.dfsSequenceStart();
+            return [smiles, this._smallGraph.sequence, this._smallGraph.sequenceType];
+        }
+    }, {
+        key: 'dfsSmallStart',
+        value: function dfsSmallStart() {
+            this._smallGraph = new SmallGraph();
+            for (var index = 0; index < this._startingVertexes.length; ++index) {
+                this._smallGraph.addVertex(new Node(this._startingVertexes[index].component));
+                this.dfsSmall(this._startingVertexes[index]);
+            }
         }
 
         /**
@@ -6890,10 +6906,23 @@ var Graph = function () {
     }, {
         key: 'dfsBuildSmilesStart',
         value: function dfsBuildSmilesStart(smiles) {
+            this._cnt = 0;
+            this._markComponent = false;
+            this._startingVertexes = [];
             for (var i = 0; i < this.decays.length; ++i) {
                 var edge = this.edges[this.decays[i]];
                 this.startDfs(this.vertices[edge.sourceId], smiles);
+                this.markingComponents();
                 this.startDfs(this.vertices[edge.targetId], smiles);
+                this.markingComponents();
+            }
+        }
+    }, {
+        key: 'markingComponents',
+        value: function markingComponents() {
+            if (this._markComponent) {
+                this._cnt++;
+                this._markComponent = false;
             }
         }
 
@@ -6959,6 +6988,11 @@ var Graph = function () {
             }
             stackSmiles.push(Graph.smilesNumbersAdd(vertex));
 
+            if (!this._markComponent) {
+                this._startingVertexes.push(vertex);
+            }
+            vertex.component = this._cnt;
+            this._markComponent = true;
             vertex.vertexState = VertexState.VALUES.OPEN;
             for (var i = 0; i < vertex.edges.length; ++i) {
                 var edge = this.edges[vertex.edges[i]];
@@ -6975,6 +7009,25 @@ var Graph = function () {
                 var nextVertex = Graph.getProperVertex(vertex.id, edge.sourceId, edge.targetId);
                 this.dfsSmiles(this.vertices[nextVertex], stackSmiles);
                 Graph.checkStack(stackSmiles);
+            }
+            vertex.vertexState = VertexState.VALUES.CLOSED;
+        }
+    }, {
+        key: 'dfsSmall',
+        value: function dfsSmall(vertex) {
+            if (vertex.vertexState !== VertexState.VALUES.NOT_FOUND) {
+                return;
+            }
+
+            vertex.vertexState = VertexState.VALUES.OPEN;
+            for (var i = 0; i < vertex.edges.length; ++i) {
+                var edge = this.edges[vertex.edges[i]];
+                if (edge.isDecay) {
+                    this._smallGraph.addNeighbour(vertex.component, this.vertices[Graph.getProperVertex(vertex.id, edge.sourceId, edge.targetId)].component);
+                    continue;
+                }
+                var nextVertex = Graph.getProperVertex(vertex.id, edge.sourceId, edge.targetId);
+                this.dfsSmall(this.vertices[nextVertex]);
             }
             vertex.vertexState = VertexState.VALUES.CLOSED;
         }
@@ -7132,6 +7185,7 @@ var Graph = function () {
          * @param {String} smiles
          * @param {Number} first
          * @param {Number} second
+         * @param {Number} number
          * @return {*}
          */
 
@@ -7205,6 +7259,7 @@ var Graph = function () {
          * @param smiles
          * @param first
          * @param second
+         * @param number
          * @return {string}
          */
 
@@ -7311,50 +7366,53 @@ var Graph = function () {
     }, {
         key: 'repairNumbers',
         value: function repairNumbers(smiles) {
-            var numbers = Array.from(this.getNumbers(smiles));
-            numbers.sort(function (a, b) {
-                return b - a;
-            });
-
-            var index = 1;
-            var _iteratorNormalCompletion2 = true;
-            var _didIteratorError2 = false;
-            var _iteratorError2 = undefined;
-
             try {
-                for (var _iterator2 = numbers[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
-                    var number = _step2.value;
+                var numbers = Array.from(this.getNumbers(smiles));
+                numbers.sort(function (a, b) {
+                    return b - a;
+                });
 
-                    if (index === number) {
-                        continue;
-                    }
-                    var first = this.findFirst(smiles, number);
-                    if (number > 9) {
-                        smiles = smiles.slice(0, first - 1) + index + smiles.slice(first + number.toString().length);
-                        var second = this.findSecond(smiles, first + 1, number);
-                        smiles = smiles.slice(0, second - 1) + index + smiles.slice(second + number.toString().length);
-                    } else {
-                        smiles = smiles.slice(0, first) + index + smiles.slice(first + 1);
-                        var _second = this.findSecond(smiles, first + 1, number);
-                        smiles = smiles.slice(0, _second) + index + smiles.slice(_second + 1);
-                    }
-                    index++;
-                }
-            } catch (err) {
-                _didIteratorError2 = true;
-                _iteratorError2 = err;
-            } finally {
+                var index = 1;
+                var _iteratorNormalCompletion2 = true;
+                var _didIteratorError2 = false;
+                var _iteratorError2 = undefined;
+
                 try {
-                    if (!_iteratorNormalCompletion2 && _iterator2.return) {
-                        _iterator2.return();
+                    for (var _iterator2 = numbers[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
+                        var number = _step2.value;
+
+                        if (index === number) {
+                            continue;
+                        }
+                        var first = this.findFirst(smiles, number);
+                        if (number > 9) {
+                            smiles = smiles.slice(0, first - 1) + index + smiles.slice(first + number.toString().length);
+                            var second = this.findSecond(smiles, first + 1, number);
+                            smiles = smiles.slice(0, second - 1) + index + smiles.slice(second + number.toString().length);
+                        } else {
+                            smiles = smiles.slice(0, first) + index + smiles.slice(first + 1);
+                            var _second = this.findSecond(smiles, first + 1, number);
+                            smiles = smiles.slice(0, _second) + index + smiles.slice(_second + 1);
+                        }
+                        index++;
                     }
+                } catch (err) {
+                    _didIteratorError2 = true;
+                    _iteratorError2 = err;
                 } finally {
-                    if (_didIteratorError2) {
-                        throw _iteratorError2;
+                    try {
+                        if (!_iteratorNormalCompletion2 && _iterator2.return) {
+                            _iterator2.return();
+                        }
+                    } finally {
+                        if (_didIteratorError2) {
+                            throw _iteratorError2;
+                        }
                     }
                 }
+            } catch (e) {
+                return smiles;
             }
-
             return smiles;
         }
 
@@ -7503,7 +7561,7 @@ var Graph = function () {
 
 module.exports = Graph;
 
-},{"./Atom":3,"./DecayPoint":5,"./Edge":7,"./MathHelper":10,"./Ring":12,"./Vector2":15,"./Vertex":16,"./VertexState":17}],9:[function(require,module,exports){
+},{"./Atom":3,"./DecayPoint":5,"./Edge":7,"./MathHelper":10,"./Node":11,"./Ring":13,"./SequenceType":16,"./SmallGraph":17,"./Vector2":18,"./Vertex":19,"./VertexState":20}],9:[function(require,module,exports){
 'use strict';
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
@@ -7881,7 +7939,7 @@ var Line = function () {
 
 module.exports = Line;
 
-},{"./Vector2":15}],10:[function(require,module,exports){
+},{"./Vector2":18}],10:[function(require,module,exports){
 'use strict';
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
@@ -8095,6 +8153,38 @@ var MathHelper = function () {
 module.exports = MathHelper;
 
 },{}],11:[function(require,module,exports){
+"use strict";
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+//@ts-check
+var VertexState = require("./VertexState");
+
+var Node = function () {
+    function Node(id) {
+        _classCallCheck(this, Node);
+
+        this.id = id;
+        this.neighbours = [];
+        this.onRing = false;
+        this.vertexState = VertexState.VALUES.NOT_FOUND;
+    }
+
+    _createClass(Node, [{
+        key: "addNeighbour",
+        value: function addNeighbour(neighbour) {
+            this.neighbours.push(neighbour);
+        }
+    }]);
+
+    return Node;
+}();
+
+module.exports = Node;
+
+},{"./VertexState":20}],12:[function(require,module,exports){
 "use strict";
 
 // WHEN REPLACING, CHECK FOR:
@@ -9804,7 +9894,7 @@ module.exports = function () {
   };
 }();
 
-},{}],12:[function(require,module,exports){
+},{}],13:[function(require,module,exports){
 'use strict';
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
@@ -10057,7 +10147,7 @@ var Ring = function () {
 
 module.exports = Ring;
 
-},{"./ArrayHelper":2,"./RingConnection":13,"./Vector2":15,"./Vertex":16}],13:[function(require,module,exports){
+},{"./ArrayHelper":2,"./RingConnection":14,"./Vector2":18,"./Vertex":19}],14:[function(require,module,exports){
 'use strict';
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
@@ -10275,7 +10365,7 @@ var RingConnection = function () {
 
 module.exports = RingConnection;
 
-},{"./Ring":12,"./Vertex":16}],14:[function(require,module,exports){
+},{"./Ring":13,"./Vertex":19}],15:[function(require,module,exports){
 'use strict';
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
@@ -11040,7 +11130,310 @@ var SSSR = function () {
 
 module.exports = SSSR;
 
-},{"./Graph":8}],15:[function(require,module,exports){
+},{"./Graph":8}],16:[function(require,module,exports){
+"use strict";
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+//@ts-check
+
+var SequenceType = function () {
+    function SequenceType() {
+        _classCallCheck(this, SequenceType);
+    }
+
+    _createClass(SequenceType, null, [{
+        key: "getTypeFromValues",
+        value: function getTypeFromValues(isCyclic, isBranch, isOther) {
+            if (isOther) {
+                return this.VALUES.OTHER;
+            }
+            if (!isCyclic && !isBranch) {
+                return this.VALUES.LINEAR;
+            } else if (isCyclic && !isBranch) {
+                return this.VALUES.CYCLIC;
+            } else if (!isCyclic) {
+                return this.VALUES.BRANCH;
+            } else {
+                return this.VALUES.BRANCH_CYCLIC;
+            }
+        }
+    }, {
+        key: "VALUES",
+        get: function get() {
+            return {
+                LINEAR: "linear",
+                CYCLIC: "cyclic",
+                BRANCH: "branched",
+                BRANCH_CYCLIC: "branch-cyclic",
+                LINEAR_POLYKETIDE: "linear-polyketide",
+                CYCLIC_POLYKETIDE: "cyclic-polyketide",
+                OTHER: "other"
+            };
+        }
+    }]);
+
+    return SequenceType;
+}();
+
+module.exports = SequenceType;
+
+},{}],17:[function(require,module,exports){
+'use strict';
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+//@ts-check
+var Node = require('./Node');
+var SequenceType = require('./SequenceType');
+var VertexState = require('./VertexState');
+
+var SmallGraph = function () {
+    function SmallGraph() {
+        _classCallCheck(this, SmallGraph);
+
+        this._nodes = [];
+        this.isOther = false;
+        this._branch = false;
+        this.isCyclic = false;
+        this.isBranched = false;
+        this.sequenceType = SequenceType.VALUES.LINEAR;
+        this._nodeOnRing = null;
+    }
+
+    _createClass(SmallGraph, [{
+        key: 'addVertex',
+        value: function addVertex(node) {
+            this._nodes.push(node);
+        }
+    }, {
+        key: 'addNeighbour',
+        value: function addNeighbour(nodeId, neighbour) {
+            this._nodes[nodeId].addNeighbour(neighbour);
+        }
+    }, {
+        key: 'dfsInitialization',
+        value: function dfsInitialization() {
+            this._nodes.forEach(function (e) {
+                return e.vertexState = VertexState.VALUES.NOT_FOUND;
+            });
+        }
+    }, {
+        key: 'getSourceNode',
+        value: function getSourceNode() {
+            for (var index = 0; index < this._nodes.length; ++index) {
+                if (this._nodes[index].neighbours.length === 1) {
+                    return this._nodes[index];
+                }
+            }
+            return null;
+        }
+    }, {
+        key: 'oneCyclic',
+        value: function oneCyclic() {
+            if (this._nodes.length === 0) {
+                return false;
+            }
+            this.dfsInitialization();
+            this.isCyclic = false;
+            this.dfsCyclic(this._nodes[0], -1);
+        }
+    }, {
+        key: 'dfsCyclic',
+        value: function dfsCyclic(vertex, vertexFromId) {
+            if (vertex.vertexState === VertexState.VALUES.OPEN) {
+                this.isCyclic = true;
+                this._nodeOnRing = vertex;
+            }
+
+            if (vertex.vertexState !== VertexState.VALUES.NOT_FOUND) {
+                return;
+            }
+
+            vertex.vertexState = VertexState.VALUES.OPEN;
+            for (var i = 0; i < vertex.neighbours.length; ++i) {
+                if (vertexFromId !== vertex.neighbours[i]) {
+                    this.dfsCyclic(this._nodes[vertex.neighbours[i]], vertex.id);
+                }
+            }
+            vertex.vertexState = VertexState.VALUES.CLOSED;
+        }
+    }, {
+        key: 'dfsSequenceStart',
+        value: function dfsSequenceStart() {
+            if (this._nodes.length === 0) {
+                return "";
+            }
+            this.dfsInitialization();
+            this.sequence = "";
+            if (this.isCyclic) {
+                this.findRing(this._nodeOnRing);
+                this.dfsSequenceCyclic(this._nodeOnRing);
+            } else {
+                this.dfsSequence(this.getSourceNode(), -1);
+            }
+            if (this.sequence.charAt(this.sequence.length - 1) === '-') {
+                this.sequence = this.sequence.substr(0, this.sequence.length - 1);
+            }
+            this.sequenceType = SequenceType.getTypeFromValues(this.isCyclic, this.isBranched, this.isOther);
+        }
+    }, {
+        key: 'arrayContainsTimes',
+        value: function arrayContainsTimes(array, searchValue, times) {
+            var cnt = 0;
+            for (var index = 0; index < array.length; ++index) {
+                if (array[index] === searchValue) {
+                    cnt++;
+                    if (cnt === times) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+    }, {
+        key: 'findRing',
+        value: function findRing(start) {
+            var _this = this;
+
+            var queue = [];
+            var firstPath = [start.id];
+            var firstPass = true;
+            queue.push(firstPath);
+
+            var _loop = function _loop() {
+                var path = queue.pop();
+                var last = path[path.length - 1];
+                var node = _this._nodes[last];
+                if (node.id === start.id && !firstPass) {
+                    if (path.length === 3 && path[0] === path[2] && !_this.arrayContainsTimes(_this._nodes[path[0]].neighbours, path[1], 2)) {
+                        return 'continue';
+                    }
+                    path.forEach(function (v) {
+                        return _this._nodes[v].onRing = true;
+                    });
+                    return 'continue';
+                }
+                node.neighbours.forEach(function (neighbour) {
+                    if (!path.some(function (e) {
+                        return e === neighbour;
+                    }) || neighbour === start.id) {
+                        var newPath = [].concat(_toConsumableArray(path));
+                        newPath.push(neighbour);
+                        queue.push(newPath);
+                    }
+                });
+                firstPass = false;
+            };
+
+            while (queue.length !== 0) {
+                var _ret = _loop();
+
+                if (_ret === 'continue') continue;
+            }
+        }
+    }, {
+        key: 'sortByRingPreference',
+        value: function sortByRingPreference(array) {
+            var _this2 = this;
+
+            var sortedArray = [].concat(_toConsumableArray(array));
+            sortedArray.sort(function (a, b) {
+                if (_this2._nodes[a].onRing === _this2._nodes[b].onRing) {
+                    return 0;
+                } else if (_this2._nodes[a].onRing) {
+                    return 1;
+                } else {
+                    return -1;
+                }
+            });
+            return sortedArray;
+        }
+    }, {
+        key: 'dfsSequenceCyclic',
+        value: function dfsSequenceCyclic(vertex, vertexFromId) {
+            if (vertex.vertexState !== VertexState.VALUES.NOT_FOUND) {
+                return;
+            }
+            this.printLeftBrace(vertex);
+            this.printDash();
+            vertex.vertexState = VertexState.VALUES.OPEN;
+            this.printVertex(vertex.id);
+            var sortedNeighbours = this.sortByRingPreference(vertex.neighbours);
+            for (var index = 0; index < sortedNeighbours.length; ++index) {
+                if (vertexFromId === sortedNeighbours[index]) {
+                    continue;
+                }
+                this.dfsSequenceCyclic(this._nodes[sortedNeighbours[index]], vertex.id);
+            }
+            this.printRightBrace();
+            vertex.vertexState = VertexState.VALUES.CLOSED;
+        }
+    }, {
+        key: 'printVertex',
+        value: function printVertex(vertexId) {
+            this.sequence += '[' + vertexId + ']';
+        }
+    }, {
+        key: 'printDash',
+        value: function printDash() {
+            if (']' === this.sequence[this.sequence.length - 1]) {
+                this.sequence += '-';
+            }
+        }
+    }, {
+        key: 'printLeftBrace',
+        value: function printLeftBrace(vertex) {
+            if (vertex.neighbours.length > 2) {
+                if (this.isBranched) {
+                    this.isOther = true;
+                }
+                this.sequence += '\\(';
+                this._branch = true;
+                this.isBranched = true;
+            }
+        }
+    }, {
+        key: 'printRightBrace',
+        value: function printRightBrace() {
+            if (this._branch) {
+                this.sequence += '\\)';
+                this._branch = false;
+            }
+        }
+    }, {
+        key: 'dfsSequence',
+        value: function dfsSequence(vertex, vertexFromId) {
+            if (vertex.vertexState !== VertexState.VALUES.NOT_FOUND) {
+                return;
+            }
+            this.printLeftBrace(vertex);
+            this.printDash();
+            vertex.vertexState = VertexState.VALUES.OPEN;
+            this.printVertex(vertex.id);
+            for (var index = 0; index < vertex.neighbours.length; ++index) {
+                if (vertexFromId === vertex.neighbours[index]) {
+                    continue;
+                }
+                this.dfsSequence(this._nodes[vertex.neighbours[index]], vertex.id);
+            }
+            this.printRightBrace();
+            vertex.vertexState = VertexState.VALUES.CLOSED;
+        }
+    }]);
+
+    return SmallGraph;
+}();
+
+module.exports = SmallGraph;
+
+},{"./Node":11,"./SequenceType":16,"./VertexState":20}],18:[function(require,module,exports){
 'use strict';
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
@@ -11797,7 +12190,7 @@ var Vector2 = function () {
 
 module.exports = Vector2;
 
-},{}],16:[function(require,module,exports){
+},{}],19:[function(require,module,exports){
 'use strict';
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
@@ -11862,6 +12255,7 @@ var Vertex = function () {
     this.neighbouringElements = Array();
     this.forcePositioned = false;
     this.vertexState = VertexState.VALUES.NOT_FOUND;
+    this.component = -1;
   }
 
   /**
@@ -12211,7 +12605,7 @@ var Vertex = function () {
 
 module.exports = Vertex;
 
-},{"./ArrayHelper":2,"./Atom":3,"./MathHelper":10,"./Vector2":15,"./VertexState":17}],17:[function(require,module,exports){
+},{"./ArrayHelper":2,"./Atom":3,"./MathHelper":10,"./Vector2":18,"./VertexState":20}],20:[function(require,module,exports){
 "use strict";
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
