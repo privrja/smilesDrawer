@@ -1,14 +1,17 @@
 //@ts-check
 const Node = require('./Node')
+const SequenceType = require('./SequenceType')
 const VertexState = require('./VertexState')
 
 class SmallGraph {
 
     constructor() {
         this._nodes = [];
+        this.isOther = false;
         this._branch = false;
         this.isCyclic = false;
         this.isBranched = false;
+        this.sequenceType = SequenceType.VALUES.LINEAR;
         this._nodeOnRing = null;
     }
 
@@ -76,7 +79,7 @@ class SmallGraph {
         if (this.sequence.charAt(this.sequence.length - 1) === '-') {
             this.sequence = this.sequence.substr(0, this.sequence.length - 1);
         }
-        return this.sequence;
+        this.sequenceType = SequenceType.getTypeFromValues(this.isCyclic, this.isBranched, this.isOther);
     }
 
     arrayContainsTimes(array, searchValue, times) {
@@ -123,10 +126,10 @@ class SmallGraph {
 
     sortByRingPreference(array) {
         let sortedArray = [...array];
-        sortedArray.sort((a, b) => {
-            if (a.onRing === b.onRing) {
+        sortedArray = sortedArray.sort((a, b) => {
+            if (this._nodes[a].onRing === this._nodes[b].onRing) {
                 return 0
-            } else if (a.onRing) {
+            } else if (this._nodes[a].onRing) {
                 return 1;
             } else {
                 return -1;
@@ -166,6 +169,9 @@ class SmallGraph {
 
     printLeftBrace(vertex) {
         if (vertex.neighbours.length > 2) {
+            if (this.isBranched) {
+                this.isOther = true;
+            }
             this.sequence += '\\(';
             this._branch = true;
             this.isBranched = true;

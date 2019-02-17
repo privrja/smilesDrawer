@@ -9,6 +9,7 @@ const Atom = require('./Atom')
 const VertexState = require('./VertexState')
 const SmallGraph = require('./SmallGraph')
 const Node = require('./Node')
+const SequenceType = require('./SequenceType')
 
 /**
  * A class representing the molecular graph.
@@ -32,6 +33,7 @@ class Graph {
         this.decays = Array();
         this.vertexIdsToEdgeId = {};
         this.isomeric = isomeric;
+        this._startingVertexes = [];
 
         // Used for the bridge detection algorithm
         this._time = 0;
@@ -1058,14 +1060,15 @@ class Graph {
         this.dfsSmilesInitialization();
         if (this.decays.length === 0) {
             this.startDfs(this.vertices[0], smiles);
+            return [smiles, '[0]', SequenceType.VALUES.OTHER];
         } else {
             this.dfsBuildSmilesStart(smiles);
         }
         this.dfsSmilesInitialization();
         this.dfsSmallStart();
         this._smallGraph.oneCyclic();
-        let sequence = this._smallGraph.dfsSequenceStart();
-        return [smiles, sequence];
+        this._smallGraph.dfsSequenceStart();
+        return [smiles, this._smallGraph.sequence, this._smallGraph.sequenceType];
     }
 
     dfsSmallStart() {
