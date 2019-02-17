@@ -20,7 +20,7 @@ class SequenceType {
             return this.VALUES.LINEAR;
         } else if(isCyclic && !isBranch) {
             return this.VALUES.CYCLIC;
-        } else if (!isCyclic && isBranch) {
+        } else if (!isCyclic) {
             return this.VALUES.BRANCH;
         } else {
             return this.VALUES.BRANCH_CYCLIC;

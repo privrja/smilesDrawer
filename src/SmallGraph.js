@@ -100,7 +100,7 @@ class SmallGraph {
         let firstPath = [start.id];
         let firstPass = true;
         queue.push(firstPath);
-        while (!(queue.length === 0)) {
+        while (queue.length !== 0) {
             let path = queue.pop();
             let last = path[path.length - 1];
             let node = this._nodes[last];
@@ -126,7 +126,7 @@ class SmallGraph {
 
     sortByRingPreference(array) {
         let sortedArray = [...array];
-        sortedArray = sortedArray.sort((a, b) => {
+        sortedArray.sort((a, b) => {
             if (this._nodes[a].onRing === this._nodes[b].onRing) {
                 return 0
             } else if (this._nodes[a].onRing) {
@@ -204,5 +204,4 @@ class SmallGraph {
     }
 }
 
-module
-    .exports = SmallGraph;
+module.exports = SmallGraph;
