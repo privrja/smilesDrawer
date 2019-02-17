@@ -11154,7 +11154,7 @@ var SequenceType = function () {
                 return this.VALUES.LINEAR;
             } else if (isCyclic && !isBranch) {
                 return this.VALUES.CYCLIC;
-            } else if (!isCyclic && isBranch) {
+            } else if (!isCyclic) {
                 return this.VALUES.BRANCH;
             } else {
                 return this.VALUES.BRANCH_CYCLIC;
@@ -11332,7 +11332,7 @@ var SmallGraph = function () {
                 firstPass = false;
             };
 
-            while (!(queue.length === 0)) {
+            while (queue.length !== 0) {
                 var _ret = _loop();
 
                 if (_ret === 'continue') continue;
@@ -11344,7 +11344,7 @@ var SmallGraph = function () {
             var _this2 = this;
 
             var sortedArray = [].concat(_toConsumableArray(array));
-            sortedArray = sortedArray.sort(function (a, b) {
+            sortedArray.sort(function (a, b) {
                 if (_this2._nodes[a].onRing === _this2._nodes[b].onRing) {
                     return 0;
                 } else if (_this2._nodes[a].onRing) {
