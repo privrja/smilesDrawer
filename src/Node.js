@@ -6,6 +6,7 @@ class Node {
     constructor(id) {
         this.id = id;
         this.neighbours = [];
+        this.onRing = false;
         this.vertexState = VertexState.VALUES.NOT_FOUND;
     }
 

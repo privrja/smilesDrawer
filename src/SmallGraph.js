@@ -6,7 +6,9 @@ class SmallGraph {
 
     constructor() {
         this._nodes = [];
+        this._branch = false;
         this.isCyclic = false;
+        this.isBranched = false;
         this._nodeOnRing = null;
     }
 
@@ -66,32 +68,52 @@ class SmallGraph {
         this.dfsInitialization();
         this.sequence = "";
         if (this.isCyclic) {
+            this.findRing(this._nodeOnRing);
             this.dfsSequenceCyclic(this._nodeOnRing);
         } else {
-            this.dfsSequence(this.getSourceNode(), false, -1);
+            this.dfsSequence(this.getSourceNode(), -1);
         }
         if (this.sequence.charAt(this.sequence.length - 1) === '-') {
             this.sequence = this.sequence.substr(0, this.sequence.length - 1);
         }
+        console.log(this);
         return this.sequence;
     }
 
-    findRing(vertex) {
+    arrayContainsTimes(array, searchValue, times) {
+        let cnt = 0;
+            for (let index = 0; index < array.length; ++index) {
+            if (array[index] === searchValue) {
+                cnt++;
+                if (cnt === times) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    findRing(start) {
         let queue = [];
-        let firstPath = [start];
+        let firstPath = [start.id];
         let firstPass = true;
         queue.push(firstPath);
-        while(!(queue.length === 0)) {
+        while (!(queue.length === 0)) {
             let path = queue.pop();
             let last = path[path.length - 1];
             let node = this._nodes[last];
-            if (last === start && !firstPass) {
-                path.forEach(v => this._nodes[v].inRing = true);
+            if (node.id === start.id && !firstPass) {
+                if (path.length === 3 && path[0] === path[2] && !this.arrayContainsTimes(this._nodes[path[0]].neighbours, path[1], 2)) {
+                    continue;
+                }
+                path.forEach(v => this._nodes[v].onRing = true);
+                console.log("fin path");
+                console.log(path);
                 continue;
             }
             node.neighbours.forEach(
                 neighbour => {
-                    if (path.some(e => e === neighbour)) {
+                    if (!path.some(e => e === neighbour) || neighbour === start.id) {
                         let newPath = [...path];
                         newPath.push(neighbour);
                         queue.push(newPath);
@@ -100,8 +122,6 @@ class SmallGraph {
             );
             firstPass = false;
         }
-
-
     }
 
     dfsSequenceCyclic(vertex) {
@@ -118,32 +138,46 @@ class SmallGraph {
         vertex.vertexState = VertexState.VALUES.CLOSED;
     }
 
-    dfsSequence(vertex, branch, vertexFromId) {
+    printVertex(vertexId) {
+        this.sequence += `[${vertexId}]`;
+    }
+
+    printDash() {
+        if (']' === this.sequence[this.sequence.length - 1]) {
+            this.sequence += '-';
+        }
+    }
+
+    printLeftBrace(vertex) {
+        if (vertex.neighbours.length > 2) {
+            this.sequence += '\\(';
+            this._branch = true;
+            this.isBranched = true;
+        }
+    }
+
+    printRightBrace() {
+        if (this._branch) {
+            this.sequence += '\\)';
+            this._branch = false;
+        }
+    }
+
+    dfsSequence(vertex, vertexFromId) {
         if (vertex.vertexState !== VertexState.VALUES.NOT_FOUND) {
             return;
         }
-
+        this.printLeftBrace(vertex);
+        this.printDash();
         vertex.vertexState = VertexState.VALUES.OPEN;
-        if (vertex.neighbours.length > 2) {
-            this.sequence += "\\([" + vertex.id + "]";
-            this.isBranched = true;
-            branch = true;
-        } else {
-            this.sequence += "[" + vertex.id + "]";
+        this.printVertex(vertex.id);
+        for (let index = 0; index < vertex.neighbours.length; ++index) {
+            if (vertexFromId === vertex.neighbours[index]) {
+                continue;
+            }
+            this.dfsSequence(this._nodes[vertex.neighbours[index]], vertex.id);
         }
-        for (let i = 0; i < vertex.neighbours.length; ++i) {
-            if (this.sequence.charAt(this.sequence.length - 1) === ']') {
-                this.sequence += "-";
-            }
-
-            if (vertexFromId !== vertex.neighbours[i]) {
-                this.dfsSequence(this._nodes[vertex.neighbours[i]], branch, vertex.id);
-            }
-            if (branch && i === 0) {
-                this.sequence += "\\)";
-                branch = false;
-            }
-        }
+        this.printRightBrace();
         vertex.vertexState = VertexState.VALUES.CLOSED;
     }
 }
