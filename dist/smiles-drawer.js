@@ -11150,6 +11150,7 @@ var SmallGraph = function () {
         this._nodes = [];
         this._branch = false;
         this.isCyclic = false;
+        this.isBranched = false;
         this._nodeOnRing = null;
     }
 
@@ -11258,10 +11259,6 @@ var SmallGraph = function () {
                 var path = queue.pop();
                 var last = path[path.length - 1];
                 var node = _this._nodes[last];
-                console.log("end");
-                console.log(node);
-                console.log(start);
-                console.log(firstPass);
                 if (node.id === start.id && !firstPass) {
                     if (path.length === 3 && path[0] === path[2] && !_this.arrayContainsTimes(_this._nodes[path[0]].neighbours, path[1], 2)) {
                         return 'continue';
@@ -11273,16 +11270,12 @@ var SmallGraph = function () {
                     console.log(path);
                     return 'continue';
                 }
-                console.log("in array");
-                console.log(node);
                 node.neighbours.forEach(function (neighbour) {
                     if (!path.some(function (e) {
                         return e === neighbour;
                     }) || neighbour === start.id) {
-                        console.log("copy");
                         var newPath = [].concat(_toConsumableArray(path));
                         newPath.push(neighbour);
-                        console.log(newPath);
                         queue.push(newPath);
                     }
                 });
@@ -11296,17 +11289,38 @@ var SmallGraph = function () {
             }
         }
     }, {
+        key: 'sortByRingPreference',
+        value: function sortByRingPreference(array) {
+            var sortedArray = [].concat(_toConsumableArray(array));
+            sortedArray.sort(function (a, b) {
+                if (a.onRing === b.onRing) {
+                    return 0;
+                } else if (a.onRing) {
+                    return 1;
+                } else {
+                    return -1;
+                }
+            });
+            return sortedArray;
+        }
+    }, {
         key: 'dfsSequenceCyclic',
-        value: function dfsSequenceCyclic(vertex) {
+        value: function dfsSequenceCyclic(vertex, vertexFromId) {
             if (vertex.vertexState !== VertexState.VALUES.NOT_FOUND) {
                 return;
             }
-
+            this.printLeftBrace(vertex);
+            this.printDash();
             vertex.vertexState = VertexState.VALUES.OPEN;
-            for (var i = 0; i < vertex.neighbours.length; ++i) {
-
-                this.dfsSequenceCyclic(this._nodes[vertex.neighbours[i]]);
+            this.printVertex(vertex.id);
+            var sortedNeighbours = this.sortByRingPreference(vertex.neighbours);
+            for (var index = 0; index < sortedNeighbours.length; ++index) {
+                if (vertexFromId === sortedNeighbours[index]) {
+                    continue;
+                }
+                this.dfsSequenceCyclic(this._nodes[sortedNeighbours[index]], vertex.id);
             }
+            this.printRightBrace();
             vertex.vertexState = VertexState.VALUES.CLOSED;
         }
     }, {
@@ -11327,6 +11341,7 @@ var SmallGraph = function () {
             if (vertex.neighbours.length > 2) {
                 this.sequence += '\\(';
                 this._branch = true;
+                this.isBranched = true;
             }
         }
     }, {

@@ -82,7 +82,7 @@ class SmallGraph {
 
     arrayContainsTimes(array, searchValue, times) {
         let cnt = 0;
-            for (let index = 0; index < array.length; ++index) {
+        for (let index = 0; index < array.length; ++index) {
             if (array[index] === searchValue) {
                 cnt++;
                 if (cnt === times) {
@@ -124,17 +124,36 @@ class SmallGraph {
         }
     }
 
-    dfsSequenceCyclic(vertex) {
+    sortByRingPreference(array) {
+        let sortedArray = [...array];
+        sortedArray.sort((a, b) => {
+            if (a.onRing === b.onRing) {
+                return 0
+            } else if (a.onRing) {
+                return 1;
+            } else {
+                return -1;
+            }
+        });
+        return sortedArray;
+    }
+
+    dfsSequenceCyclic(vertex, vertexFromId) {
         if (vertex.vertexState !== VertexState.VALUES.NOT_FOUND) {
             return;
         }
-
+        this.printLeftBrace(vertex);
+        this.printDash();
         vertex.vertexState = VertexState.VALUES.OPEN;
-        for (let i = 0; i < vertex.neighbours.length; ++i) {
-
-
-            this.dfsSequenceCyclic(this._nodes[vertex.neighbours[i]]);
+        this.printVertex(vertex.id);
+        let sortedNeighbours = this.sortByRingPreference(vertex.neighbours);
+        for (let index = 0; index < sortedNeighbours.length; ++index) {
+            if (vertexFromId === sortedNeighbours[index]) {
+                continue;
+            }
+            this.dfsSequenceCyclic(this._nodes[sortedNeighbours[index]], vertex.id);
         }
+        this.printRightBrace();
         vertex.vertexState = VertexState.VALUES.CLOSED;
     }
 
@@ -182,4 +201,5 @@ class SmallGraph {
     }
 }
 
-module.exports = SmallGraph;
+module
+    .exports = SmallGraph;
