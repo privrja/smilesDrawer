@@ -5793,7 +5793,6 @@ var Graph = function () {
         this._time = 0;
         this._init(parseTree);
         this.findDecayPoints();
-        // console.log(this);
     }
 
     /**
@@ -6870,9 +6869,7 @@ var Graph = function () {
             this.dfsSmallStart();
             this._smallGraph.oneCyclic();
             var sequence = this._smallGraph.dfsSequenceStart();
-            console.log(sequence);
-
-            return smiles;
+            return [smiles, sequence];
         }
     }, {
         key: 'dfsSmallStart',
@@ -11228,7 +11225,6 @@ var SmallGraph = function () {
             if (this.sequence.charAt(this.sequence.length - 1) === '-') {
                 this.sequence = this.sequence.substr(0, this.sequence.length - 1);
             }
-            console.log(this);
             return this.sequence;
         }
     }, {
@@ -11266,8 +11262,6 @@ var SmallGraph = function () {
                     path.forEach(function (v) {
                         return _this._nodes[v].onRing = true;
                     });
-                    console.log("fin path");
-                    console.log(path);
                     return 'continue';
                 }
                 node.neighbours.forEach(function (neighbour) {

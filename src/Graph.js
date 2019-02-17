@@ -37,7 +37,6 @@ class Graph {
         this._time = 0;
         this._init(parseTree);
         this.findDecayPoints();
-        // console.log(this);
     }
 
     /**
@@ -1066,9 +1065,7 @@ class Graph {
         this.dfsSmallStart();
         this._smallGraph.oneCyclic();
         let sequence = this._smallGraph.dfsSequenceStart();
-        console.log(sequence);
-
-        return smiles;
+        return [smiles, sequence];
     }
 
     dfsSmallStart() {

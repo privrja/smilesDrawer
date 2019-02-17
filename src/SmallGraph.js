@@ -76,7 +76,6 @@ class SmallGraph {
         if (this.sequence.charAt(this.sequence.length - 1) === '-') {
             this.sequence = this.sequence.substr(0, this.sequence.length - 1);
         }
-        console.log(this);
         return this.sequence;
     }
 
@@ -107,8 +106,6 @@ class SmallGraph {
                     continue;
                 }
                 path.forEach(v => this._nodes[v].onRing = true);
-                console.log("fin path");
-                console.log(path);
                 continue;
             }
             node.neighbours.forEach(
