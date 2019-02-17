@@ -6989,8 +6989,6 @@ var Graph = function () {
             stackSmiles.push(Graph.smilesNumbersAdd(vertex));
 
             if (!this._markComponent) {
-                console.log(this._startingVertexes);
-                console.log(vertex);
                 this._startingVertexes.push(vertex);
             }
             vertex.component = this._cnt;
