@@ -6993,9 +6993,9 @@ var Graph = function () {
 
             if (vertex.vertexState === VertexState.VALUES.OPEN && !isSecondPass && lastVertexId !== -1) {
                 this._isCyclic = true;
-                if (vertex.digits.some(function (e) {
+                if (!vertex.digits.some(function (e) {
                     return _this.vertices[lastVertexId].digits.includes(e);
-                })) {} else {
+                })) {
                     vertex.digits.push(this._digitCounter);
                     this.vertices[lastVertexId].digits.push(this._digitCounter);
                     this._digitCounter++;

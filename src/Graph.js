@@ -1168,9 +1168,7 @@ class Graph {
     dfsSmiles(vertex, stackSmiles, lastVertexId = -1, isSecondPass = false) {
         if (vertex.vertexState === VertexState.VALUES.OPEN && !isSecondPass && lastVertexId !== -1) {
             this._isCyclic = true;
-            if (vertex.digits.some(e => this.vertices[lastVertexId].digits.includes(e))) {
-
-            } else {
+            if (!vertex.digits.some(e => this.vertices[lastVertexId].digits.includes(e))) {
                 vertex.digits.push(this._digitCounter);
                 this.vertices[lastVertexId].digits.push(this._digitCounter);
                 this._digitCounter++;
