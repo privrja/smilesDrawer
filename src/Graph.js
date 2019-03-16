@@ -1431,7 +1431,7 @@ class Graph {
         let numbers = '';
         for (let i = 0; i < vertex.digits.length; ++i) {
             let num = vertex.digits[i];
-            if (!this._printedDigits.some(e => e === num)) {
+            if (this._printedDigits.some(e => e === num)) {
                 let nextVertex = this.vertices.find(e => e.digits.includes(num) && e.id !== vertex.id);
                 let intersection = vertex.edges.filter(element => nextVertex.edges.includes(element));
 
@@ -1441,9 +1441,9 @@ class Graph {
                         numbers += bond;
                     }
                 }
-                this._printedDigits.push(num);
             }
 
+            this._printedDigits.push(num);
             let numString = num.toString();
             if (numString.length === 1) {
                 numbers += numString;

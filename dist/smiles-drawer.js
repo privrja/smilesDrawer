@@ -5792,6 +5792,7 @@ var Graph = function () {
         this._startingVertexes = [];
         this._isCyclic = false;
         this._digitCounter = 1;
+        this._printedDigits = [];
 
         // Used for the bridge detection algorithm
         this._time = 0;
@@ -6870,8 +6871,6 @@ var Graph = function () {
             } else {
                 this.dfsBuildSmilesStart(smiles);
             }
-            console.log("BSMALL G: ", smiles);
-            // console.log(this._startingVertexes);
             this.dfsSmilesInitialization();
             this.dfsSmallStart();
             this._smallGraph.oneCyclic();
@@ -6951,13 +6950,8 @@ var Graph = function () {
             }
             this.closedToFullyClosed();
 
-            console.log(stackSmiles.join(""));
-
             stackSmiles = Graph.removeUnnecessaryParentheses(stackSmiles);
             var smile = Graph.removeUnnecessaryNumbers(stackSmiles.join(""));
-            console.log(smile);
-            // smile = Graph.repairNumbers(smile);
-            console.log(smile);
             if (smile.length !== 0) {
                 smiles.push(smile);
             }
@@ -6997,21 +6991,14 @@ var Graph = function () {
             var lastVertexId = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : -1;
             var isSecondPass = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : false;
 
-            console.log("VERTEX: ", vertex.id);
-            console.log("VERTEX STATE: ", vertex.vertexState);
-            console.log("VERTEX ELEMENT: ", vertex.value.element);
             if (vertex.vertexState === VertexState.VALUES.OPEN && !isSecondPass && lastVertexId !== -1) {
                 this._isCyclic = true;
                 if (vertex.digits.some(function (e) {
                     return _this.vertices[lastVertexId].digits.includes(e);
                 })) {} else {
-                    console.log("LAST VERTEX: ", lastVertexId);
-                    console.log("COUNTER: ", this._digitCounter);
                     vertex.digits.push(this._digitCounter);
                     this.vertices[lastVertexId].digits.push(this._digitCounter);
                     this._digitCounter++;
-                    console.log(this.vertices[lastVertexId].digits);
-                    console.log(this.vertices[vertex.id].digits);
                 }
             }
 
@@ -7048,12 +7035,7 @@ var Graph = function () {
             }
 
             if (isSecondPass) {
-                console.log("print", vertex.digits);
-                vertex.digits.forEach(function (e) {
-                    return stackSmiles.push(e);
-                });
-            } else {
-                stackSmiles.push(Graph.smilesNumbersAdd(vertex));
+                stackSmiles.push(this.smilesNumbersAdd(vertex));
             }
 
             if (!this._markComponent) {
@@ -7101,6 +7083,58 @@ var Graph = function () {
             }
             vertex.vertexState = VertexState.VALUES.CLOSED;
         }
+    }, {
+        key: 'smilesNumbersAdd',
+        value: function smilesNumbersAdd(vertex) {
+            var _this2 = this;
+
+            var numbers = '';
+
+            var _loop = function _loop(i) {
+                var num = vertex.digits[i];
+                if (_this2._printedDigits.some(function (e) {
+                    return e === num;
+                })) {
+                    var nextVertex = _this2.vertices.find(function (e) {
+                        return e.digits.includes(num) && e.id !== vertex.id;
+                    });
+                    var intersection = vertex.edges.filter(function (element) {
+                        return nextVertex.edges.includes(element);
+                    });
+
+                    if (intersection.length > 0) {
+                        var bond = _this2.edges[intersection[0]].bondType;
+                        if (bond !== '-') {
+                            numbers += bond;
+                        }
+                    }
+                }
+
+                _this2._printedDigits.push(num);
+                var numString = num.toString();
+                if (numString.length === 1) {
+                    numbers += numString;
+                } else {
+                    numbers += '%' + numString;
+                }
+            };
+
+            for (var i = 0; i < vertex.digits.length; ++i) {
+                _loop(i);
+            }
+            return numbers;
+        }
+
+        /**
+         * Return other vertex id then the actual vertex id
+         * when vertexId === sourceId return targetId
+         * when vertexId === targetId return sourceId
+         * @param {Number} vertexId actual vertex id
+         * @param {Number} sourceId source vertex id
+         * @param {Number} targetId target vertex id
+         * @return {Number}
+         */
+
     }], [{
         key: 'getConnectedComponents',
         value: function getConnectedComponents(adjacencyMatrix) {
@@ -7358,16 +7392,16 @@ var Graph = function () {
                     numbers.add(smiles[index]);
                 } else if (smiles[index] === '%') {
                     index++;
-                    var num = "";
+                    var _num = "";
                     while (!isNaN(smiles[index])) {
-                        num += smiles[index];
+                        _num += smiles[index];
                         index++;
                         if (index >= smiles.length) {
                             break;
                         }
                     }
                     index--;
-                    numbers.add(num);
+                    numbers.add(_num);
                 }
             }
             return numbers;
@@ -7403,31 +7437,6 @@ var Graph = function () {
             }
             return result;
         }
-    }, {
-        key: 'smilesNumbersAdd',
-        value: function smilesNumbersAdd(vertex) {
-            var numbers = '';
-            for (var i = 0; i < vertex.value.ringbonds.length; ++i) {
-                var num = vertex.value.ringbonds[i].id.toString();
-                if (num.length === 1) {
-                    numbers += num;
-                } else {
-                    numbers += '%' + num;
-                }
-            }
-            return numbers;
-        }
-
-        /**
-         * Return other vertex id then the actual vertex id
-         * when vertexId === sourceId return targetId
-         * when vertexId === targetId return sourceId
-         * @param {Number} vertexId actual vertex id
-         * @param {Number} sourceId source vertex id
-         * @param {Number} targetId target vertex id
-         * @return {Number}
-         */
-
     }, {
         key: 'getProperVertex',
         value: function getProperVertex(vertexId, sourceId, targetId) {
