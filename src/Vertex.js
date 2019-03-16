@@ -52,6 +52,7 @@ class Vertex {
     this.forcePositioned = false;
     this.vertexState = VertexState.VALUES.NOT_FOUND;
     this.component = -1;
+    this.digits = [];
   }
 
   /**

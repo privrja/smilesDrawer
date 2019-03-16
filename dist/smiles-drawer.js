@@ -5790,6 +5790,9 @@ var Graph = function () {
         this.vertexIdsToEdgeId = {};
         this.isomeric = isomeric;
         this._startingVertexes = [];
+        this._isCyclic = false;
+        this._digitCounter = 1;
+        this._printedDigits = [];
 
         // Used for the bridge detection algorithm
         this._time = 0;
@@ -6937,12 +6940,38 @@ var Graph = function () {
         value: function startDfs(vertex, smiles) {
             var stackSmiles = [];
             this.first = vertex.id;
+            this.isCyclic = false;
+            this._digitCounter = 1;
             this.dfsSmiles(vertex, stackSmiles);
+            if (this._isCyclic) {
+                this.closedToNotFound();
+                stackSmiles = [];
+                this.dfsSmiles(vertex, stackSmiles, -1, true);
+            }
+            this.closedToFullyClosed();
+
             stackSmiles = Graph.removeUnnecessaryParentheses(stackSmiles);
             var smile = Graph.removeUnnecessaryNumbers(stackSmiles.join(""));
-            smile = Graph.repairNumbers(smile);
             if (smile.length !== 0) {
                 smiles.push(smile);
+            }
+        }
+    }, {
+        key: 'closedToNotFound',
+        value: function closedToNotFound() {
+            for (var i = 0; i < this.vertices.length; ++i) {
+                if (this.vertices[i].vertexState === VertexState.VALUES.CLOSED) {
+                    this.vertices[i].vertexState = VertexState.VALUES.NOT_FOUND;
+                }
+            }
+        }
+    }, {
+        key: 'closedToFullyClosed',
+        value: function closedToFullyClosed() {
+            for (var i = 0; i < this.vertices.length; ++i) {
+                if (this.vertices[i].vertexState === VertexState.VALUES.CLOSED) {
+                    this.vertices[i].vertexState = VertexState.VALUES.FULLY_CLOSED;
+                }
             }
         }
 
@@ -6950,11 +6979,29 @@ var Graph = function () {
          * DFS for SMILES
          * @param {Vertex} vertex
          * @param {Array} stackSmiles output param
+         * @param lastVertexId last vertex id for setup digits
+         * @param isSecondPass is second pass of dfs
          */
 
     }, {
         key: 'dfsSmiles',
         value: function dfsSmiles(vertex, stackSmiles) {
+            var _this = this;
+
+            var lastVertexId = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : -1;
+            var isSecondPass = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : false;
+
+            if (vertex.vertexState === VertexState.VALUES.OPEN && !isSecondPass && lastVertexId !== -1) {
+                this._isCyclic = true;
+                if (!vertex.digits.some(function (e) {
+                    return _this.vertices[lastVertexId].digits.includes(e);
+                })) {
+                    vertex.digits.push(this._digitCounter);
+                    this.vertices[lastVertexId].digits.push(this._digitCounter);
+                    this._digitCounter++;
+                }
+            }
+
             if (vertex.vertexState !== VertexState.VALUES.NOT_FOUND) {
                 return;
             }
@@ -6986,7 +7033,10 @@ var Graph = function () {
             } else {
                 Graph.printVertexValue(stackSmiles, vertex);
             }
-            stackSmiles.push(Graph.smilesNumbersAdd(vertex));
+
+            if (isSecondPass) {
+                stackSmiles.push(this.smilesNumbersAdd(vertex));
+            }
 
             if (!this._markComponent) {
                 this._startingVertexes.push(vertex);
@@ -7007,7 +7057,9 @@ var Graph = function () {
                 stackSmiles.push("(");
                 Graph.addBondTypeToStack(edge, stackSmiles);
                 var nextVertex = Graph.getProperVertex(vertex.id, edge.sourceId, edge.targetId);
-                this.dfsSmiles(this.vertices[nextVertex], stackSmiles);
+                if (lastVertexId !== nextVertex) {
+                    this.dfsSmiles(this.vertices[nextVertex], stackSmiles, vertex.id, isSecondPass);
+                }
                 Graph.checkStack(stackSmiles);
             }
             vertex.vertexState = VertexState.VALUES.CLOSED;
@@ -7031,6 +7083,58 @@ var Graph = function () {
             }
             vertex.vertexState = VertexState.VALUES.CLOSED;
         }
+    }, {
+        key: 'smilesNumbersAdd',
+        value: function smilesNumbersAdd(vertex) {
+            var _this2 = this;
+
+            var numbers = '';
+
+            var _loop = function _loop(i) {
+                var num = vertex.digits[i];
+                if (_this2._printedDigits.some(function (e) {
+                    return e === num;
+                })) {
+                    var nextVertex = _this2.vertices.find(function (e) {
+                        return e.digits.includes(num) && e.id !== vertex.id;
+                    });
+                    var intersection = vertex.edges.filter(function (element) {
+                        return nextVertex.edges.includes(element);
+                    });
+
+                    if (intersection.length > 0) {
+                        var bond = _this2.edges[intersection[0]].bondType;
+                        if (bond !== '-') {
+                            numbers += bond;
+                        }
+                    }
+                }
+
+                _this2._printedDigits.push(num);
+                var numString = num.toString();
+                if (numString.length === 1) {
+                    numbers += numString;
+                } else {
+                    numbers += '%' + numString;
+                }
+            };
+
+            for (var i = 0; i < vertex.digits.length; ++i) {
+                _loop(i);
+            }
+            return numbers;
+        }
+
+        /**
+         * Return other vertex id then the actual vertex id
+         * when vertexId === sourceId return targetId
+         * when vertexId === targetId return sourceId
+         * @param {Number} vertexId actual vertex id
+         * @param {Number} sourceId source vertex id
+         * @param {Number} targetId target vertex id
+         * @return {Number}
+         */
+
     }], [{
         key: 'getConnectedComponents',
         value: function getConnectedComponents(adjacencyMatrix) {
@@ -7288,16 +7392,16 @@ var Graph = function () {
                     numbers.add(smiles[index]);
                 } else if (smiles[index] === '%') {
                     index++;
-                    var num = "";
+                    var _num = "";
                     while (!isNaN(smiles[index])) {
-                        num += smiles[index];
+                        _num += smiles[index];
                         index++;
                         if (index >= smiles.length) {
                             break;
                         }
                     }
                     index--;
-                    numbers.add(num);
+                    numbers.add(_num);
                 }
             }
             return numbers;
@@ -7333,31 +7437,6 @@ var Graph = function () {
             }
             return result;
         }
-    }, {
-        key: 'smilesNumbersAdd',
-        value: function smilesNumbersAdd(vertex) {
-            var numbers = '';
-            for (var i = 0; i < vertex.value.ringbonds.length; ++i) {
-                var num = vertex.value.ringbonds[i].id.toString();
-                if (num.length === 1) {
-                    numbers += num;
-                } else {
-                    numbers += '%' + num;
-                }
-            }
-            return numbers;
-        }
-
-        /**
-         * Return other vertex id then the actual vertex id
-         * when vertexId === sourceId return targetId
-         * when vertexId === targetId return sourceId
-         * @param {Number} vertexId actual vertex id
-         * @param {Number} sourceId source vertex id
-         * @param {Number} targetId target vertex id
-         * @return {Number}
-         */
-
     }, {
         key: 'getProperVertex',
         value: function getProperVertex(vertexId, sourceId, targetId) {
@@ -12256,6 +12335,7 @@ var Vertex = function () {
     this.forcePositioned = false;
     this.vertexState = VertexState.VALUES.NOT_FOUND;
     this.component = -1;
+    this.digits = [];
   }
 
   /**
@@ -12625,10 +12705,10 @@ var VertexState = function () {
 
         /**
          * Enum values of Vertex State for DFS
-         * @return {{NOT_FOUND: number, OPEN: number, CLOSED: number}}
+         * @return {{NOT_FOUND: number, OPEN: number, CLOSED: number, FULLY_CLOSED: number}}
          */
         get: function get() {
-            return { NOT_FOUND: 0, OPEN: 1, CLOSED: 2 };
+            return { NOT_FOUND: 0, OPEN: 1, CLOSED: 2, FULLY_CLOSED: 3 };
         }
     }]);
 
