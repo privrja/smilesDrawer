@@ -34,6 +34,8 @@ class Graph {
         this.vertexIdsToEdgeId = {};
         this.isomeric = isomeric;
         this._startingVertexes = [];
+        this._isCyclic = false;
+        this._digitCounter = 1;
 
         // Used for the bridge detection algorithm
         this._time = 0;
@@ -1064,6 +1066,8 @@ class Graph {
         } else {
             this.dfsBuildSmilesStart(smiles);
         }
+        // console.log("BSMALL G: ", smiles);
+        // console.log(this._startingVertexes);
         this.dfsSmilesInitialization();
         this.dfsSmallStart();
         this._smallGraph.oneCyclic();
@@ -1122,12 +1126,36 @@ class Graph {
     startDfs(vertex, smiles) {
         let stackSmiles = [];
         this.first = vertex.id;
+        this.isCyclic = false;
+        this._digitCounter = 1;
         this.dfsSmiles(vertex, stackSmiles);
+        if (this._isCyclic) {
+            this.closedToNotFound();
+            stackSmiles = [];
+            this.dfsSmiles(vertex, stackSmiles, -1,true);
+        }
+        this.closedToFullyClosed();
+
         stackSmiles = Graph.removeUnnecessaryParentheses(stackSmiles);
         let smile = Graph.removeUnnecessaryNumbers(stackSmiles.join(""));
-        smile = Graph.repairNumbers(smile);
         if (smile.length !== 0) {
             smiles.push(smile);
+        }
+    }
+
+    closedToNotFound() {
+        for (let i = 0; i < this.vertices.length; ++i) {
+            if (this.vertices[i].vertexState === VertexState.VALUES.CLOSED) {
+                this.vertices[i].vertexState = VertexState.VALUES.NOT_FOUND;
+            }
+        }
+    }
+
+    closedToFullyClosed() {
+        for (let i = 0; i < this.vertices.length; ++i) {
+            if (this.vertices[i].vertexState === VertexState.VALUES.CLOSED) {
+                this.vertices[i].vertexState = VertexState.VALUES.FULLY_CLOSED;
+            }
         }
     }
 
@@ -1135,8 +1163,28 @@ class Graph {
      * DFS for SMILES
      * @param {Vertex} vertex
      * @param {Array} stackSmiles output param
+     * @param lastVertexId last vertex id for setup digits
+     * @param isSecondPass is second pass of dfs
      */
-    dfsSmiles(vertex, stackSmiles) {
+    dfsSmiles(vertex, stackSmiles, lastVertexId = -1, isSecondPass = false) {
+        // console.log("VERTEX: ", vertex.id);
+        // console.log("VERTEX STATE: ", vertex.vertexState);
+        // console.log("VERTEX ELEMENT: ", vertex.value.element);
+        if (vertex.vertexState === VertexState.VALUES.OPEN && !isSecondPass && lastVertexId !== -1) {
+            this._isCyclic = true;
+            if (vertex.digits.some(e => this.vertices[lastVertexId].digits.includes(e))) {
+
+            } else {
+                // console.log("LAST VERTEX: ", lastVertexId);
+                // console.log("COUNTER: ", this._digitCounter);
+                vertex.digits.push(this._digitCounter);
+                this.vertices[lastVertexId].digits.push(this._digitCounter);
+                this._digitCounter++;
+                // console.log(this.vertices[lastVertexId].digits);
+                // console.log(this.vertices[vertex.id].digits);
+            }
+        }
+
         if (vertex.vertexState !== VertexState.VALUES.NOT_FOUND) {
             return;
         }
@@ -1168,7 +1216,13 @@ class Graph {
         } else {
             Graph.printVertexValue(stackSmiles, vertex);
         }
-        stackSmiles.push(Graph.smilesNumbersAdd(vertex));
+
+        if (isSecondPass) {
+            // console.log("print", vertex.digits);
+            vertex.digits.forEach(e => stackSmiles.push(e));
+        } else {
+            stackSmiles.push(Graph.smilesNumbersAdd(vertex));
+        }
 
         if (!this._markComponent) {
             this._startingVertexes.push(vertex);
@@ -1189,7 +1243,9 @@ class Graph {
             stackSmiles.push("(");
             Graph.addBondTypeToStack(edge, stackSmiles);
             let nextVertex = Graph.getProperVertex(vertex.id, edge.sourceId, edge.targetId);
-            this.dfsSmiles(this.vertices[nextVertex], stackSmiles);
+            if (lastVertexId !== nextVertex) {
+                this.dfsSmiles(this.vertices[nextVertex], stackSmiles, vertex.id, isSecondPass);
+            }
             Graph.checkStack(stackSmiles);
         }
         vertex.vertexState = VertexState.VALUES.CLOSED;
