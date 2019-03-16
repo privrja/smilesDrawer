@@ -233,4 +233,64 @@ describe("blocks", function () {
         expect(result).toEqual(expected);
     });
 
+    it("Valinegramicidin blocks", function () {
+        smilesDrawer.draw(SmilesDrawer.Parser.parse(VALINEGRAMICIDIN_C), 'output-canvas', 'light', true);
+        let result = smilesDrawer.buildBlockSmiles();
+        let expected = [
+            [
+                'OC(C(CC(C)C)N)=O',
+                'NC(C)C(=O)O',
+                'NC(C(C)C)C(=O)O',
+                'NC(C(C)C)C(=O)O',
+                'NC(C(C)C)C(=O)O',
+                'NC(CC2=CNC1=CC=CC=C12)C(=O)O',
+                'NC(CC(C)C)C(=O)O',
+                'NC(CC1=CC=C(C=C1)O)C(=O)O',
+                'NC(CC(C)C)C(=O)O',
+                'NC(CC2=CNC1=CC=CC=C12)C(=O)O',
+                'NC(CC(C)C)C(=O)O',
+                'NC(CC2=CNC1=CC=CC=C12)C(=O)O',
+                'NCCO',
+                'OC(=O)C(C)N',
+                'OC(=O)CN',
+                'OC(=O)C(C(C)C)N',
+                'OC=O'
+            ],
+            '[12]-[11]-[10]-[9]-[8]-[7]-[6]-[5]-[4]-[3]-[2]-[1]-[0]-[13]-[14]-[15]-[16]',
+            'linear'
+        ];
+        expect(result).toEqual(expected);
+    });
+
+    it("Beauverolide H blocks", function () {
+        smilesDrawer.draw(SmilesDrawer.Parser.parse(BEAUVEROLIDE_H), 'output-canvas', 'light', true);
+        let result = smilesDrawer.buildBlockSmiles();
+        let expected = [
+            [
+                'OC(CC(CCCCCC)O)=O',
+                'NC(C(=O)O)CC1=CC=CC=C1',
+                'NC(C(=O)O)C',
+                'NC(C(=O)O)CC(C)C',
+            ],
+            '[0]-[3]-[2]-[1]',
+            'cyclic'
+        ];
+        expect(result).toEqual(expected);
+    });
+
+    it("Timnodonyl COA blocks", function () {
+        smilesDrawer.draw(SmilesDrawer.Parser.parse(TIMNODONYL_COA), 'output-canvas', 'light', true);
+        let result = smilesDrawer.buildBlockSmiles();
+        let expected = [
+            [
+                'NCCSC(CCCC=CCC=CCC=CCC=CCC=CCC)=O',
+                'OC(=O)CCN',
+                'OC(=O)[CH](O)C(C)(C)COP(O)(=O)OP(O)(=O)OC[CH]1O[CH](C(O)[CH]1OP(O)(O)=O)N3C=NC2=C3N=CN=C2N'
+            ],
+            '[0]-[1]-[2]',
+            'linear'
+        ];
+        expect(result).toEqual(expected);
+    });
+
 });
