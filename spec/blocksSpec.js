@@ -218,7 +218,7 @@ describe("blocks", function () {
         let result = smilesDrawer.buildBlockSmiles();
         let expected = [
             [
-                'OC(C3=CC=C(C2C=C(C1=CC=C(OCCCCC)C=C1)ON=2)C=C3)=O',
+                'OC(C3=CC=C(C=2C=C(C1=CC=C(OCCCCC)C=C1)ON2)C=C3)=O',
                 'NC(CC(C(N)O)O)C(O)=O',
                 'OC(=O)C1C(C(CN1)C)O',
                 'OC(=O)C(N)C(CC(=O)O)O',

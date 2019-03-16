@@ -36,6 +36,7 @@ class Graph {
         this._startingVertexes = [];
         this._isCyclic = false;
         this._digitCounter = 1;
+        this._printedDigits = [];
 
         // Used for the bridge detection algorithm
         this._time = 0;
@@ -1066,8 +1067,6 @@ class Graph {
         } else {
             this.dfsBuildSmilesStart(smiles);
         }
-        // console.log("BSMALL G: ", smiles);
-        // console.log(this._startingVertexes);
         this.dfsSmilesInitialization();
         this.dfsSmallStart();
         this._smallGraph.oneCyclic();
@@ -1132,7 +1131,7 @@ class Graph {
         if (this._isCyclic) {
             this.closedToNotFound();
             stackSmiles = [];
-            this.dfsSmiles(vertex, stackSmiles, -1,true);
+            this.dfsSmiles(vertex, stackSmiles, -1, true);
         }
         this.closedToFullyClosed();
 
@@ -1167,21 +1166,14 @@ class Graph {
      * @param isSecondPass is second pass of dfs
      */
     dfsSmiles(vertex, stackSmiles, lastVertexId = -1, isSecondPass = false) {
-        // console.log("VERTEX: ", vertex.id);
-        // console.log("VERTEX STATE: ", vertex.vertexState);
-        // console.log("VERTEX ELEMENT: ", vertex.value.element);
         if (vertex.vertexState === VertexState.VALUES.OPEN && !isSecondPass && lastVertexId !== -1) {
             this._isCyclic = true;
             if (vertex.digits.some(e => this.vertices[lastVertexId].digits.includes(e))) {
 
             } else {
-                // console.log("LAST VERTEX: ", lastVertexId);
-                // console.log("COUNTER: ", this._digitCounter);
                 vertex.digits.push(this._digitCounter);
                 this.vertices[lastVertexId].digits.push(this._digitCounter);
                 this._digitCounter++;
-                // console.log(this.vertices[lastVertexId].digits);
-                // console.log(this.vertices[vertex.id].digits);
             }
         }
 
@@ -1218,10 +1210,7 @@ class Graph {
         }
 
         if (isSecondPass) {
-            // console.log("print", vertex.digits);
-            vertex.digits.forEach(e => stackSmiles.push(e));
-        } else {
-            stackSmiles.push(Graph.smilesNumbersAdd(vertex));
+            stackSmiles.push(this.smilesNumbersAdd(vertex));
         }
 
         if (!this._markComponent) {
@@ -1437,14 +1426,29 @@ class Graph {
         return result;
     }
 
-    static smilesNumbersAdd(vertex) {
+
+    smilesNumbersAdd(vertex) {
         let numbers = '';
-        for (let i = 0; i < vertex.value.ringbonds.length; ++i) {
-            let num = vertex.value.ringbonds[i].id.toString();
-            if (num.length === 1) {
-                numbers += num;
+        for (let i = 0; i < vertex.digits.length; ++i) {
+            let num = vertex.digits[i];
+            if (!this._printedDigits.some(e => e === num)) {
+                let nextVertex = this.vertices.find(e => e.digits.includes(num) && e.id !== vertex.id);
+                let intersection = vertex.edges.filter(element => nextVertex.edges.includes(element));
+
+                if (intersection.length > 0) {
+                    let bond = this.edges[intersection[0]].bondType;
+                    if (bond !== '-') {
+                        numbers += bond;
+                    }
+                }
+                this._printedDigits.push(num);
+            }
+
+            let numString = num.toString();
+            if (numString.length === 1) {
+                numbers += numString;
             } else {
-                numbers += '%' + num;
+                numbers += '%' + numString;
             }
         }
         return numbers;
