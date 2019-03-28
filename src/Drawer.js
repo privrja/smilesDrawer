@@ -11,6 +11,7 @@ const RingConnection = require('./RingConnection')
 const CanvasWrapper = require('./CanvasWrapper')
 const Graph = require('./Graph')
 const SSSR = require('./SSSR')
+const DecayState = require('./DecayState')
 
 /**
  * The main class of the application representing the smiles drawer
@@ -57,7 +58,8 @@ class Drawer {
             fontSizeLarge: 5,
             fontSizeSmall: 3,
             padding: 20.0,
-            drawDecayPoints: false,
+            drawDecayPoints: DecayState.VALUES.NO,
+            decaySource: [],
             mouseTolerance: 3,
             themes: {
                 dark: {
@@ -151,17 +153,7 @@ class Drawer {
      * @returns {Boolean}
      */
     isDrawDecayPoint(isDecay) {
-        return this.drawDecayPoints && isDecay;
-    }
-
-    /**
-     * Draws the parsed smiles data to a canvas, with decay points
-     * @see #Drawer.draw
-     */
-    drawWithDecayPoints(data, target, themeName = 'light', infoOnly = false) {
-        this.drawDecayPoints = true;
-        this.draw(data, target, themeName, infoOnly);
-        this.drawDecayPoints = false;
+        return this.drawDecayPoints !== DecayState.VALUES.NO && isDecay;
     }
 
     /**
@@ -183,7 +175,7 @@ class Drawer {
         this.ringIdCounter = 0;
         this.ringConnectionIdCounter = 0;
 
-        this.graph = new Graph(data, this.opts.isomeric);
+        this.graph = new Graph(data, this.opts.isomeric, this.opts);
         this.rings = Array();
         this.ringConnections = Array();
 
@@ -3054,7 +3046,7 @@ class Drawer {
      * @param offsetY offset of canvas in page Y. Typically canvas.offsetTop
      */
     handleMouseClick(e, offsetX, offsetY) {
-        if (!this.opts.drawDecayPoints) {
+        if (this.opts.drawDecayPoints === DecayState.VALUES.NO) {
             return;
         }
         e.preventDefault();

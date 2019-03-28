@@ -10,6 +10,7 @@ const VertexState = require('./VertexState')
 const SmallGraph = require('./SmallGraph')
 const Node = require('./Node')
 const SequenceType = require('./SequenceType')
+const DecayState = require('./DecayState')
 
 /**
  * A class representing the molecular graph.
@@ -27,7 +28,7 @@ class Graph {
      * @param {Object} parseTree A SMILES parse tree.
      * @param {Boolean} [isomeric=false] A boolean specifying whether or not the SMILES is isomeric.
      */
-    constructor(parseTree, isomeric = false) {
+    constructor(parseTree, isomeric = false, options = {}) {
         this.vertices = Array();
         this.edges = Array();
         this.decays = Array();
@@ -37,6 +38,7 @@ class Graph {
         this._isCyclic = false;
         this._digitCounter = 1;
         this._printedDigits = [];
+        this.options = options;
 
         // Used for the bridge detection algorithm
         this._time = 0;
@@ -131,6 +133,28 @@ class Graph {
      * Types of decay points, declared in DecayPoint
      */
     findDecayPoints() {
+        if (!Object.keys(this.options).length) {
+            return;
+        }
+
+        switch(this.options.drawDecayPoints) {
+            default:
+            case DecayState.VALUES.NO:
+                return;
+            case DecayState.VALUES.STANDARD:
+                this.standardDecays();
+                break;
+            case DecayState.VALUES.SOURCE:
+                this.sourceDecays();
+                break;
+            case DecayState.VALUES.STANDARD_AND_SOURCE:
+                this.standardDecays();
+                this.sourceDecays();
+                break;
+        }
+    }
+
+    standardDecays() {
         for (let i = 0; i < this.edges.length; i++) {
             if (this.edges[i].bondType === '=') {
                 let dec = this.isDecayPoint(this.edges[i].sourceId, this.edges[i].targetId, i);
@@ -140,6 +164,13 @@ class Graph {
                 }
             }
         }
+    }
+
+    sourceDecays() {
+        this.options.decaySource.forEach(e => {
+            this.edges[e].setDecay(true);
+            this.decays.push(e);
+        });
     }
 
     /**

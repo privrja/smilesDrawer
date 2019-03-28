@@ -221,6 +221,8 @@
         debug: false,
         atomVisualization: 'default',
         compactDrawing: false,
+        decaySource: [44, 33, 20],
+        drawDecayPoints: 3
     };
 
     var smilesDrawer = new SmilesDrawer.Drawer(options);
@@ -266,7 +268,11 @@
         });
 
         decayCheckbox.addEventListener('click', function () {
-            options.drawDecayPoints = decayCheckbox.checked;
+            if (decayCheckbox.checked) {
+                options.drawDecayPoints = 1;
+            } else {
+                options.drawDecayPoints = 0;
+            }
             updateOptions();
         });
 

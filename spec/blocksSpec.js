@@ -1,4 +1,5 @@
 const SmilesDrawer = require('../app');
+const DecayState = require('../src/DecayState');
 
 const CYCLOSPORINE_A = 'CCC1C(=O)N(CC(=O)N(C(C(=O)NC(C(=O)N(C(C(=O)NC(C(=O)NC(C(=O)N(C(C(=O)N(C(C(=O)N(C(C(=O)N(C(C(=O)N1)C(C(C)CC=CC)O)C)C(C)C)C)CC(C)C)C)CC(C)C)C)C)C)CC(C)C)C)C(C)C)CC(C)C)C)C';
 const CYCLOSPORINE_B = 'CC=CCC(C)C(C1C(=O)NC(C(=O)N(CC(=O)N(C(C(=O)NC(C(=O)N(C(C(=O)NC(C(=O)NC(C(=O)N(C(C(=O)N(C(C(=O)N(C(C(=O)N1C)C(C)C)C)CC(C)C)C)CC(C)C)C)C)C)CC(C)C)C)C(C)C)CC(C)C)C)C)C)O';
@@ -15,7 +16,7 @@ const PYOVERDIN_PA_A = 'CC(C1C(=O)NC(C(=O)NCCCCC(C(=O)NC(C(=O)N1)CCCN(C=O)O)NC(=
 const MICAFUNGIN = 'CCCCCOC1=CC=C(C=C1)C2=CC(=NO2)C3=CC=C(C=C3)C(=O)NC4CC(C(NC(=O)C5C(C(CN5C(=O)C(NC(=O)C(NC(=O)C6CC(CN6C(=O)C(NC4=O)C(C)O)O)C(C(C7=CC(=C(C=C7)O)OS(=O)(=O)O)O)O)C(CC(=O)N)O)C)O)O)O';
 
 describe("blocks", function () {
-    let smilesDrawer = new SmilesDrawer.Drawer({drawDecayPoints: true});
+    let smilesDrawer = new SmilesDrawer.Drawer({drawDecayPoints: DecayState.VALUES.STANDARD});
 
     it("cyclosporine", function () {
         smilesDrawer.draw(SmilesDrawer.Parser.parse(CYCLOSPORINE_A), 'output-canvas', 'light', true);
