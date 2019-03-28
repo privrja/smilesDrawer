@@ -6923,7 +6923,7 @@ var Graph = function () {
             this.dfsSmallStart();
             this._smallGraph.oneCyclic();
             this._smallGraph.dfsSequenceStart();
-            return [smiles, this._smallGraph.sequence, this._smallGraph.sequenceType];
+            return [smiles, this._smallGraph.sequence, this._smallGraph.sequenceType, this.decays];
         }
     }, {
         key: 'dfsSmallStart',

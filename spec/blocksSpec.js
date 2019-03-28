@@ -76,7 +76,8 @@ describe("blocks", function () {
                 'N(C(C(=O)O)C(C(C)CC=CC)O)C'
             ],
             '[0]-[10]-[9]-[8]-[7]-[6]-[5]-[4]-[3]-[2]-[1]',
-            'cyclic'
+            'cyclic',
+            [4, 8, 12, 16, 20, 24, 28, 32, 36, 40, 44]
         ];
         expect(result).toEqual(expected);
     });
@@ -99,7 +100,8 @@ describe("blocks", function () {
                 'N(C(C(=O)O)C(C)C)C'
             ],
             '[0]-[10]-[9]-[8]-[7]-[6]-[5]-[4]-[3]-[2]-[1]',
-            'cyclic'
+            'cyclic',
+            [9, 13, 17, 21, 25, 29, 33, 37, 41, 45, 49]
         ];
         expect(result).toEqual(expected);
     });
@@ -123,7 +125,8 @@ describe("blocks", function () {
                 'NC(C(=O)O)C(C)C'
             ],
             '[0]-[11]-[10]-[9]-[8]-[7]-[6]-[5]-[4]-[3]-[2]-[1]',
-            'cyclic'
+            'cyclic',
+            [3, 7, 11, 15, 19, 23, 27, 31, 35, 39, 43, 47]
         ];
         expect(result).toEqual(expected);
     });
@@ -142,7 +145,8 @@ describe("blocks", function () {
                 'OC(=O)C(Cc1ccccc1)N'
             ],
             '\\([2]-[0]-[1]\\)[3]-[4]-[5]-[6]',
-            'branch-cyclic'
+            'branch-cyclic',
+            [5, 10, 16, 20, 24, 31, 42]
         ];
         expect(result).toEqual(expected);
     });
@@ -163,7 +167,8 @@ describe("blocks", function () {
                 'OC(C)=O',
             ],
             '[0]-[2]-[3]-[4]\\([5]-[6]\\)\\([1]-[7]-[8]\\)',
-            'other'
+            'other',
+            [28, 25, 22, 19, 16, 65, 9, 5, 70]
         ];
         expect(result).toEqual(expected);
     });
@@ -183,7 +188,8 @@ describe("blocks", function () {
                 'OC(=O)C1CCCN1',
             ],
             '[2]-[1]\\([0]-[5]-[6]-[7]\\)[3]-[4]',
-            'branched'
+            'branched',
+            [4, 8, 17, 27, 30, 38, 46]
         ];
         expect(result).toEqual(expected);
     });
@@ -208,7 +214,8 @@ describe("blocks", function () {
                 'O'
             ],
             '[0]\\([3]-[4]\\)\\([2]\\([5]-[6]\\)[7]-[8]-[9]-[10]-[11]-[12]-[1]',
-            'other'
+            'other',
+            [4, 8, 16, 20, 25, 29, 36, 40, 46, 57, 63, 82, 88]
         ];
         expect(result).toEqual(expected);
     });
@@ -229,7 +236,8 @@ describe("blocks", function () {
                 'N'
             ],
             '\\([1]-[0]\\)[2]\\([3]-[7]\\)[4]-[5]-[6]',
-            'other'
+            'other',
+            [24, 30, 37, 41, 45, 52, 56, 82]
         ];
         expect(result).toEqual(expected);
     });
@@ -258,7 +266,8 @@ describe("blocks", function () {
                 'OC=O'
             ],
             '[12]-[11]-[10]-[9]-[8]-[7]-[6]-[5]-[4]-[3]-[2]-[1]-[0]-[13]-[14]-[15]-[16]',
-            'linear'
+            'linear',
+            [6, 11, 18, 25, 32, 46, 54, 66, 74, 88, 96, 110, 115, 120, 124, 131]
         ];
         expect(result).toEqual(expected);
     });
@@ -274,7 +283,8 @@ describe("blocks", function () {
                 'NC(C(=O)O)CC(C)C',
             ],
             '[0]-[3]-[2]-[1]',
-            'cyclic'
+            'cyclic',
+            [9, 13, 17, 21]
         ];
         expect(result).toEqual(expected);
     });
@@ -289,7 +299,8 @@ describe("blocks", function () {
                 'OC(=O)[CH](O)C(C)(C)COP(O)(=O)OP(O)(=O)OC[CH]1O[CH](C(O)[CH]1OP(O)(O)=O)N3C=NC2=C3N=CN=C2N'
             ],
             '[0]-[1]-[2]',
-            'linear'
+            'linear',
+            [24, 29]
         ];
         expect(result).toEqual(expected);
     });
