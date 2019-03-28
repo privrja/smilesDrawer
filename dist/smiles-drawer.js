@@ -132,7 +132,7 @@ if (!Array.prototype.fill) {
 
 module.exports = SmilesDrawer;
 
-},{"./src/Drawer":6,"./src/Parser":12}],2:[function(require,module,exports){
+},{"./src/Drawer":7,"./src/Parser":13}],2:[function(require,module,exports){
 'use strict';
 
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
@@ -1190,7 +1190,7 @@ var Atom = function () {
 
 module.exports = Atom;
 
-},{"./ArrayHelper":2,"./Ring":13,"./Vertex":19}],4:[function(require,module,exports){
+},{"./ArrayHelper":2,"./Ring":14,"./Vertex":20}],4:[function(require,module,exports){
 'use strict';
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
@@ -2151,7 +2151,7 @@ var CanvasWrapper = function () {
 
 module.exports = CanvasWrapper;
 
-},{"./Line":9,"./MathHelper":10,"./Ring":13,"./Vector2":18,"./Vertex":19}],5:[function(require,module,exports){
+},{"./Line":10,"./MathHelper":11,"./Ring":14,"./Vector2":19,"./Vertex":20}],5:[function(require,module,exports){
 "use strict";
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
@@ -2187,6 +2187,32 @@ var DecayPoint = function () {
 module.exports = DecayPoint;
 
 },{}],6:[function(require,module,exports){
+"use strict";
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+//@ts-check
+
+var DecayState = function () {
+    function DecayState() {
+        _classCallCheck(this, DecayState);
+    }
+
+    _createClass(DecayState, null, [{
+        key: "VALUES",
+        get: function get() {
+            return { NO: 0, STANDARD: 1, SOURCE: 2, STANDARD_AND_SOURCE: 3 };
+        }
+    }]);
+
+    return DecayState;
+}();
+
+module.exports = DecayState;
+
+},{}],7:[function(require,module,exports){
 'use strict';
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
@@ -2208,6 +2234,7 @@ var RingConnection = require('./RingConnection');
 var CanvasWrapper = require('./CanvasWrapper');
 var Graph = require('./Graph');
 var SSSR = require('./SSSR');
+var DecayState = require('./DecayState');
 
 /**
  * The main class of the application representing the smiles drawer
@@ -2257,7 +2284,8 @@ var Drawer = function () {
             fontSizeLarge: 5,
             fontSizeSmall: 3,
             padding: 20.0,
-            drawDecayPoints: false,
+            drawDecayPoints: DecayState.VALUES.NO,
+            decaySource: [],
             mouseTolerance: 3,
             themes: {
                 dark: {
@@ -2357,23 +2385,7 @@ var Drawer = function () {
          * @returns {Boolean}
          */
         value: function isDrawDecayPoint(isDecay) {
-            return this.drawDecayPoints && isDecay;
-        }
-
-        /**
-         * Draws the parsed smiles data to a canvas, with decay points
-         * @see #Drawer.draw
-         */
-
-    }, {
-        key: 'drawWithDecayPoints',
-        value: function drawWithDecayPoints(data, target) {
-            var themeName = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 'light';
-            var infoOnly = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : false;
-
-            this.drawDecayPoints = true;
-            this.draw(data, target, themeName, infoOnly);
-            this.drawDecayPoints = false;
+            return this.drawDecayPoints !== DecayState.VALUES.NO && isDecay;
         }
 
         /**
@@ -2401,7 +2413,7 @@ var Drawer = function () {
             this.ringIdCounter = 0;
             this.ringConnectionIdCounter = 0;
 
-            this.graph = new Graph(data, this.opts.isomeric);
+            this.graph = new Graph(data, this.opts.isomeric, this.opts);
             this.rings = Array();
             this.ringConnections = Array();
 
@@ -5527,7 +5539,7 @@ var Drawer = function () {
     }, {
         key: 'handleMouseClick',
         value: function handleMouseClick(e, offsetX, offsetY) {
-            if (!this.opts.drawDecayPoints) {
+            if (this.opts.drawDecayPoints === DecayState.VALUES.NO) {
                 return;
             }
             e.preventDefault();
@@ -5646,7 +5658,7 @@ var Drawer = function () {
 
 module.exports = Drawer;
 
-},{"./ArrayHelper":2,"./Atom":3,"./CanvasWrapper":4,"./Edge":7,"./Graph":8,"./Line":9,"./MathHelper":10,"./Ring":13,"./RingConnection":14,"./SSSR":15,"./Vector2":18,"./Vertex":19}],7:[function(require,module,exports){
+},{"./ArrayHelper":2,"./Atom":3,"./CanvasWrapper":4,"./DecayState":6,"./Edge":8,"./Graph":9,"./Line":10,"./MathHelper":11,"./Ring":14,"./RingConnection":15,"./SSSR":16,"./Vector2":19,"./Vertex":20}],8:[function(require,module,exports){
 'use strict';
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
@@ -5740,7 +5752,7 @@ var Edge = function () {
 
 module.exports = Edge;
 
-},{}],8:[function(require,module,exports){
+},{}],9:[function(require,module,exports){
 'use strict';
 
 var _slicedToArray = function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"]) _i["return"](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError("Invalid attempt to destructure non-iterable instance"); } }; }();
@@ -5761,6 +5773,7 @@ var VertexState = require('./VertexState');
 var SmallGraph = require('./SmallGraph');
 var Node = require('./Node');
 var SequenceType = require('./SequenceType');
+var DecayState = require('./DecayState');
 
 /**
  * A class representing the molecular graph.
@@ -5781,6 +5794,7 @@ var Graph = function () {
      */
     function Graph(parseTree) {
         var isomeric = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : false;
+        var options = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
 
         _classCallCheck(this, Graph);
 
@@ -5793,6 +5807,7 @@ var Graph = function () {
         this._isCyclic = false;
         this._digitCounter = 1;
         this._printedDigits = [];
+        this.options = options;
 
         // Used for the bridge detection algorithm
         this._time = 0;
@@ -5898,6 +5913,29 @@ var Graph = function () {
     }, {
         key: 'findDecayPoints',
         value: function findDecayPoints() {
+            if (!Object.keys(this.options).length) {
+                return;
+            }
+
+            switch (this.options.drawDecayPoints) {
+                default:
+                case DecayState.VALUES.NO:
+                    return;
+                case DecayState.VALUES.STANDARD:
+                    this.standardDecays();
+                    break;
+                case DecayState.VALUES.SOURCE:
+                    this.sourceDecays();
+                    break;
+                case DecayState.VALUES.STANDARD_AND_SOURCE:
+                    this.standardDecays();
+                    this.sourceDecays();
+                    break;
+            }
+        }
+    }, {
+        key: 'standardDecays',
+        value: function standardDecays() {
             for (var i = 0; i < this.edges.length; i++) {
                 if (this.edges[i].bondType === '=') {
                     var dec = this.isDecayPoint(this.edges[i].sourceId, this.edges[i].targetId, i);
@@ -5907,6 +5945,16 @@ var Graph = function () {
                     }
                 }
             }
+        }
+    }, {
+        key: 'sourceDecays',
+        value: function sourceDecays() {
+            var _this = this;
+
+            this.options.decaySource.forEach(function (e) {
+                _this.edges[e].setDecay(true);
+                _this.decays.push(e);
+            });
         }
 
         /**
@@ -6867,7 +6915,7 @@ var Graph = function () {
             this.dfsSmilesInitialization();
             if (this.decays.length === 0) {
                 this.startDfs(this.vertices[0], smiles);
-                return [smiles, '[0]', SequenceType.VALUES.OTHER];
+                return [smiles, '[0]', SequenceType.VALUES.OTHER, this.decays];
             } else {
                 this.dfsBuildSmilesStart(smiles);
             }
@@ -6875,7 +6923,7 @@ var Graph = function () {
             this.dfsSmallStart();
             this._smallGraph.oneCyclic();
             this._smallGraph.dfsSequenceStart();
-            return [smiles, this._smallGraph.sequence, this._smallGraph.sequenceType];
+            return [smiles, this._smallGraph.sequence, this._smallGraph.sequenceType, this.decays];
         }
     }, {
         key: 'dfsSmallStart',
@@ -6986,7 +7034,7 @@ var Graph = function () {
     }, {
         key: 'dfsSmiles',
         value: function dfsSmiles(vertex, stackSmiles) {
-            var _this = this;
+            var _this2 = this;
 
             var lastVertexId = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : -1;
             var isSecondPass = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : false;
@@ -6994,7 +7042,7 @@ var Graph = function () {
             if (vertex.vertexState === VertexState.VALUES.OPEN && !isSecondPass && lastVertexId !== -1) {
                 this._isCyclic = true;
                 if (!vertex.digits.some(function (e) {
-                    return _this.vertices[lastVertexId].digits.includes(e);
+                    return _this2.vertices[lastVertexId].digits.includes(e);
                 })) {
                     vertex.digits.push(this._digitCounter);
                     this.vertices[lastVertexId].digits.push(this._digitCounter);
@@ -7086,16 +7134,16 @@ var Graph = function () {
     }, {
         key: 'smilesNumbersAdd',
         value: function smilesNumbersAdd(vertex) {
-            var _this2 = this;
+            var _this3 = this;
 
             var numbers = '';
 
             var _loop = function _loop(i) {
                 var num = vertex.digits[i];
-                if (_this2._printedDigits.some(function (e) {
+                if (_this3._printedDigits.some(function (e) {
                     return e === num;
                 })) {
-                    var nextVertex = _this2.vertices.find(function (e) {
+                    var nextVertex = _this3.vertices.find(function (e) {
                         return e.digits.includes(num) && e.id !== vertex.id;
                     });
                     var intersection = vertex.edges.filter(function (element) {
@@ -7103,14 +7151,14 @@ var Graph = function () {
                     });
 
                     if (intersection.length > 0) {
-                        var bond = _this2.edges[intersection[0]].bondType;
+                        var bond = _this3.edges[intersection[0]].bondType;
                         if (bond !== '-') {
                             numbers += bond;
                         }
                     }
                 }
 
-                _this2._printedDigits.push(num);
+                _this3._printedDigits.push(num);
                 var numString = num.toString();
                 if (numString.length === 1) {
                     numbers += numString;
@@ -7640,7 +7688,7 @@ var Graph = function () {
 
 module.exports = Graph;
 
-},{"./Atom":3,"./DecayPoint":5,"./Edge":7,"./MathHelper":10,"./Node":11,"./Ring":13,"./SequenceType":16,"./SmallGraph":17,"./Vector2":18,"./Vertex":19,"./VertexState":20}],9:[function(require,module,exports){
+},{"./Atom":3,"./DecayPoint":5,"./DecayState":6,"./Edge":8,"./MathHelper":11,"./Node":12,"./Ring":14,"./SequenceType":17,"./SmallGraph":18,"./Vector2":19,"./Vertex":20,"./VertexState":21}],10:[function(require,module,exports){
 'use strict';
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
@@ -8018,7 +8066,7 @@ var Line = function () {
 
 module.exports = Line;
 
-},{"./Vector2":18}],10:[function(require,module,exports){
+},{"./Vector2":19}],11:[function(require,module,exports){
 'use strict';
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
@@ -8231,7 +8279,7 @@ var MathHelper = function () {
 
 module.exports = MathHelper;
 
-},{}],11:[function(require,module,exports){
+},{}],12:[function(require,module,exports){
 "use strict";
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
@@ -8263,7 +8311,7 @@ var Node = function () {
 
 module.exports = Node;
 
-},{"./VertexState":20}],12:[function(require,module,exports){
+},{"./VertexState":21}],13:[function(require,module,exports){
 "use strict";
 
 // WHEN REPLACING, CHECK FOR:
@@ -9973,7 +10021,7 @@ module.exports = function () {
   };
 }();
 
-},{}],13:[function(require,module,exports){
+},{}],14:[function(require,module,exports){
 'use strict';
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
@@ -10226,7 +10274,7 @@ var Ring = function () {
 
 module.exports = Ring;
 
-},{"./ArrayHelper":2,"./RingConnection":14,"./Vector2":18,"./Vertex":19}],14:[function(require,module,exports){
+},{"./ArrayHelper":2,"./RingConnection":15,"./Vector2":19,"./Vertex":20}],15:[function(require,module,exports){
 'use strict';
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
@@ -10444,7 +10492,7 @@ var RingConnection = function () {
 
 module.exports = RingConnection;
 
-},{"./Ring":13,"./Vertex":19}],15:[function(require,module,exports){
+},{"./Ring":14,"./Vertex":20}],16:[function(require,module,exports){
 'use strict';
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
@@ -11209,7 +11257,7 @@ var SSSR = function () {
 
 module.exports = SSSR;
 
-},{"./Graph":8}],16:[function(require,module,exports){
+},{"./Graph":9}],17:[function(require,module,exports){
 "use strict";
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
@@ -11259,7 +11307,7 @@ var SequenceType = function () {
 
 module.exports = SequenceType;
 
-},{}],17:[function(require,module,exports){
+},{}],18:[function(require,module,exports){
 'use strict';
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
@@ -11512,7 +11560,7 @@ var SmallGraph = function () {
 
 module.exports = SmallGraph;
 
-},{"./Node":11,"./SequenceType":16,"./VertexState":20}],18:[function(require,module,exports){
+},{"./Node":12,"./SequenceType":17,"./VertexState":21}],19:[function(require,module,exports){
 'use strict';
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
@@ -12269,7 +12317,7 @@ var Vector2 = function () {
 
 module.exports = Vector2;
 
-},{}],19:[function(require,module,exports){
+},{}],20:[function(require,module,exports){
 'use strict';
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
@@ -12685,7 +12733,7 @@ var Vertex = function () {
 
 module.exports = Vertex;
 
-},{"./ArrayHelper":2,"./Atom":3,"./MathHelper":10,"./Vector2":18,"./VertexState":20}],20:[function(require,module,exports){
+},{"./ArrayHelper":2,"./Atom":3,"./MathHelper":11,"./Vector2":19,"./VertexState":21}],21:[function(require,module,exports){
 "use strict";
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();

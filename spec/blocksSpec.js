@@ -1,4 +1,5 @@
 const SmilesDrawer = require('../app');
+const DecayState = require('../src/DecayState');
 
 const CYCLOSPORINE_A = 'CCC1C(=O)N(CC(=O)N(C(C(=O)NC(C(=O)N(C(C(=O)NC(C(=O)NC(C(=O)N(C(C(=O)N(C(C(=O)N(C(C(=O)N(C(C(=O)N1)C(C(C)CC=CC)O)C)C(C)C)C)CC(C)C)C)CC(C)C)C)C)C)CC(C)C)C)C(C)C)CC(C)C)C)C';
 const CYCLOSPORINE_B = 'CC=CCC(C)C(C1C(=O)NC(C(=O)N(CC(=O)N(C(C(=O)NC(C(=O)N(C(C(=O)NC(C(=O)NC(C(=O)N(C(C(=O)N(C(C(=O)N(C(C(=O)N1C)C(C)C)C)CC(C)C)C)CC(C)C)C)C)C)CC(C)C)C)C(C)C)CC(C)C)C)C)C)O';
@@ -15,7 +16,7 @@ const PYOVERDIN_PA_A = 'CC(C1C(=O)NC(C(=O)NCCCCC(C(=O)NC(C(=O)N1)CCCN(C=O)O)NC(=
 const MICAFUNGIN = 'CCCCCOC1=CC=C(C=C1)C2=CC(=NO2)C3=CC=C(C=C3)C(=O)NC4CC(C(NC(=O)C5C(C(CN5C(=O)C(NC(=O)C(NC(=O)C6CC(CN6C(=O)C(NC4=O)C(C)O)O)C(C(C7=CC(=C(C=C7)O)OS(=O)(=O)O)O)O)C(CC(=O)N)O)C)O)O)O';
 
 describe("blocks", function () {
-    let smilesDrawer = new SmilesDrawer.Drawer({drawDecayPoints: true});
+    let smilesDrawer = new SmilesDrawer.Drawer({drawDecayPoints: DecayState.VALUES.STANDARD});
 
     it("cyclosporine", function () {
         smilesDrawer.draw(SmilesDrawer.Parser.parse(CYCLOSPORINE_A), 'output-canvas', 'light', true);
@@ -75,7 +76,8 @@ describe("blocks", function () {
                 'N(C(C(=O)O)C(C(C)CC=CC)O)C'
             ],
             '[0]-[10]-[9]-[8]-[7]-[6]-[5]-[4]-[3]-[2]-[1]',
-            'cyclic'
+            'cyclic',
+            [4, 8, 12, 16, 20, 24, 28, 32, 36, 40, 44]
         ];
         expect(result).toEqual(expected);
     });
@@ -98,7 +100,8 @@ describe("blocks", function () {
                 'N(C(C(=O)O)C(C)C)C'
             ],
             '[0]-[10]-[9]-[8]-[7]-[6]-[5]-[4]-[3]-[2]-[1]',
-            'cyclic'
+            'cyclic',
+            [9, 13, 17, 21, 25, 29, 33, 37, 41, 45, 49]
         ];
         expect(result).toEqual(expected);
     });
@@ -122,7 +125,8 @@ describe("blocks", function () {
                 'NC(C(=O)O)C(C)C'
             ],
             '[0]-[11]-[10]-[9]-[8]-[7]-[6]-[5]-[4]-[3]-[2]-[1]',
-            'cyclic'
+            'cyclic',
+            [3, 7, 11, 15, 19, 23, 27, 31, 35, 39, 43, 47]
         ];
         expect(result).toEqual(expected);
     });
@@ -141,7 +145,8 @@ describe("blocks", function () {
                 'OC(=O)C(Cc1ccccc1)N'
             ],
             '\\([2]-[0]-[1]\\)[3]-[4]-[5]-[6]',
-            'branch-cyclic'
+            'branch-cyclic',
+            [5, 10, 16, 20, 24, 31, 42]
         ];
         expect(result).toEqual(expected);
     });
@@ -162,7 +167,8 @@ describe("blocks", function () {
                 'OC(C)=O',
             ],
             '[0]-[2]-[3]-[4]\\([5]-[6]\\)\\([1]-[7]-[8]\\)',
-            'other'
+            'other',
+            [28, 25, 22, 19, 16, 65, 9, 5, 70]
         ];
         expect(result).toEqual(expected);
     });
@@ -182,7 +188,8 @@ describe("blocks", function () {
                 'OC(=O)C1CCCN1',
             ],
             '[2]-[1]\\([0]-[5]-[6]-[7]\\)[3]-[4]',
-            'branched'
+            'branched',
+            [4, 8, 17, 27, 30, 38, 46]
         ];
         expect(result).toEqual(expected);
     });
@@ -207,7 +214,8 @@ describe("blocks", function () {
                 'O'
             ],
             '[0]\\([3]-[4]\\)\\([2]\\([5]-[6]\\)[7]-[8]-[9]-[10]-[11]-[12]-[1]',
-            'other'
+            'other',
+            [4, 8, 16, 20, 25, 29, 36, 40, 46, 57, 63, 82, 88]
         ];
         expect(result).toEqual(expected);
     });
@@ -228,7 +236,8 @@ describe("blocks", function () {
                 'N'
             ],
             '\\([1]-[0]\\)[2]\\([3]-[7]\\)[4]-[5]-[6]',
-            'other'
+            'other',
+            [24, 30, 37, 41, 45, 52, 56, 82]
         ];
         expect(result).toEqual(expected);
     });
@@ -257,7 +266,8 @@ describe("blocks", function () {
                 'OC=O'
             ],
             '[12]-[11]-[10]-[9]-[8]-[7]-[6]-[5]-[4]-[3]-[2]-[1]-[0]-[13]-[14]-[15]-[16]',
-            'linear'
+            'linear',
+            [6, 11, 18, 25, 32, 46, 54, 66, 74, 88, 96, 110, 115, 120, 124, 131]
         ];
         expect(result).toEqual(expected);
     });
@@ -273,7 +283,8 @@ describe("blocks", function () {
                 'NC(C(=O)O)CC(C)C',
             ],
             '[0]-[3]-[2]-[1]',
-            'cyclic'
+            'cyclic',
+            [9, 13, 17, 21]
         ];
         expect(result).toEqual(expected);
     });
@@ -288,7 +299,8 @@ describe("blocks", function () {
                 'OC(=O)[CH](O)C(C)(C)COP(O)(=O)OP(O)(=O)OC[CH]1O[CH](C(O)[CH]1OP(O)(O)=O)N3C=NC2=C3N=CN=C2N'
             ],
             '[0]-[1]-[2]',
-            'linear'
+            'linear',
+            [24, 29]
         ];
         expect(result).toEqual(expected);
     });
