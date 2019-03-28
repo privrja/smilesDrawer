@@ -1094,7 +1094,7 @@ class Graph {
         this.dfsSmilesInitialization();
         if (this.decays.length === 0) {
             this.startDfs(this.vertices[0], smiles);
-            return [smiles, '[0]', SequenceType.VALUES.OTHER];
+            return [smiles, '[0]', SequenceType.VALUES.OTHER, this.decays];
         } else {
             this.dfsBuildSmilesStart(smiles);
         }
