@@ -2428,6 +2428,7 @@ var Drawer = function () {
 
             this.initRings();
             this.initHydrogens();
+            this.graph.findDecayPoints();
 
             if (!this.infoOnly) {
                 this.position();
@@ -5812,7 +5813,6 @@ var Graph = function () {
         // Used for the bridge detection algorithm
         this._time = 0;
         this._init(parseTree);
-        this.findDecayPoints();
     }
 
     /**
@@ -5934,6 +5934,81 @@ var Graph = function () {
             }
         }
     }, {
+        key: 'reduceDecays',
+        value: function reduceDecays() {
+            this._decaysCopy = [];
+            this.dfsSmilesInitialization();
+            for (var i = 0; i < this.decays.length; i++) {
+                this.smallBlockDfsStart(this.edges[this.decays[i]]);
+            }
+            this.decays = [];
+            this.decays = this._decaysCopy;
+            this.setStandardDecays();
+        }
+    }, {
+        key: 'dfsSmallInitialization',
+        value: function dfsSmallInitialization(vertices) {
+            for (var i = 0; i < vertices.length; ++i) {
+                this.vertices[vertices[i]].vertexState = VertexState.VALUES.NOT_FOUND;
+            }
+        }
+    }, {
+        key: 'smallBlockDfsStart',
+        value: function smallBlockDfsStart(edge) {
+            var stackVisitedVertexes = [];
+            var depth = this.smallDfs(this.vertices[edge.sourceId], 0, stackVisitedVertexes);
+            // this.dfsSmallInitialization(stackVisitedVertexes);
+            this.dfsSmilesInitialization();
+
+            if (depth > 3) {
+                stackVisitedVertexes = [];
+                depth = this.smallDfs(this.vertices[edge.targetId], 0, stackVisitedVertexes);
+                // this.dfsSmallInitialization(stackVisitedVertexes);
+                this.dfsSmilesInitialization();
+                if (depth > 3) {
+                    this._decaysCopy.push(edge.id);
+                }
+            }
+        }
+    }, {
+        key: 'smallDfs',
+        value: function smallDfs(vertex, depth, stackVisitedVertexes) {
+            stackVisitedVertexes.push(vertex.id);
+            if (depth > 3) {
+                return depth;
+            }
+
+            if (vertex.vertexState !== VertexState.VALUES.NOT_FOUND) {
+                return depth;
+            }
+
+            vertex.vertexState = VertexState.VALUES.OPEN;
+            ++depth;
+
+            for (var i = 0; i < vertex.edges.length; ++i) {
+                var edge = this.edges[vertex.edges[i]];
+                if (edge.isDecay) {
+                    continue;
+                }
+                var nextVertex = Graph.getProperVertex(vertex.id, edge.sourceId, edge.targetId);
+                depth = this.smallDfs(this.vertices[nextVertex], depth, stackVisitedVertexes);
+            }
+            vertex.vertexState = VertexState.VALUES.CLOSED;
+            return depth;
+        }
+    }, {
+        key: 'setStandardDecays',
+        value: function setStandardDecays() {
+            var _this = this;
+
+            this.edges.forEach(function (e) {
+                e.setDecay(false);
+            });
+            this.decays.forEach(function (e) {
+                _this.edges[e].setDecay(true);
+            });
+        }
+    }, {
         key: 'standardDecays',
         value: function standardDecays() {
             for (var i = 0; i < this.edges.length; i++) {
@@ -5945,15 +6020,16 @@ var Graph = function () {
                     }
                 }
             }
+            this.reduceDecays();
         }
     }, {
         key: 'sourceDecays',
         value: function sourceDecays() {
-            var _this = this;
+            var _this2 = this;
 
             this.options.decaySource.forEach(function (e) {
-                _this.edges[e].setDecay(true);
-                _this.decays.push(e);
+                _this2.edges[e].setDecay(true);
+                _this2.decays.push(e);
             });
         }
 
@@ -7034,7 +7110,7 @@ var Graph = function () {
     }, {
         key: 'dfsSmiles',
         value: function dfsSmiles(vertex, stackSmiles) {
-            var _this2 = this;
+            var _this3 = this;
 
             var lastVertexId = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : -1;
             var isSecondPass = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : false;
@@ -7042,7 +7118,7 @@ var Graph = function () {
             if (vertex.vertexState === VertexState.VALUES.OPEN && !isSecondPass && lastVertexId !== -1) {
                 this._isCyclic = true;
                 if (!vertex.digits.some(function (e) {
-                    return _this2.vertices[lastVertexId].digits.includes(e);
+                    return _this3.vertices[lastVertexId].digits.includes(e);
                 })) {
                     vertex.digits.push(this._digitCounter);
                     this.vertices[lastVertexId].digits.push(this._digitCounter);
@@ -7134,16 +7210,16 @@ var Graph = function () {
     }, {
         key: 'smilesNumbersAdd',
         value: function smilesNumbersAdd(vertex) {
-            var _this3 = this;
+            var _this4 = this;
 
             var numbers = '';
 
             var _loop = function _loop(i) {
                 var num = vertex.digits[i];
-                if (_this3._printedDigits.some(function (e) {
+                if (_this4._printedDigits.some(function (e) {
                     return e === num;
                 })) {
-                    var nextVertex = _this3.vertices.find(function (e) {
+                    var nextVertex = _this4.vertices.find(function (e) {
                         return e.digits.includes(num) && e.id !== vertex.id;
                     });
                     var intersection = vertex.edges.filter(function (element) {
@@ -7151,14 +7227,14 @@ var Graph = function () {
                     });
 
                     if (intersection.length > 0) {
-                        var bond = _this3.edges[intersection[0]].bondType;
+                        var bond = _this4.edges[intersection[0]].bondType;
                         if (bond !== '-') {
                             numbers += bond;
                         }
                     }
                 }
 
-                _this3._printedDigits.push(num);
+                _this4._printedDigits.push(num);
                 var numString = num.toString();
                 if (numString.length === 1) {
                     numbers += numString;

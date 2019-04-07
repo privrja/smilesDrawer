@@ -190,6 +190,7 @@ class Drawer {
 
         this.initRings();
         this.initHydrogens();
+        this.graph.findDecayPoints();
 
         if (!this.infoOnly) {
             this.position();

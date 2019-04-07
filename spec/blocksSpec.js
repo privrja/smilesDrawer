@@ -25,7 +25,7 @@ describe("blocks", function () {
 
     it("pseudacyclin A", function () {
         smilesDrawer.draw(SmilesDrawer.Parser.parse(PSEUDACYCLIN_A), 'output-canvas', 'light', true);
-        expect(smilesDrawer.graph.decays.length).toEqual(7);
+        expect(smilesDrawer.graph.decays.length).toEqual(6);
     });
 
     it("roseotoxin A", function () {
@@ -35,7 +35,7 @@ describe("blocks", function () {
 
     it("neaphamide A", function () {
         smilesDrawer.draw(SmilesDrawer.Parser.parse(NEAMPHAMIDE_A), 'output-canvas', 'light', true);
-        expect(smilesDrawer.graph.decays.length).toEqual(16);
+        expect(smilesDrawer.graph.decays.length).toEqual(12);
     });
 
     it("valinomycin", function () {
@@ -55,7 +55,7 @@ describe("blocks", function () {
 
     it("valinegramicidin C", function () {
         smilesDrawer.draw(SmilesDrawer.Parser.parse(VALINEGRAMICIDIN_C), 'output-canvas', 'light', true);
-        expect(smilesDrawer.graph.decays.length).toEqual(16);
+        expect(smilesDrawer.graph.decays.length).toEqual(15);
     });
 
     it("cyclosporine A blocks", function () {
@@ -136,17 +136,16 @@ describe("blocks", function () {
         let result = smilesDrawer.buildBlockSmiles();
         let expected = [
             [
-                'NC(C(CC)C)C(=O)O',
-                'OC(C)=O',
+                'OC(C(C(CC)C)NC(C)=O)=O',
                 'NC(CCCN)C(O)=O',
                 'OC(=O)C(N)C(C)CC',
                 'OC(=O)C(N)C(C)CC',
                 'OC(=O)C1CCCN1',
                 'OC(=O)C(Cc1ccccc1)N'
             ],
-            '\\([2]-[0]-[1]\\)[3]-[4]-[5]-[6]',
+            '\\([1]-[0]\\)[2]-[3]-[4]-[5]',
             'branch-cyclic',
-            [5, 10, 16, 20, 24, 31, 42]
+            [10, 16, 20, 24, 31, 42]
         ];
         expect(result).toEqual(expected);
     });
@@ -162,13 +161,11 @@ describe("blocks", function () {
                 'NC(C(O)=O)CCCNC(N)=N',
                 'NC(C(O)=O)Cc1c[nH]c2c1cccc2',
                 'NC(CCCCN)C(O)=O',
-                'O',
-                'OC(C(CCCC)N)=O',
-                'OC(C)=O',
+                'OC(C(CCCC)NC(C)=O)=O'
             ],
-            '[0]-[2]-[3]-[4]\\([5]-[6]\\)\\([1]-[7]-[8]\\)',
-            'other',
-            [28, 25, 22, 19, 16, 65, 9, 5, 70]
+            '[0]-[2]-[3]-[4]-[5]\\([1]-[6]\\)',
+            'branch-cyclic',
+            [28, 25, 22, 19, 16, 9, 5]
         ];
         expect(result).toEqual(expected);
     });
@@ -179,17 +176,15 @@ describe("blocks", function () {
         let expected = [
             [
                 'NC(CCCN)C(=O)O',
-                'OC(=O)C(N)C(C)CC',
-                'OC(=O)C',
+                'OC(=O)C(NC(=O)C)C(C)CC',
                 'NC(CC1=CC=CC=C1)C(O)=O',
-                'O',
                 'OC(=O)C(C(CC)C)N',
                 'OC(=O)C(C(CC)C)N',
                 'OC(=O)C1CCCN1',
             ],
-            '[2]-[1]\\([0]-[5]-[6]-[7]\\)[3]-[4]',
+            '[1]\\([0]-[3]-[4]-[5]\\)[2]',
             'branched',
-            [4, 8, 17, 27, 30, 38, 46]
+            [4, 17, 30, 38, 46]
         ];
         expect(result).toEqual(expected);
     });
@@ -202,20 +197,17 @@ describe("blocks", function () {
                 'OC(C(C(C)O)N)=O',
                 'NC(C(=O)O)C(C)O',
                 'NCCCCC(C(=O)O)N',
-                'NC(C(=O)O)CCCNO',
-                'OC=O',
-                'OC(=O)C(CCCNO)N',
-                'OC=O',
+                'NC(C(=O)O)CCCN(C=O)O',
+                'OC(=O)C(CCCN(C=O)O)N',
                 'OC(=O)C(CO)N',
                 'OC(=O)C(CCCN=C(N)N)N',
                 'OC(=O)C(CO)N',
                 'OC(=O)C2CCNC1=C(C=C3C=C(C(=O)C=C3N12)O)N',
-                'OC(=O)CCC(=O)O',
-                'O'
+                'OC(=O)CCC(=O)O'
             ],
-            '[0]\\([3]-[4]\\)\\([2]\\([5]-[6]\\)[7]-[8]-[9]-[10]-[11]-[12]-[1]',
-            'other',
-            [4, 8, 16, 20, 25, 29, 36, 40, 46, 57, 63, 82, 88]
+            '[0]-[3]\\([2]-[4]-[5]-[6]-[7]-[8]-[9]\\)[1]',
+            'branch-cyclic',
+            [4, 8, 16, 20, 29, 40, 46, 57, 63, 82]
         ];
         expect(result).toEqual(expected);
     });
@@ -229,15 +221,14 @@ describe("blocks", function () {
                 'OC(C3=CC=C(C2C=C(C1=CC=C(OCCCCC)C=C1)ON=2)C=C3)=O',
                 'NC(CC(C(N)O)O)C(O)=O',
                 'OC(=O)C1C(C(CN1)C)O',
-                'OC(=O)C(N)C(CC(=O)O)O',
+                'OC(=O)C(N)C(CC(=O)N)O',
                 'OC(=O)C(N)C(C(C1=CC(=C(C=C1)O)OS(=O)(=O)O)O)O',
                 'OC(=O)C1CC(CN1)O',
-                'OC(=O)C(N)C(C)O',
-                'N'
+                'OC(=O)C(N)C(C)O'
             ],
-            '\\([1]-[0]\\)[2]\\([3]-[7]\\)[4]-[5]-[6]',
-            'other',
-            [24, 30, 37, 41, 45, 52, 56, 82]
+            '\\([1]-[0]\\)[2]-[3]-[4]-[5]-[6]',
+            'branch-cyclic',
+            [24, 30, 37, 41, 45, 52, 56]
         ];
         expect(result).toEqual(expected);
     });
@@ -262,12 +253,11 @@ describe("blocks", function () {
                 'NCCO',
                 'OC(=O)C(C)N',
                 'OC(=O)CN',
-                'OC(=O)C(C(C)C)N',
-                'OC=O'
+                'OC(=O)C(C(C)C)NC=O'
             ],
-            '[12]-[11]-[10]-[9]-[8]-[7]-[6]-[5]-[4]-[3]-[2]-[1]-[0]-[13]-[14]-[15]-[16]',
+            '[12]-[11]-[10]-[9]-[8]-[7]-[6]-[5]-[4]-[3]-[2]-[1]-[0]-[13]-[14]-[15]',
             'linear',
-            [6, 11, 18, 25, 32, 46, 54, 66, 74, 88, 96, 110, 115, 120, 124, 131]
+            [6, 11, 18, 25, 32, 46, 54, 66, 74, 88, 96, 110, 115, 120, 124]
         ];
         expect(result).toEqual(expected);
     });

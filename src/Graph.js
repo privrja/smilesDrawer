@@ -43,7 +43,6 @@ class Graph {
         // Used for the bridge detection algorithm
         this._time = 0;
         this._init(parseTree);
-        this.findDecayPoints();
     }
 
     /**
@@ -137,7 +136,7 @@ class Graph {
             return;
         }
 
-        switch(this.options.drawDecayPoints) {
+        switch (this.options.drawDecayPoints) {
             default:
             case DecayState.VALUES.NO:
                 return;
@@ -154,6 +153,74 @@ class Graph {
         }
     }
 
+    reduceDecays() {
+        this._decaysCopy = [];
+        this.dfsSmilesInitialization();
+        for (let i = 0; i < this.decays.length; i++) {
+            this.smallBlockDfsStart(this.edges[this.decays[i]]);
+        }
+        this.decays = [];
+        this.decays = this._decaysCopy;
+        this.setStandardDecays();
+    }
+
+    dfsSmallInitialization(vertices) {
+        for (let i = 0; i < vertices.length; ++i) {
+            this.vertices[vertices[i]].vertexState = VertexState.VALUES.NOT_FOUND;
+        }
+    }
+
+    smallBlockDfsStart(edge) {
+        let stackVisitedVertexes = [];
+        let depth = this.smallDfs(this.vertices[edge.sourceId], 0, stackVisitedVertexes);
+        // this.dfsSmallInitialization(stackVisitedVertexes);
+        this.dfsSmilesInitialization();
+
+        if (depth > 3) {
+            stackVisitedVertexes = [];
+            depth = this.smallDfs(this.vertices[edge.targetId], 0, stackVisitedVertexes);
+            // this.dfsSmallInitialization(stackVisitedVertexes);
+            this.dfsSmilesInitialization();
+            if (depth > 3) {
+                this._decaysCopy.push(edge.id);
+            }
+        }
+    }
+
+    smallDfs(vertex, depth, stackVisitedVertexes) {
+        stackVisitedVertexes.push(vertex.id);
+        if (depth > 3) {
+            return depth;
+        }
+
+        if (vertex.vertexState !== VertexState.VALUES.NOT_FOUND) {
+            return depth;
+        }
+
+        vertex.vertexState = VertexState.VALUES.OPEN;
+        ++depth;
+
+        for (let i = 0; i < vertex.edges.length; ++i) {
+            let edge = this.edges[vertex.edges[i]];
+            if (edge.isDecay) {
+                continue;
+            }
+            let nextVertex = Graph.getProperVertex(vertex.id, edge.sourceId, edge.targetId);
+            depth = this.smallDfs(this.vertices[nextVertex], depth, stackVisitedVertexes);
+        }
+        vertex.vertexState = VertexState.VALUES.CLOSED;
+        return depth;
+    }
+
+    setStandardDecays() {
+        this.edges.forEach(e => {
+           e.setDecay(false);
+        });
+        this.decays.forEach(e => {
+            this.edges[e].setDecay(true);
+        });
+    }
+
     standardDecays() {
         for (let i = 0; i < this.edges.length; i++) {
             if (this.edges[i].bondType === '=') {
@@ -164,6 +231,7 @@ class Graph {
                 }
             }
         }
+        this.reduceDecays();
     }
 
     sourceDecays() {
