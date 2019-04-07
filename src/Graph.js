@@ -80,12 +80,19 @@ class Graph {
 
             // Add edge between this node and its parent
             let edge = new Edge(parentVertexId, vertex.id, 1);
+            let vertexId = null;
 
             if (isBranch) {
                 edge.setBondType(vertex.value.branchBond || '-');
+                vertexId = vertex.id;
+                edge.setBondType(vertex.value.branchBond || '-');
+                vertexId = vertex.id;
             } else {
                 edge.setBondType(parentVertex.value.bondType || '-');
+                vertexId = parentVertex.id;
             }
+
+            let edgeId = this.addEdge(edge);
         }
 
         let offset = node.ringbondCount + 1;
@@ -98,7 +105,7 @@ class Graph {
         if (atom.bracket && atom.bracket.chirality) {
             atom.isStereoCenter = true;
             stereoHydrogens = atom.bracket.hcount;
-            for (let i = 0; i < stereoHydrogens; i++) {
+            for (var i = 0; i < stereoHydrogens; i++) {
                 this._init({
                     atom: 'H',
                     isBracket: 'false',
@@ -113,7 +120,7 @@ class Graph {
             }
         }
 
-        for (let i = 0; i < node.branchCount; i++) {
+        for (var i = 0; i < node.branchCount; i++) {
             this._init(node.branches[i], i + offset, vertex.id, true);
         }
 
@@ -382,6 +389,7 @@ class Graph {
      */
     getEdge(vertexIdA, vertexIdB) {
         let edgeId = this.vertexIdsToEdgeId[vertexIdA + '_' + vertexIdB];
+
         return edgeId === undefined ? null : this.edges[edgeId];
     }
 
@@ -395,11 +403,13 @@ class Graph {
         let edgeIds = Array();
         let vertex = this.vertices[vertexId];
 
-        for (let i = 0; i < vertex.neighbours.length; i++) {
+        for (var i = 0; i < vertex.neighbours.length; i++) {
             edgeIds.push(this.vertexIdsToEdgeId[vertexId + '_' + vertex.neighbours[i]]);
         }
+
         return edgeIds;
     }
+
 
     /**
      * Check whether or not two vertices are connected by an edge.
@@ -420,7 +430,7 @@ class Graph {
     getVertexList() {
         let arr = [this.vertices.length];
 
-        for (let i = 0; i < this.vertices.length; i++) {
+        for (var i = 0; i < this.vertices.length; i++) {
             arr[i] = this.vertices[i].id;
         }
 
@@ -435,7 +445,7 @@ class Graph {
     getEdgeList() {
         let arr = Array(this.edges.length);
 
-        for (let i = 0; i < this.edges.length; i++) {
+        for (var i = 0; i < this.edges.length; i++) {
             arr[i] = [this.edges[i].sourceId, this.edges[i].targetId];
         }
 
@@ -451,12 +461,12 @@ class Graph {
         let length = this.vertices.length;
         let adjacencyMatrix = Array(length);
 
-        for (let i = 0; i < length; i++) {
+        for (var i = 0; i < length; i++) {
             adjacencyMatrix[i] = new Array(length);
             adjacencyMatrix[i].fill(0);
         }
 
-        for (let i = 0; i < this.edges.length; i++) {
+        for (var i = 0; i < this.edges.length; i++) {
             let edge = this.edges[i];
 
             adjacencyMatrix[edge.sourceId][edge.targetId] = 1;
@@ -476,19 +486,19 @@ class Graph {
         let adjacencyMatrix = Array(length);
         let bridges = this.getBridges();
 
-        for (let i = 0; i < length; i++) {
+        for (var i = 0; i < length; i++) {
             adjacencyMatrix[i] = new Array(length);
             adjacencyMatrix[i].fill(0);
         }
 
-        for (let i = 0; i < this.edges.length; i++) {
+        for (var i = 0; i < this.edges.length; i++) {
             let edge = this.edges[i];
 
             adjacencyMatrix[edge.sourceId][edge.targetId] = 1;
             adjacencyMatrix[edge.targetId][edge.sourceId] = 1;
         }
 
-        for (let i = 0; i < bridges.length; i++) {
+        for (var i = 0; i < bridges.length; i++) {
             adjacencyMatrix[bridges[i][0]][bridges[i][1]] = 0;
             adjacencyMatrix[bridges[i][1]][bridges[i][0]] = 0;
         }
@@ -506,11 +516,11 @@ class Graph {
         let length = vertexIds.length;
         let adjacencyMatrix = Array(length);
 
-        for (let i = 0; i < length; i++) {
+        for (var i = 0; i < length; i++) {
             adjacencyMatrix[i] = new Array(length);
             adjacencyMatrix[i].fill(0);
 
-            for (let j = 0; j < length; j++) {
+            for (var j = 0; j < length; j++) {
                 if (i === j) {
                     continue;
                 }
@@ -534,12 +544,12 @@ class Graph {
         let adja = this.getAdjacencyMatrix();
         let dist = Array(length);
 
-        for (let i = 0; i < length; i++) {
+        for (var i = 0; i < length; i++) {
             dist[i] = Array(length);
             dist[i].fill(Infinity);
         }
 
-        for (let i = 0; i < length; i++) {
+        for (var i = 0; i < length; i++) {
             for (var j = 0; j < length; j++) {
                 if (adja[i][j] === 1) {
                     dist[i][j] = 1;
@@ -547,9 +557,9 @@ class Graph {
             }
         }
 
-        for (let k = 0; k < length; k++) {
-            for (let i = 0; i < length; i++) {
-                for (let j = 0; j < length; j++) {
+        for (var k = 0; k < length; k++) {
+            for (var i = 0; i < length; i++) {
+                for (var j = 0; j < length; j++) {
                     if (dist[i][j] > dist[i][k] + dist[k][j]) {
                         dist[i][j] = dist[i][k] + dist[k][j]
                     }
@@ -571,22 +581,22 @@ class Graph {
         let adja = this.getSubgraphAdjacencyMatrix(vertexIds);
         let dist = Array(length);
 
-        for (let i = 0; i < length; i++) {
+        for (var i = 0; i < length; i++) {
             dist[i] = Array(length);
             dist[i].fill(Infinity);
         }
 
-        for (let i = 0; i < length; i++) {
-            for (let j = 0; j < length; j++) {
+        for (var i = 0; i < length; i++) {
+            for (var j = 0; j < length; j++) {
                 if (adja[i][j] === 1) {
                     dist[i][j] = 1;
                 }
             }
         }
 
-        for (let k = 0; k < length; k++) {
-            for (let i = 0; i < length; i++) {
-                for (let j = 0; j < length; j++) {
+        for (var k = 0; k < length; k++) {
+            for (var i = 0; i < length; i++) {
+                for (var j = 0; j < length; j++) {
                     if (dist[i][j] > dist[i][k] + dist[k][j]) {
                         dist[i][j] = dist[i][k] + dist[k][j]
                     }
@@ -606,10 +616,10 @@ class Graph {
         let length = this.vertices.length;
         let adjacencyList = Array(length);
 
-        for (let i = 0; i < length; i++) {
+        for (var i = 0; i < length; i++) {
             adjacencyList[i] = [];
 
-            for (let j = 0; j < length; j++) {
+            for (var j = 0; j < length; j++) {
                 if (i === j) {
                     continue;
                 }
@@ -633,10 +643,10 @@ class Graph {
         let length = vertexIds.length;
         let adjacencyList = Array(length);
 
-        for (let i = 0; i < length; i++) {
+        for (var i = 0; i < length; i++) {
             adjacencyList[i] = Array();
 
-            for (let j = 0; j < length; j++) {
+            for (var j = 0; j < length; j++) {
                 if (i === j) {
                     continue;
                 }
@@ -689,7 +699,7 @@ class Graph {
 
         visited.fill(false);
 
-        let queue = [startVertexId];
+        var queue = [startVertexId];
 
         while (queue.length > 0) {
             // JavaScripts shift() is O(n) ... bad JavaScript, bad!
@@ -698,7 +708,7 @@ class Graph {
 
             callback(vertex);
 
-            for (let i = 0; i < vertex.neighbours.length; i++) {
+            for (var i = 0; i < vertex.neighbours.length; i++) {
                 let v = vertex.neighbours[i];
                 if (!visited[v]) {
                     visited[v] = true;
@@ -723,7 +733,7 @@ class Graph {
         let neighbours = this.vertices[vertexId].getSpanningTreeNeighbours(parentVertexId);
         let max = 0;
 
-        for (let i = 0; i < neighbours.length; i++) {
+        for (var i = 0; i < neighbours.length; i++) {
             let childId = neighbours[i];
             let d = this.getTreeDepth(childId, vertexId);
 
@@ -764,7 +774,7 @@ class Graph {
             callback(vertex);
         }
 
-        for (let i = 0; i < neighbours.length; i++) {
+        for (var i = 0; i < neighbours.length; i++) {
             this.traverseTree(neighbours[i], vertexId, callback, maxDepth, ignoreFirst, depth + 1, visited);
         }
     }
@@ -782,8 +792,10 @@ class Graph {
         let edgeStrength = bondLength;
 
         // Add vertices that are directly connected to the ring
-        let i = vertexIds.length;
+        var i = vertexIds.length;
         while (i--) {
+            let vertex = this.vertices[vertexIds[i]];
+            var j = vertex.neighbours.length;
         }
 
         let matDist = this.getSubgraphDistanceMatrix(vertexIds);
@@ -816,7 +828,7 @@ class Graph {
         i = length;
         while (i--) {
             matLength[i] = new Array(length);
-            let j = length;
+            var j = length;
             while (j--) {
                 matLength[i][j] = bondLength * matDist[i][j];
             }
@@ -827,7 +839,7 @@ class Graph {
         i = length;
         while (i--) {
             matStrength[i] = Array(length);
-            let j = length;
+            var j = length;
             while (j--) {
                 matStrength[i][j] = edgeStrength * Math.pow(matDist[i][j], -2.0);
             }
@@ -1051,7 +1063,7 @@ class Graph {
     static getConnectedComponents(adjacencyMatrix) {
         let length = adjacencyMatrix.length;
         let visited = new Array(length);
-        let components = [];
+        let components = new Array();
         let count = 0;
 
         visited.fill(false);
