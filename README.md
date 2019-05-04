@@ -1,22 +1,14 @@
 ![Smiles Drawer](https://github.com/reymond-group/smilesDrawer/blob/master/logo.png?raw=true)
 # Smiles Drawer
-Current Version: 1.0.10 ([Ballroom Blitz](https://www.youtube.com/watch?v=ewFBuYHldeY))
+This is the fork of Smiles Drawer.
+The Expanding properties are marking the decay points, adjusting the decay points with the mouse, break down the molecule into building blocks.
 
 If you use this code or application, please cite the original paper published by the Journal of Chemical Information and Modeling: [10.1021/acs.jcim.7b00425](http://dx.doi.org/10.1021/acs.jcim.7b00425)
 
 <img src="http://doc.gdb.tools/smilesDrawer/structures.png"></img>
 
 <h3><a href="http://doc.gdb.tools/smilesDrawer/sd/example/index_light.html">Demo</a></h3>
-
-### Compatibility
-All the current versions of the major browsers are supported and the application has been tested on the following browsers (versions):
-- Chrome (68.0.3440.106)
-- Firefox (61.0.1)
-- Edge (42.17134.167.0)
-- Internet Explorer 11
-- Safari (10.1.2)
-
-SmilesDrawer should also run on older versions of all of these browsers, if you experience any problems on older browsers, please open an issue and it will be tested.
+Demo is the original version from Daniel Probst.
 
 ### Examples
 An example using the light theme can be found [here](http://doc.gdb.tools/smilesDrawer/sd/example/index_light.html), while one using the dark theme can be found [here](http://doc.gdb.tools/smilesDrawer/sd/example/index.html) . The colors of SmilesDrawer are completely configurable.
@@ -30,15 +22,12 @@ Examples showing molecules from different databases:
 
 A very simple JSFiddle example can be found [here](https://jsfiddle.net/zjdtkL57/1/). This example shows the `SmilesDrawer.apply()` functionality which draws the structure for every `canvas` element with a `data-smiles` attribute. E.g. `<canvas data-smiles="C1CCCCC1"></canvas>`
 ### "Installation"
-SmilesDrawer is available from the unpkg content delivery network:
-```
-https://unpkg.com/smiles-drawer@1.0.2/dist/smiles-drawer.min.js
-```
-You can easily get smiles-drawer using yarn:
-```
-yarn add smiles-drawer
-```
-or you can just download the files from here.
+You can install Smiles Drawer via npm.
+To do this add this lines to your package.json
+
+    "dependencies": {
+        "smiles-drawer": "git+https://github.com/privrja/smilesDrawer.git"
+      }
 
 ### Building Smiles Drawer
 If you decide not to use the ready-to-go scripts in `dist`, you can (edit and) build the project by running:
