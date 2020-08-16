@@ -745,21 +745,21 @@ class Graph {
         return max + 1;
     }
 
-    /**
-     * Traverse a sub-tree in the graph.
-     *
-     * @param {Number} vertexId A vertex id.
-     * @param {Number} parentVertexId A neighbouring vertex.
-     * @param {Function} callback The callback function that is called with each visited as an argument.
-     * @param {Number} [maxDepth=Number.MAX_SAFE_INTEGER] The maximum depth of the recursion.
-     * @param {Boolean} [ignoreFirst=false] Whether or not to ignore the starting vertex supplied as vertexId in the callback.
-     * @param {Number} [depth=1] The current depth in the tree.
-     * @param {Uint8Array} [visited=null] An array holding a flag on whether or not a node has been visited.
-     */
-    traverseTree(vertexId, parentVertexId, callback, maxDepth = Number.MAX_SAFE_INTEGER, ignoreFirst = false, depth = 1, visited = null) {
-        if (visited === null) {
-            visited = new Uint8Array(this.vertices.length);
-        }
+  /**
+   * Traverse a sub-tree in the graph.
+   *
+   * @param {Number} vertexId A vertex id.
+   * @param {Number} parentVertexId A neighbouring vertex.
+   * @param {Function} callback The callback function that is called with each visited as an argument.
+   * @param {Number} [maxDepth=999999] The maximum depth of the recursion.
+   * @param {Boolean} [ignoreFirst=false] Whether or not to ignore the starting vertex supplied as vertexId in the callback.
+   * @param {Number} [depth=1] The current depth in the tree.
+   * @param {Uint8Array} [visited=null] An array holding a flag on whether or not a node has been visited.
+   */
+  traverseTree(vertexId, parentVertexId, callback, maxDepth = 999999, ignoreFirst = false, depth = 1, visited = null) {
+    if (visited === null) {
+      visited = new Uint8Array(this.vertices.length);
+    }
 
         if (depth > maxDepth + 1 || visited[vertexId] === 1) {
             return;
@@ -779,17 +779,20 @@ class Graph {
         }
     }
 
-    /**
-     * Positiones the (sub)graph using Kamada and Kawais algorithm for drawing general undirected graphs. https://pdfs.semanticscholar.org/b8d3/bca50ccc573c5cb99f7d201e8acce6618f04.pdf
-     *
-     * @param {Number[]} vertexIds An array containing vertexIds to be placed using the force based layout.
-     * @param {Vector2} center The center of the layout.
-     * @param {Number} startVertexId A vertex id. Should be the starting vertex - e.g. the first to be positioned and connected to a previously place vertex.
-     * @param {Ring} ring The bridged ring associated with this force-based layout.
-     * @param bondLength
-     */
-    kkLayout(vertexIds, center, startVertexId, ring, bondLength) {
-        let edgeStrength = bondLength;
+  /**
+   * Positiones the (sub)graph using Kamada and Kawais algorithm for drawing general undirected graphs. https://pdfs.semanticscholar.org/b8d3/bca50ccc573c5cb99f7d201e8acce6618f04.pdf
+   * There are undocumented layout parameters. They are undocumented for a reason, so be very careful.
+   *
+   * @param {Number[]} vertexIds An array containing vertexIds to be placed using the force based layout.
+   * @param {Vector2} center The center of the layout.
+   * @param {Number} startVertexId A vertex id. Should be the starting vertex - e.g. the first to be positioned and connected to a previously place vertex.
+   * @param {Ring} ring The bridged ring associated with this force-based layout.
+   */
+  kkLayout(vertexIds, center, startVertexId, ring, bondLength,
+    threshold = 0.1, innerThreshold = 0.1, maxIteration = 2000,
+    maxInnerIteration = 50, maxEnergy = 1e9) {
+
+    let edgeStrength = bondLength;
 
         // Add vertices that are directly connected to the ring
         var i = vertexIds.length;
@@ -923,17 +926,17 @@ class Graph {
                     continue;
                 }
 
-                let vx = arrPositionX[i];
-                let vy = arrPositionY[i];
-                let l = arrL[i];
-                let k = arrK[i];
-                let m = (ux - vx) * (ux - vx);
-                let denom = 1.0 / Math.pow(m + (uy - vy) * (uy - vy), 1.5);
+        let vx = arrPositionX[i];
+        let vy = arrPositionY[i];
+        let l = arrL[i];
+        let k = arrK[i];
+        let m = (ux - vx) * (ux - vx);
+        let denom = 1.0 / Math.pow(m + (uy - vy) * (uy - vy), 1.5);
 
-                dxx += k * (1 - l * (uy - vy) * (uy - vy) * denom);
-                dyy += k * (1 - l * m * denom);
-                dxy += k * (l * (ux - vx) * (uy - vy) * denom);
-            }
+        dxx += k * (1 - l * (uy - vy) * (uy - vy) * denom);
+        dyy += k * (1 - l * m * denom);
+        dxy += k * (l * (ux - vx) * (uy - vy) * denom);
+      }
 
             // Prevent division by zero
             if (dxx === 0) {
@@ -989,20 +992,13 @@ class Graph {
             arrEnergySumY[index] = dEY;
         };
 
-        // Setting parameters
-        let threshold = 0.1;
-        let innerThreshold = 0.1;
-        let maxIteration = 2000;
-        let maxInnerIteration = 50;
-        let maxEnergy = 1e9;
-
-        // Setting up variables for the while loops
-        let maxEnergyId = 0;
-        let dEX = 0.0;
-        let dEY = 0.0;
-        let delta = 0.0;
-        let iteration = 0;
-        let innerIteration = 0;
+    // Setting up variables for the while loops
+    let maxEnergyId = 0;
+    let dEX = 0.0;
+    let dEY = 0.0;
+    let delta = 0.0;
+    let iteration = 0;
+    let innerIteration = 0;
 
         while (maxEnergy > threshold && maxIteration > iteration) {
             iteration++;
@@ -1063,7 +1059,7 @@ class Graph {
     static getConnectedComponents(adjacencyMatrix) {
         let length = adjacencyMatrix.length;
         let visited = new Array(length);
-        let components = new Array();
+        let components = [];
         let count = 0;
 
         visited.fill(false);
