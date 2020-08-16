@@ -145,8 +145,7 @@ class Drawer {
         }
 
         return extended;
-    };
-
+    }
 
     /**
      * Is setup to draw decay points?
@@ -1494,8 +1493,6 @@ class Drawer {
                 line.shorten(this.opts.bondLength - this.opts.shortBondLength * this.opts.bondLength);
                 this.canvasWrapper.drawLine(line);
                 this.canvasWrapper.drawLine(new Line(a, b, elementA, elementB, false, false, this.isDrawDecayPoint(edge.isDecay)));
-            } else {
-
             }
         } else if (edge.bondType === '#') {
             normals[0].multiplyScalar(that.opts.bondSpacing / 1.5);
@@ -2733,7 +2730,7 @@ class Drawer {
                 for (let k = 0; k < priorities[j][1].length; k++) {
                     let diff = maxEntries - priorities[j][1][k].length;
 
-                    for (var l = 0; l < diff; l++) {
+                    for (let l = 0; l < diff; l++) {
                         priorities[j][1][k].push(0);
                     }
                 }

@@ -1,6 +1,6 @@
 //@ts-check
-const Drawer = require('./src/Drawer')
-const Parser = require('./src/Parser')
+const Drawer = require('./src/Drawer');
+const Parser = require('./src/Parser');
 
 
 // Detect SSR (server side rendering)
@@ -29,7 +29,7 @@ SmilesDrawer.Parser = Parser;
 */
 SmilesDrawer.clean = function(smiles) {
   return smiles.replace(/[^A-Za-z0-9@\.\+\-\?!\(\)\[\]\{\}/\\=#\$:\*]/g,'');
-}
+};
 
 /**
 * Applies the smiles drawer draw function to each canvas element that has a smiles string in the data-smiles attribute.
@@ -55,7 +55,7 @@ SmilesDrawer.apply = function(options, selector='canvas[data-smiles]', themeName
         }
       });
   }
-}
+};
 
 /**
 * Parses the entered smiles string.
@@ -75,7 +75,7 @@ SmilesDrawer.parse = function(smiles, successCallback, errorCallback) {
           errorCallback(err);
       }
   }
-}
+};
 
 if (canUseDOM) {
   window.SmilesDrawer = SmilesDrawer;
