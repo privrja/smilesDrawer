@@ -1,9 +1,9 @@
 //@ts-check
-const MathHelper = require('./MathHelper')
-const Vector2 = require('./Vector2')
-const Line = require('./Line')
-const Vertex = require('./Vertex')
-const Ring = require('./Ring')
+const MathHelper = require('./MathHelper');
+const Vector2 = require('./Vector2');
+const Line = require('./Line');
+const Vertex = require('./Vertex');
+const Ring = require('./Ring');
 
 /** 
  * A class wrapping a canvas element.
@@ -560,7 +560,7 @@ class CanvasWrapper {
         let pseudoElementHandled = false;
 
         // Charge
-        let chargeText = ''
+        let chargeText = '';
         let chargeWidth = 0;
 
         if (charge) {
@@ -584,7 +584,7 @@ class CanvasWrapper {
         // Exception for nitro (draw nitro as NO2 instead of N+O-O)
         if (charge === 1 && elementName === 'N' && attachedPseudoElement.hasOwnProperty('0O') && 
             attachedPseudoElement.hasOwnProperty('0O-1')) {
-            attachedPseudoElement = { '0O': { element: 'O', count: 2, hydrogenCount: 0, previousElement: 'C', charge: '' } }
+            attachedPseudoElement = { '0O': { element: 'O', count: 2, hydrogenCount: 0, previousElement: 'C', charge: '' } };
             charge = 0;
         }
 
@@ -683,7 +683,7 @@ class CanvasWrapper {
             }
 
             ctx.font = this.fontLarge;
-            ctx.fillText('H', hx, hy)
+            ctx.fillText('H', hx, hy);
 
             ctx.font = this.fontSmall;
             ctx.fillText(hydrogens, hx + this.halfHydrogenWidth + hydrogenCountWidth, hy + this.opts.fifthFontSizeSmall);
@@ -770,21 +770,21 @@ class CanvasWrapper {
                 cursorPosLeft -= elementWidth;
                 ctx.fillText(element, hx + cursorPosLeft, hy)
             } else {
-                ctx.fillText(element, hx + cursorPos, hy)
+                ctx.fillText(element, hx + cursorPos, hy);
                 cursorPos += elementWidth;
             }
 
             if (hydrogenCount > 0) {
                 if (direction === 'left') {
                     cursorPosLeft -= hydrogenWidth + hydrogenCountWidth;
-                    ctx.fillText('H', hx + cursorPosLeft, hy)
+                    ctx.fillText('H', hx + cursorPosLeft, hy);
 
                     if (hydrogenCount > 1) {
                         ctx.font = this.fontSmall;
                         ctx.fillText(hydrogenCount, hx + cursorPosLeft + hydrogenWidth, hy + this.opts.fifthFontSizeSmall);
                     }
                 } else {
-                    ctx.fillText('H', hx + cursorPos, hy)
+                    ctx.fillText('H', hx + cursorPos, hy);
                     cursorPos += hydrogenWidth;
 
                     if (hydrogenCount > 1) {
