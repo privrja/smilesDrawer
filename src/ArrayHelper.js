@@ -45,7 +45,7 @@ class ArrayHelper {
         let tmpA = arrA.slice().sort();
         let tmpB = arrB.slice().sort();
 
-        for (var i = 0; i < tmpA.length; i++) {
+        for (let i = 0; i < tmpA.length; i++) {
             if (tmpA[i] !== tmpB[i]) {
                 return false;
             }
@@ -152,7 +152,7 @@ class ArrayHelper {
      * @returns {Array} The intersecting vlaues.
      */
     static intersection(arrA, arrB) {
-        let intersection = new Array();
+        let intersection = [];
         
         for (let i = 0; i < arrA.length; i++) {
             for (let j = 0; j < arrB.length; j++) {
