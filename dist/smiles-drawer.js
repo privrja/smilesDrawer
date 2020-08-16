@@ -2269,6 +2269,8 @@ var Drawer = function () {
         this.defaultOptions = {
             width: 500,
             height: 500,
+            offsetX: 0,
+            offsetY: 0,
             bondThickness: 0.6,
             bondLength: 15,
             shortBondLength: 0.85,
@@ -5539,7 +5541,7 @@ var Drawer = function () {
 
     }, {
         key: 'handleMouseClick',
-        value: function handleMouseClick(e, offsetX, offsetY) {
+        value: function handleMouseClick(e) {
             if (this.opts.drawDecayPoints === DecayState.VALUES.NO) {
                 return;
             }
@@ -5548,7 +5550,8 @@ var Drawer = function () {
             if (!this.graph) {
                 return;
             }
-            this.findAndReDrawEdge(e.clientX - offsetX, e.clientY - offsetY + document.documentElement.scrollTop);
+
+            this.findAndReDrawEdge(e.clientX - this.opts.offsetX, e.clientY - this.opts.offsetY + document.body.scrollTop);
         }
 
         /**

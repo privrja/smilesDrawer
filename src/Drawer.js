@@ -43,6 +43,8 @@ class Drawer {
         this.defaultOptions = {
             width: 500,
             height: 500,
+            offsetX: 0,
+            offsetY: 0,
             bondThickness: 0.6,
             bondLength: 15,
             shortBondLength: 0.85,
@@ -3046,7 +3048,7 @@ class Drawer {
      * @param offsetX offset of canvas in page X. Typically canvas.offsetLeft
      * @param offsetY offset of canvas in page Y. Typically canvas.offsetTop
      */
-    handleMouseClick(e, offsetX, offsetY) {
+    handleMouseClick(e) {
         if (this.opts.drawDecayPoints === DecayState.VALUES.NO) {
             return;
         }
@@ -3055,7 +3057,8 @@ class Drawer {
         if (!this.graph) {
             return;
         }
-        this.findAndReDrawEdge(e.clientX - offsetX, e.clientY - offsetY + document.documentElement.scrollTop);
+
+        this.findAndReDrawEdge(e.clientX - this.opts.offsetX, e.clientY - this.opts.offsetY + document.body.scrollTop);
     }
 
     /**
