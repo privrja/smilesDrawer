@@ -39,17 +39,17 @@
         <article>
             <pre class="prettyprint source linenums"><code>//@ts-check
 const DecayPoint = require('./DecayPoint');
-const MathHelper = require('./MathHelper')
-const Vector2 = require('./Vector2')
-const Vertex = require('./Vertex')
-const Edge = require('./Edge')
-const Ring = require('./Ring')
-const Atom = require('./Atom')
-const VertexState = require('./VertexState')
-const SmallGraph = require('./SmallGraph')
-const Node = require('./Node')
-const SequenceType = require('./SequenceType')
-const DecayState = require('./DecayState')
+const MathHelper = require('./MathHelper');
+const Vector2 = require('./Vector2');
+const Vertex = require('./Vertex');
+const Edge = require('./Edge');
+const Ring = require('./Ring');
+const Atom = require('./Atom');
+const VertexState = require('./VertexState');
+const SmallGraph = require('./SmallGraph');
+const Node = require('./Node');
+const SequenceType = require('./SequenceType');
+const DecayState = require('./DecayState');
 
 /**
  * A class representing the molecular graph.
@@ -66,6 +66,7 @@ class Graph {
      *
      * @param {Object} parseTree A SMILES parse tree.
      * @param {Boolean} [isomeric=false] A boolean specifying whether or not the SMILES is isomeric.
+     * @param options
      */
     constructor(parseTree, isomeric = false, options = {}) {
         this.vertices = Array();
@@ -88,6 +89,7 @@ class Graph {
      * PRIVATE FUNCTION. Initializing the graph from the parse tree.
      *
      * @param {Object} node The current node in the parse tree.
+     * @param order
      * @param {Number} parentVertexId=null The id of the previous vertex.
      * @param {Boolean} isBranch=false Whether or not the bond leading to this vertex is a branch bond. Branches are represented by parentheses in smiles (e.g. CC(O)C).
      */
@@ -284,6 +286,7 @@ class Graph {
      * check if its decay point of specific decay types
      * @param sourceId
      * @param targetId
+     * @param edgeBondId
      * @param decayTypes DecayPoint
      * @returns {int|boolean} return edge id when found, otherwise return false
      */
@@ -307,6 +310,7 @@ class Graph {
      * Find decay points of -CO-O- type
      * @param sourceId
      * @param targetId
+     * @param edgeBondId
      * @returns {int|boolean}
      */
     getNeighbourEdgeDecayIdOfCOO(sourceId, targetId, edgeBondId) {
@@ -322,6 +326,7 @@ class Graph {
      * Find decay points of -CO-NH- type
      * @param sourceId
      * @param targetId
+     * @param edgeBondId
      * @returns {int|boolean}
      */
     getNeighbourEdgeDecayIdOfCONH(sourceId, targetId, edgeBondId) {
@@ -337,6 +342,7 @@ class Graph {
      * Find decay point edge id of right neighbour
      * @param vertexId
      * @param element
+     * @param edgeBondId
      * @returns {int|boolean}
      */
     getNeighbourEdgeDecayId(vertexId, element, edgeBondId) {
@@ -742,7 +748,7 @@ class Graph {
             callback(vertex);
 
             for (var i = 0; i &lt; vertex.neighbours.length; i++) {
-                let v = vertex.neighbours[i]
+                let v = vertex.neighbours[i];
                 if (!visited[v]) {
                     visited[v] = true;
                     queue.push(v);
@@ -819,6 +825,7 @@ class Graph {
      * @param {Vector2} center The center of the layout.
      * @param {Number} startVertexId A vertex id. Should be the starting vertex - e.g. the first to be positioned and connected to a previously place vertex.
      * @param {Ring} ring The bridged ring associated with this force-based layout.
+     * @param bondLength
      */
     kkLayout(vertexIds, center, startVertexId, ring, bondLength) {
         let edgeStrength = bondLength;
@@ -905,7 +912,7 @@ class Graph {
                 matEnergy[i][j] = [
                     matStrength[i][j] * ((ux - vx) - matLength[i][j] * (ux - vx) * denom),
                     matStrength[i][j] * ((uy - vy) - matLength[i][j] * (uy - vy) * denom)
-                ]
+                ];
                 matEnergy[j][i] = matEnergy[i][j];
                 dEx += matEnergy[i][j][0];
                 dEy += matEnergy[i][j][1];
@@ -917,13 +924,13 @@ class Graph {
         // Utility functions, maybe inline them later
         let energy = function (index) {
             return [arrEnergySumX[index] * arrEnergySumX[index] + arrEnergySumY[index] * arrEnergySumY[index], arrEnergySumX[index], arrEnergySumY[index]];
-        }
+        };
 
         let highestEnergy = function () {
             let maxEnergy = 0.0;
             let maxEnergyId = 0;
             let maxDEX = 0.0;
-            let maxDEY = 0.0
+            let maxDEY = 0.0;
 
             i = length;
             while (i--) {
@@ -938,7 +945,7 @@ class Graph {
             }
 
             return [maxEnergyId, maxEnergy, maxDEX, maxDEY];
-        }
+        };
 
         let update = function (index, dEX, dEY) {
             let dxx = 0.0;
@@ -1019,7 +1026,7 @@ class Graph {
             }
             arrEnergySumX[index] = dEX;
             arrEnergySumY[index] = dEY;
-        }
+        };
 
         // Setting parameters
         let threshold = 0.1;
@@ -1763,7 +1770,7 @@ module.exports = Graph;</code></pre>
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.5.5</a> on Sun Aug 16 2020 15:13:00 GMT+0200 (Střední Evropa (letní čas)) using the <a href="https://github.com/clenemt/docdash">docdash</a> theme.
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.5.5</a> on Sun Aug 16 2020 18:37:47 GMT+0200 (Střední Evropa (letní čas)) using the <a href="https://github.com/clenemt/docdash">docdash</a> theme.
 </footer>
 
 <script>prettyPrint();</script>
