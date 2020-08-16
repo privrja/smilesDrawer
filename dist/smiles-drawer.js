@@ -5550,7 +5550,10 @@ var Drawer = function () {
             if (!this.graph) {
                 return;
             }
-            this.findAndReDrawEdge(e.clientX - this.opts.offsetX, e.clientY - this.opts.offsetY + document.documentElement.scrollTop);
+            console.log(e.clientY + " " + this.opts.offsetY + " " + document.body.scrollTop + " " + document.documentElement.scrollTop);
+            console.log(e.clientY - this.opts.offsetY + document.body.scrollTop);
+
+            this.findAndReDrawEdge(e.clientX - this.opts.offsetX, e.clientY - this.opts.offsetY + document.body.scrollTop);
         }
 
         /**
