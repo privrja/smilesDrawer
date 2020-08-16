@@ -557,8 +557,6 @@ class CanvasWrapper {
         ctx.textAlign = 'start';
         ctx.textBaseline = 'alphabetic';
 
-        let pseudoElementHandled = false;
-
         // Charge
         let chargeText = '';
         let chargeWidth = 0;
@@ -689,11 +687,6 @@ class CanvasWrapper {
             ctx.fillText(hydrogens, hx + this.halfHydrogenWidth + hydrogenCountWidth, hy + this.opts.fifthFontSizeSmall);
 
             cursorPos += hydrogenWidth + this.halfHydrogenWidth + hydrogenCountWidth;
-        }
-
-        if (pseudoElementHandled) {
-            ctx.restore();
-            return;
         }
 
         for (let key in attachedPseudoElement) {
