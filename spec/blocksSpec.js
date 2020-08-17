@@ -61,8 +61,8 @@ describe("blocks", function () {
     it("cyclosporine A blocks", function () {
         smilesDrawer.draw(SmilesDrawer.Parser.parse(CYCLOSPORINE_A), 'output-canvas', 'light', true);
         let result = smilesDrawer.buildBlockSmiles();
-        let expected = [
-            [
+        let expected = {
+            blockSmiles: [
                 'OC(C(CC)N)=O',
                 'N(CC(=O)O)C',
                 'N(C(C(=O)O)CC(C)C)C',
@@ -75,18 +75,18 @@ describe("blocks", function () {
                 'N(C(C(=O)O)C(C)C)C',
                 'N(C(C(=O)O)C(C(C)CC=CC)O)C'
             ],
-            '[0]-[10]-[9]-[8]-[7]-[6]-[5]-[4]-[3]-[2]-[1]',
-            'cyclic',
-            [4, 8, 12, 16, 20, 24, 28, 32, 36, 40, 44]
-        ];
+            sequence: '[0]-[10]-[9]-[8]-[7]-[6]-[5]-[4]-[3]-[2]-[1]',
+            sequenceType: 'cyclic',
+            decays: [4, 8, 12, 16, 20, 24, 28, 32, 36, 40, 44]
+        };
         expect(result).toEqual(expected);
     });
 
     it("cyclosporine B blocks", function () {
         smilesDrawer.draw(SmilesDrawer.Parser.parse(CYCLOSPORINE_B), 'output-canvas', 'light', true);
         let result = smilesDrawer.buildBlockSmiles();
-        let expected = [
-            [
+        let expected = {
+            blockSmiles: [
                 'OC(C(C(C(CC=CC)C)O)NC)=O',
                 'NC(C(=O)O)C',
                 'N(CC(=O)O)C',
@@ -99,18 +99,18 @@ describe("blocks", function () {
                 'N(C(C(=O)O)CC(C)C)C',
                 'N(C(C(=O)O)C(C)C)C'
             ],
-            '[0]-[10]-[9]-[8]-[7]-[6]-[5]-[4]-[3]-[2]-[1]',
-            'cyclic',
-            [9, 13, 17, 21, 25, 29, 33, 37, 41, 45, 49]
-        ];
+            sequence: '[0]-[10]-[9]-[8]-[7]-[6]-[5]-[4]-[3]-[2]-[1]',
+            sequenceType: 'cyclic',
+            decays: [9, 13, 17, 21, 25, 29, 33, 37, 41, 45, 49]
+        };
         expect(result).toEqual(expected);
     });
 
     it("Valinomicine blocks", function () {
         smilesDrawer.draw(SmilesDrawer.Parser.parse(VALINOMYCIN), 'output-canvas', 'light', true);
         let result = smilesDrawer.buildBlockSmiles();
-        let expected = [
-            [
+        let expected = {
+            blockSmiles: [
                 'OC(C(C)O)=O',
                 'NC(C(=O)O)C(C)C',
                 'OC(C(=O)O)C(C)C',
@@ -124,18 +124,18 @@ describe("blocks", function () {
                 'OC(C(=O)O)C(C)C',
                 'NC(C(=O)O)C(C)C'
             ],
-            '[0]-[11]-[10]-[9]-[8]-[7]-[6]-[5]-[4]-[3]-[2]-[1]',
-            'cyclic',
-            [3, 7, 11, 15, 19, 23, 27, 31, 35, 39, 43, 47]
-        ];
+            sequence: '[0]-[11]-[10]-[9]-[8]-[7]-[6]-[5]-[4]-[3]-[2]-[1]',
+            sequenceType: 'cyclic',
+            decays: [3, 7, 11, 15, 19, 23, 27, 31, 35, 39, 43, 47]
+        };
         expect(result).toEqual(expected);
     });
 
     it("Pseudocaclin blocks", function () {
         smilesDrawer.draw(SmilesDrawer.Parser.parse(PSEUDACYCLIN_A), 'output-canvas', 'light', true);
         let result = smilesDrawer.buildBlockSmiles();
-        let expected = [
-            [
+        let expected = {
+            blockSmiles: [
                 'OC(C(C(CC)C)NC(C)=O)=O',
                 'NC(CCCN)C(O)=O',
                 'OC(=O)C(N)C(C)CC',
@@ -143,18 +143,18 @@ describe("blocks", function () {
                 'OC(=O)C1CCCN1',
                 'OC(=O)C(Cc1ccccc1)N'
             ],
-            '\\([1]-[0]\\)[2]-[3]-[4]-[5]',
-            'branch-cyclic',
-            [10, 16, 20, 24, 31, 42]
-        ];
+            sequence: '\\([1]-[0]\\)[2]-[3]-[4]-[5]',
+            sequenceType: 'branch-cyclic',
+            decays: [10, 16, 20, 24, 31, 42]
+        };
         expect(result).toEqual(expected);
     });
 
     it("XXx blocks", function () {
         smilesDrawer.draw(SmilesDrawer.Parser.parse(XXX), 'output-canvas', 'light', true);
         let result = smilesDrawer.buildBlockSmiles();
-        let expected = [
-            [
+        let expected = {
+            blockSmiles: [
                 'NC(C(O)=O)Cc1nc[nH]c1',
                 'OC(=O)C(N)CC(O)=O',
                 'NC(C(O)=O)Cc1ccccc1',
@@ -163,18 +163,18 @@ describe("blocks", function () {
                 'NC(CCCCN)C(O)=O',
                 'OC(C(CCCC)NC(C)=O)=O'
             ],
-            '[0]-[2]-[3]-[4]-[5]\\([1]-[6]\\)',
-            'branch-cyclic',
-            [28, 25, 22, 19, 16, 9, 5]
-        ];
+            sequence: '[0]-[2]-[3]-[4]-[5]\\([1]-[6]\\)',
+            sequenceType: 'branch-cyclic',
+            decays: [28, 25, 22, 19, 16, 9, 5]
+        };
         expect(result).toEqual(expected);
     });
 
     it("Linearized pseudacyclin A blocks", function () {
         smilesDrawer.draw(SmilesDrawer.Parser.parse(LINEARIZED_PSEUDACYCLIN_A), 'output-canvas', 'light', true);
         let result = smilesDrawer.buildBlockSmiles();
-        let expected = [
-            [
+        let expected = {
+            blockSmiles: [
                 'NC(CCCN)C(=O)O',
                 'OC(=O)C(NC(=O)C)C(C)CC',
                 'NC(CC1=CC=CC=C1)C(O)=O',
@@ -182,18 +182,18 @@ describe("blocks", function () {
                 'OC(=O)C(C(CC)C)N',
                 'OC(=O)C1CCCN1',
             ],
-            '[1]\\([0]-[3]-[4]-[5]\\)[2]',
-            'branched',
-            [4, 17, 30, 38, 46]
-        ];
+            sequence: '[1]\\([0]-[3]-[4]-[5]\\)[2]',
+            sequenceType: 'branched',
+            decays: [4, 17, 30, 38, 46]
+        };
         expect(result).toEqual(expected);
     });
 
     it("Pyoverdin Pa A blocks", function () {
         smilesDrawer.draw(SmilesDrawer.Parser.parse(PYOVERDIN_PA_A), 'output-canvas', 'light', true);
         let result = smilesDrawer.buildBlockSmiles();
-        let expected = [
-            [
+        let expected = {
+            blockSmiles: [
                 'OC(C(C(C)O)N)=O',
                 'NC(C(=O)O)C(C)O',
                 'NCCCCC(C(=O)O)N',
@@ -205,10 +205,10 @@ describe("blocks", function () {
                 'OC(=O)C2CCNC1=C(C=C3C=C(C(=O)C=C3N12)O)N',
                 'OC(=O)CCC(=O)O'
             ],
-            '[0]-[3]\\([2]-[4]-[5]-[6]-[7]-[8]-[9]\\)[1]',
-            'branch-cyclic',
-            [4, 8, 16, 20, 29, 40, 46, 57, 63, 82]
-        ];
+            sequence: '[0]-[3]\\([2]-[4]-[5]-[6]-[7]-[8]-[9]\\)[1]',
+            sequenceType: 'branch-cyclic',
+            decays: [4, 8, 16, 20, 29, 40, 46, 57, 63, 82]
+        };
         expect(result).toEqual(expected);
     });
 
@@ -216,8 +216,8 @@ describe("blocks", function () {
         //problem with double bond in ring
         smilesDrawer.draw(SmilesDrawer.Parser.parse(MICAFUNGIN), 'output-canvas', 'light', true);
         let result = smilesDrawer.buildBlockSmiles();
-        let expected = [
-            [
+        let expected = {
+            blockSmiles: [
                 'OC(C3=CC=C(C2C=C(C1=CC=C(OCCCCC)C=C1)ON=2)C=C3)=O',
                 'NC(CC(C(N)O)O)C(O)=O',
                 'OC(=O)C1C(C(CN1)C)O',
@@ -226,18 +226,18 @@ describe("blocks", function () {
                 'OC(=O)C1CC(CN1)O',
                 'OC(=O)C(N)C(C)O'
             ],
-            '\\([1]-[0]\\)[2]-[3]-[4]-[5]-[6]',
-            'branch-cyclic',
-            [24, 30, 37, 41, 45, 52, 56]
-        ];
+            sequence: '\\([1]-[0]\\)[2]-[3]-[4]-[5]-[6]',
+            sequenceType: 'branch-cyclic',
+            decays: [24, 30, 37, 41, 45, 52, 56]
+        };
         expect(result).toEqual(expected);
     });
 
     it("Valinegramicidin blocks", function () {
         smilesDrawer.draw(SmilesDrawer.Parser.parse(VALINEGRAMICIDIN_C), 'output-canvas', 'light', true);
         let result = smilesDrawer.buildBlockSmiles();
-        let expected = [
-            [
+        let expected = {
+            blockSmiles: [
                 'OC(C(CC(C)C)N)=O',
                 'NC(C)C(=O)O',
                 'NC(C(C)C)C(=O)O',
@@ -255,43 +255,43 @@ describe("blocks", function () {
                 'OC(=O)CN',
                 'OC(=O)C(C(C)C)NC=O'
             ],
-            '[12]-[11]-[10]-[9]-[8]-[7]-[6]-[5]-[4]-[3]-[2]-[1]-[0]-[13]-[14]-[15]',
-            'linear',
-            [6, 11, 18, 25, 32, 46, 54, 66, 74, 88, 96, 110, 115, 120, 124]
-        ];
+            sequence: '[12]-[11]-[10]-[9]-[8]-[7]-[6]-[5]-[4]-[3]-[2]-[1]-[0]-[13]-[14]-[15]',
+            sequenceType: 'linear',
+            decays: [6, 11, 18, 25, 32, 46, 54, 66, 74, 88, 96, 110, 115, 120, 124]
+        };
         expect(result).toEqual(expected);
     });
 
     it("Beauverolide H blocks", function () {
         smilesDrawer.draw(SmilesDrawer.Parser.parse(BEAUVEROLIDE_H), 'output-canvas', 'light', true);
         let result = smilesDrawer.buildBlockSmiles();
-        let expected = [
-            [
+        let expected = {
+            blockSmiles: [
                 'OC(CC(CCCCCC)O)=O',
                 'NC(C(=O)O)CC1=CC=CC=C1',
                 'NC(C(=O)O)C',
                 'NC(C(=O)O)CC(C)C',
             ],
-            '[0]-[3]-[2]-[1]',
-            'cyclic',
-            [9, 13, 17, 21]
-        ];
+            sequence: '[0]-[3]-[2]-[1]',
+            sequenceType: 'cyclic',
+            decays: [9, 13, 17, 21]
+        };
         expect(result).toEqual(expected);
     });
 
     it("Timnodonyl COA blocks", function () {
         smilesDrawer.draw(SmilesDrawer.Parser.parse(TIMNODONYL_COA), 'output-canvas', 'light', true);
         let result = smilesDrawer.buildBlockSmiles();
-        let expected = [
-            [
+        let expected = {
+            blockSmiles: [
                 'NCCSC(CCCC=CCC=CCC=CCC=CCC=CCC)=O',
                 'OC(=O)CCN',
                 'OC(=O)[CH](O)C(C)(C)COP(O)(=O)OP(O)(=O)OC[CH]1O[CH](C(O)[CH]1OP(O)(O)=O)N3C=NC2=C3N=CN=C2N'
             ],
-            '[0]-[1]-[2]',
-            'linear',
-            [24, 29]
-        ];
+            sequence: '[0]-[1]-[2]',
+            sequenceType: 'linear',
+            decays: [24, 29]
+        };
         expect(result).toEqual(expected);
     });
 
