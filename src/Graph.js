@@ -80,7 +80,7 @@ class Graph {
 
             // Add edge between this node and its parent
             let edge = new Edge(parentVertexId, vertex.id, 1);
-            let vertexId = null;
+            let vertexId;
 
             if (isBranch) {
                 edge.setBondType(vertex.value.branchBond || '-');
@@ -92,7 +92,7 @@ class Graph {
                 vertexId = parentVertex.id;
             }
 
-            let edgeId = this.addEdge(edge);
+            this.addEdge(edge);
         }
 
         let offset = node.ringbondCount + 1;
@@ -1173,7 +1173,12 @@ class Graph {
         this.dfsSmallStart();
         this._smallGraph.oneCyclic();
         this._smallGraph.dfsSequenceStart();
-        return [smiles, this._smallGraph.sequence, this._smallGraph.sequenceType, this.decays];
+        return {
+            blockSmiles: smiles,
+            sequence: this._smallGraph.sequence,
+            sequenceType: this._smallGraph.sequenceType,
+            decays: this.decays
+        }
     }
 
     dfsSmallStart() {
