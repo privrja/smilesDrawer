@@ -1155,6 +1155,10 @@ class Graph {
         }
     }
 
+    getDecays() {
+        return this.decays;
+    }
+
     /**
      * Build block of SMILES based on decay points
      * DFS pass through graph

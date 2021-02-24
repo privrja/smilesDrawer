@@ -3043,6 +3043,10 @@ class Drawer {
         }
     }
 
+    getDecays() {
+        this.graph.getDecays();
+    }
+
     buildBlockSmiles() {
         return this.graph.buildSmiles();
     }
