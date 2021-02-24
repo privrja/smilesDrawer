@@ -120,7 +120,7 @@ if (!Array.prototype.fill) {
 
 module.exports = SmilesDrawer;
 
-},{"./src/Drawer":5,"./src/Parser":10,"./src/SvgDrawer":14}],2:[function(require,module,exports){
+},{"./src/Drawer":7,"./src/Parser":13,"./src/SvgDrawer":19}],2:[function(require,module,exports){
 "use strict";
 
 //@ts-check
@@ -170,7 +170,7 @@ class ArrayHelper {
     let tmpA = arrA.slice().sort();
     let tmpB = arrB.slice().sort();
 
-    for (var i = 0; i < tmpA.length; i++) {
+    for (let i = 0; i < tmpA.length; i++) {
       if (tmpA[i] !== tmpB[i]) {
         return false;
       }
@@ -281,7 +281,7 @@ class ArrayHelper {
 
 
   static intersection(arrA, arrB) {
-    let intersection = new Array();
+    let intersection = [];
 
     for (let i = 0; i < arrA.length; i++) {
       for (let j = 0; j < arrB.length; j++) {
@@ -528,10 +528,6 @@ module.exports = ArrayHelper;
 
 //@ts-check
 const ArrayHelper = require('./ArrayHelper');
-
-const Vertex = require('./Vertex');
-
-const Ring = require('./Ring');
 /** 
  * A class representing an atom.
  * 
@@ -1086,7 +1082,7 @@ class Atom {
 
 module.exports = Atom;
 
-},{"./ArrayHelper":2,"./Ring":11,"./Vertex":19}],4:[function(require,module,exports){
+},{"./ArrayHelper":2}],4:[function(require,module,exports){
 "use strict";
 
 //@ts-check
@@ -1112,6 +1108,8 @@ const {
  * @property {Object} opts The SmilesDrawer options.
  * @property {Number} drawingWidth The width of the canvas.
  * @property {Number} drawingHeight The height of the canvas.
+ * @property {Number} realWidth The width of the canvas real.
+ * @property {Number} realHeight The height of the canvas real.
  * @property {Number} offsetX The horizontal offset required for centering the drawing.
  * @property {Number} offsetY The vertical offset required for centering the drawing.
  * @property {Number} fontLarge The large font size in pt.
@@ -1139,6 +1137,8 @@ class CanvasWrapper {
     this.opts = options;
     this.drawingWidth = 0.0;
     this.drawingHeight = 0.0;
+    this.realWidth = 0.0;
+    this.realHeight = 0.0;
     this.offsetX = 0.0;
     this.offsetY = 0.0;
     this.fontLarge = this.opts.fontSizeLarge + 'pt Helvetica, Arial, sans-serif';
@@ -1162,16 +1162,15 @@ class CanvasWrapper {
     this.devicePixelRatio = window.devicePixelRatio || 1;
     this.backingStoreRatio = this.ctx.webkitBackingStorePixelRatio || this.ctx.mozBackingStorePixelRatio || this.ctx.msBackingStorePixelRatio || this.ctx.oBackingStorePixelRatio || this.ctx.backingStorePixelRatio || 1;
     this.ratio = this.devicePixelRatio / this.backingStoreRatio;
+    this.canvas.width = width * this.ratio;
+    this.canvas.height = height * this.ratio;
 
     if (this.ratio !== 1) {
-      this.canvas.width = width * this.ratio;
-      this.canvas.height = height * this.ratio;
+      this.realWidth = width;
+      this.realHeight = height;
       this.canvas.style.width = width + 'px';
       this.canvas.style.height = height + 'px';
       this.ctx.setTransform(this.ratio, 0, 0, this.ratio, 0, 0);
-    } else {
-      this.canvas.width = width * this.ratio;
-      this.canvas.height = height * this.ratio;
     }
   }
   /**
@@ -1349,8 +1348,14 @@ class CanvasWrapper {
     ctx.lineCap = 'round';
     ctx.lineWidth = this.opts.bondThickness;
     let gradient = this.ctx.createLinearGradient(l.x, l.y, r.x, r.y);
-    gradient.addColorStop(0.4, this.themeManager.getColor(line.getLeftElement()) || this.themeManager.getColor('C'));
-    gradient.addColorStop(0.6, this.themeManager.getColor(line.getRightElement()) || this.themeManager.getColor('C'));
+
+    if (line.isDecayPoint) {
+      gradient.addColorStop(0.4, this.themeManager.getColor("DECAY"));
+      gradient.addColorStop(0.6, this.themeManager.getColor("DECAY"));
+    } else {
+      gradient.addColorStop(0.4, this.themeManager.getColor(line.getLeftElement()) || this.themeManager.getColor('C'));
+      gradient.addColorStop(0.6, this.themeManager.getColor(line.getRightElement()) || this.themeManager.getColor('C'));
+    }
 
     if (dashed) {
       ctx.setLineDash([1, 1.5]);
@@ -1592,8 +1597,7 @@ class CanvasWrapper {
     let offsetY = this.offsetY;
     ctx.save();
     ctx.textAlign = 'start';
-    ctx.textBaseline = 'alphabetic';
-    let pseudoElementHandled = false; // Charge
+    ctx.textBaseline = 'alphabetic'; // Charge
 
     let chargeText = '';
     let chargeWidth = 0;
@@ -1716,11 +1720,6 @@ class CanvasWrapper {
       ctx.font = this.fontSmall;
       ctx.fillText(hydrogens, hx + this.halfHydrogenWidth + hydrogenCountWidth, hy + this.opts.fifthFontSizeSmall);
       cursorPos += hydrogenWidth + this.halfHydrogenWidth + hydrogenCountWidth;
-    }
-
-    if (pseudoElementHandled) {
-      ctx.restore();
-      return;
     }
 
     for (let key in attachedPseudoElement) {
@@ -1917,7 +1916,49 @@ class CanvasWrapper {
 
 module.exports = CanvasWrapper;
 
-},{"./Line":8,"./MathHelper":9,"./Ring":11,"./UtilityFunctions":17,"./Vector2":18,"./Vertex":19}],5:[function(require,module,exports){
+},{"./Line":10,"./MathHelper":11,"./Ring":14,"./UtilityFunctions":22,"./Vector2":23,"./Vertex":24}],5:[function(require,module,exports){
+"use strict";
+
+//@ts-check
+class DecayPoint {
+  /**
+   * Enum values for Decay points
+   * ALL use all variants of decay points
+   * COO -CO-O- type of decay
+   * CONH -CO-NH- type of decay
+   * @return {{ALL: number, COO: number, CONH: number}}
+   */
+  static get VALUES() {
+    return {
+      ALL: 0,
+      COO: 1,
+      CONH: 2
+    };
+  }
+
+}
+
+module.exports = DecayPoint;
+
+},{}],6:[function(require,module,exports){
+"use strict";
+
+//@ts-check
+class DecayState {
+  static get VALUES() {
+    return {
+      NO: 0,
+      STANDARD: 1,
+      SOURCE: 2,
+      STANDARD_AND_SOURCE: 3
+    };
+  }
+
+}
+
+module.exports = DecayState;
+
+},{}],7:[function(require,module,exports){
 "use strict";
 
 //@ts-check
@@ -1945,10 +1986,12 @@ const Graph = require('./Graph');
 
 const SSSR = require('./SSSR');
 
+const DecayState = require('./DecayState');
+
 const ThemeManager = require('./ThemeManager');
-/** 
- * The main class of the application representing the smiles drawer 
- * 
+/**
+ * The main class of the application representing the smiles drawer
+ *
  * @property {Graph} graph The graph associated with this SmilesDrawer.Drawer instance.
  * @property {Number} ringIdCounter An internal counter to keep track of ring ids.
  * @property {Number} ringConnectionIdCounter An internal counter to keep track of ring connection ids.
@@ -1977,6 +2020,12 @@ class Drawer {
     this.defaultOptions = {
       width: 500,
       height: 500,
+      offsetX: 0,
+
+      /* offsetX offset of canvas in page X. Typically canvas.offsetLeft */
+      offsetY: 0,
+
+      /* offsetY offset of canvas in page Y. Typically canvas.offsetTop */
       bondThickness: 0.6,
       bondLength: 15,
       shortBondLength: 0.85,
@@ -1985,7 +2034,7 @@ class Drawer {
       isomeric: true,
       debug: false,
       terminalCarbons: false,
-      explicitHydrogens: true,
+      explicitHydrogens: false,
       overlapSensitivity: 0.42,
       overlapResolutionIterations: 1,
       compactDrawing: true,
@@ -1998,6 +2047,9 @@ class Drawer {
       kkMaxIteration: 20000,
       kkMaxInnerIteration: 50,
       kkMaxEnergy: 1e9,
+      drawDecayPoints: DecayState.VALUES.NO,
+      decaySource: [],
+      mouseTolerance: 3,
       themes: {
         dark: {
           C: '#fff',
@@ -2012,7 +2064,8 @@ class Drawer {
           B: '#e67e22',
           SI: '#e67e22',
           H: '#fff',
-          BACKGROUND: '#141414'
+          BACKGROUND: '#141414',
+          DECAY: '#027c21'
         },
         light: {
           C: '#222',
@@ -2027,7 +2080,8 @@ class Drawer {
           B: '#e67e22',
           SI: '#e67e22',
           H: '#222',
-          BACKGROUND: '#fff'
+          BACKGROUND: '#fff',
+          DECAY: '#027c21'
         }
       }
     };
@@ -2039,6 +2093,7 @@ class Drawer {
     this.opts.fifthFontSizeSmall = this.opts.fontSizeSmall / 5.0; // Set the default theme.
 
     this.theme = this.opts.themes.dark;
+    this.drawDecayPoints = this.opts.drawDecayPoints;
   }
   /**
    * A helper method to extend the default options with user supplied ones.
@@ -2076,7 +2131,17 @@ class Drawer {
 
     return extended;
   }
+  /**
+   * Is setup to draw decay points?
+   * when boolean this.drawDecayPoint is true then return isDecay
+   * @param isDecay bool - edge.isDecay
+   * @returns {Boolean}
+   */
 
+
+  isDrawDecayPoint(isDecay) {
+    return this.drawDecayPoints !== DecayState.VALUES.NO && isDecay;
+  }
   /**
    * Draws the parsed smiles data to a canvas element.
    *
@@ -2085,6 +2150,8 @@ class Drawer {
    * @param {String} themeName='dark' The name of the theme to use. Built-in themes are 'light' and 'dark'.
    * @param {Boolean} infoOnly=false Only output info on the molecule without drawing anything to the canvas.
    */
+
+
   draw(data, target, themeName = 'light', infoOnly = false) {
     this.initDraw(data, themeName, infoOnly);
 
@@ -2187,7 +2254,7 @@ class Drawer {
   printRingInfo() {
     let result = '';
 
-    for (var i = 0; i < this.rings.length; i++) {
+    for (let i = 0; i < this.rings.length; i++) {
       const ring = this.rings[i];
       result += ring.id + ';';
       result += ring.members.length + ';';
@@ -2213,14 +2280,14 @@ class Drawer {
     let b = 0;
     let maxDist = 0;
 
-    for (var i = 0; i < this.graph.vertices.length; i++) {
+    for (let i = 0; i < this.graph.vertices.length; i++) {
       let vertexA = this.graph.vertices[i];
 
       if (!vertexA.value.isDrawn) {
         continue;
       }
 
-      for (var j = i + 1; j < this.graph.vertices.length; j++) {
+      for (let j = i + 1; j < this.graph.vertices.length; j++) {
         let vertexB = this.graph.vertices[j];
 
         if (!vertexB.value.isDrawn) {
@@ -2250,7 +2317,7 @@ class Drawer {
       } // Finally, rotate everything
 
 
-      for (var i = 0; i < this.graph.vertices.length; i++) {
+      for (let i = 0; i < this.graph.vertices.length; i++) {
         if (i === b) {
           continue;
         }
@@ -2258,7 +2325,7 @@ class Drawer {
         this.graph.vertices[i].position.rotateAround(angle, this.graph.vertices[b].position);
       }
 
-      for (var i = 0; i < this.rings.length; i++) {
+      for (let i = 0; i < this.rings.length; i++) {
         this.rings[i].center.rotateAround(angle, this.graph.vertices[b].position);
       }
     }
@@ -2313,7 +2380,7 @@ class Drawer {
   }
   /**
    * Returns the molecular formula of the loaded molecule as a string.
-   * 
+   *
    * @returns {String} The molecular formula.
    */
 
@@ -2419,7 +2486,7 @@ class Drawer {
     this.infoOnly = infoOnly;
     this.ringIdCounter = 0;
     this.ringConnectionIdCounter = 0;
-    this.graph = new Graph(data, this.opts.isomeric);
+    this.graph = new Graph(data, this.opts.isomeric, this.opts);
     this.rings = Array();
     this.ringConnections = Array();
     this.originalRings = Array();
@@ -2430,6 +2497,7 @@ class Drawer {
     this.doubleBondConfig = null;
     this.initRings();
     this.initHydrogens();
+    this.graph.findDecayPoints();
   }
 
   processGraph() {
@@ -2537,14 +2605,14 @@ class Drawer {
   initRings() {
     let openBonds = new Map(); // Close the open ring bonds (spanning tree -> graph)
 
-    for (var i = this.graph.vertices.length - 1; i >= 0; i--) {
+    for (let i = this.graph.vertices.length - 1; i >= 0; i--) {
       let vertex = this.graph.vertices[i];
 
       if (vertex.value.ringbonds.length === 0) {
         continue;
       }
 
-      for (var j = 0; j < vertex.value.ringbonds.length; j++) {
+      for (let j = 0; j < vertex.value.ringbonds.length; j++) {
         let ringbondId = vertex.value.ringbonds[j].id;
         let ringbondBond = vertex.value.ringbonds[j].bond; // If the other ringbond id has not been discovered,
         // add it to the open bonds map and continue.
@@ -2579,11 +2647,11 @@ class Drawer {
       return;
     }
 
-    for (var i = 0; i < rings.length; i++) {
+    for (let i = 0; i < rings.length; i++) {
       let ringVertices = [...rings[i]];
       let ringId = this.addRing(new Ring(ringVertices)); // Add the ring to the atoms
 
-      for (var j = 0; j < ringVertices.length; j++) {
+      for (let j = 0; j < ringVertices.length; j++) {
         this.graph.vertices[ringVertices[j]].value.rings.push(ringId);
       }
     } // Find connection between rings
@@ -2591,8 +2659,8 @@ class Drawer {
     // ugly, but the ringcount is always fairly low (< 100)
 
 
-    for (var i = 0; i < this.rings.length - 1; i++) {
-      for (var j = i + 1; j < this.rings.length; j++) {
+    for (let i = 0; i < this.rings.length - 1; i++) {
+      for (let j = i + 1; j < this.rings.length; j++) {
         let a = this.rings[i];
         let b = this.rings[j];
         let ringConnection = new RingConnection(a, b); // If there are no vertices in the ring connection, then there
@@ -2605,14 +2673,14 @@ class Drawer {
     } // Add neighbours to the rings
 
 
-    for (var i = 0; i < this.rings.length; i++) {
+    for (let i = 0; i < this.rings.length; i++) {
       let ring = this.rings[i];
       ring.neighbours = RingConnection.getNeighbours(this.ringConnections, ring.id);
     } // Anchor the ring to one of it's members, so that the ring center will always
     // be tied to a single vertex when doing repositionings
 
 
-    for (var i = 0; i < this.rings.length; i++) {
+    for (let i = 0; i < this.rings.length; i++) {
       let ring = this.rings[i];
       this.graph.vertices[ring.members[0]].value.addAnchoredRing(ring.id);
     } // Backup the ring information to restore after placing the bridged ring.
@@ -2625,7 +2693,7 @@ class Drawer {
     while (this.rings.length > 0) {
       let id = -1;
 
-      for (var i = 0; i < this.rings.length; i++) {
+      for (let i = 0; i < this.rings.length; i++) {
         let ring = this.rings[i];
 
         if (this.isPartOfBridgedRing(ring.id) && !ring.isBridged) {
@@ -2642,7 +2710,7 @@ class Drawer {
       this.bridgedRing = true;
       this.createBridgedRing(involvedRings, ring.members[0]); // Remove the rings
 
-      for (var i = 0; i < involvedRings.length; i++) {
+      for (let i = 0; i < involvedRings.length; i++) {
         this.removeRing(involvedRings[i]);
       }
     }
@@ -2651,7 +2719,7 @@ class Drawer {
   initHydrogens() {
     // Do not draw hydrogens except when they are connected to a stereocenter connected to two or more rings.
     if (!this.opts.explicitHydrogens) {
-      for (var i = 0; i < this.graph.vertices.length; i++) {
+      for (let i = 0; i < this.graph.vertices.length; i++) {
         let vertex = this.graph.vertices[i];
 
         if (vertex.value.element !== 'H') {
@@ -2685,7 +2753,7 @@ class Drawer {
       let ring = that.getRing(r);
       involvedRings.push(r);
 
-      for (var i = 0; i < ring.neighbours.length; i++) {
+      for (let i = 0; i < ring.neighbours.length; i++) {
         let n = ring.neighbours[i];
 
         if (involvedRings.indexOf(n) === -1 && n !== r && RingConnection.isBridge(that.ringConnections, that.graph.vertices, r, n)) {
@@ -2706,7 +2774,7 @@ class Drawer {
 
 
   isPartOfBridgedRing(ringId) {
-    for (var i = 0; i < this.ringConnections.length; i++) {
+    for (let i = 0; i < this.ringConnections.length; i++) {
       if (this.ringConnections[i].containsRing(ringId) && this.ringConnections[i].isBridge(this.graph.vertices)) {
         return true;
       }
@@ -2728,15 +2796,15 @@ class Drawer {
     let vertices = new Set();
     let neighbours = new Set();
 
-    for (var i = 0; i < ringIds.length; i++) {
+    for (let i = 0; i < ringIds.length; i++) {
       let ring = this.getRing(ringIds[i]);
       ring.isPartOfBridged = true;
 
-      for (var j = 0; j < ring.members.length; j++) {
+      for (let j = 0; j < ring.members.length; j++) {
         vertices.add(ring.members[j]);
       }
 
-      for (var j = 0; j < ring.neighbours.length; j++) {
+      for (let j = 0; j < ring.neighbours.length; j++) {
         let id = ring.neighbours[j];
 
         if (ringIds.indexOf(id) === -1) {
@@ -2764,7 +2832,6 @@ class Drawer {
     // two rings
 
 
-    let tmp = Array();
     let insideRing = Array();
 
     for (let id of leftovers) {
@@ -2792,17 +2859,17 @@ class Drawer {
     ring.isBridged = true;
     ring.neighbours = [...neighbours];
 
-    for (var i = 0; i < ringIds.length; i++) {
+    for (let i = 0; i < ringIds.length; i++) {
       ring.rings.push(this.getRing(ringIds[i]).clone());
     }
 
-    for (var i = 0; i < ring.members.length; i++) {
+    for (let i = 0; i < ring.members.length; i++) {
       this.graph.vertices[ring.members[i]].value.bridgedRing = ring.id;
     } // Atoms inside the ring are no longer part of a ring but are now
     // associated with the bridged ring
 
 
-    for (var i = 0; i < insideRing.length; i++) {
+    for (let i = 0; i < insideRing.length; i++) {
       let vertex = this.graph.vertices[insideRing[i]];
       vertex.value.rings = Array();
     } // Remove former rings from members of the bridged ring and add the bridged ring
@@ -2815,8 +2882,8 @@ class Drawer {
     } // Remove all the ring connections no longer used
 
 
-    for (var i = 0; i < ringIds.length; i++) {
-      for (var j = i + 1; j < ringIds.length; j++) {
+    for (let i = 0; i < ringIds.length; i++) {
+      for (let j = i + 1; j < ringIds.length; j++) {
         this.removeRingConnectionsBetween(ringIds[i], ringIds[j]);
       }
     } // Update the ring connections and add this ring to the neighbours neighbours
@@ -2825,7 +2892,7 @@ class Drawer {
     for (let id of neighbours) {
       let connections = this.getRingConnections(id, ringIds);
 
-      for (var j = 0; j < connections.length; j++) {
+      for (let j = 0; j < connections.length; j++) {
         this.getRingConnection(connections[j]).updateOther(ring.id, id);
       }
 
@@ -2846,8 +2913,8 @@ class Drawer {
   areVerticesInSameRing(vertexA, vertexB) {
     // This is a little bit lighter (without the array and push) than
     // getCommonRings().length > 0
-    for (var i = 0; i < vertexA.value.rings.length; i++) {
-      for (var j = 0; j < vertexB.value.rings.length; j++) {
+    for (let i = 0; i < vertexA.value.rings.length; i++) {
+      for (let j = 0; j < vertexB.value.rings.length; j++) {
         if (vertexA.value.rings[i] === vertexB.value.rings[j]) {
           return true;
         }
@@ -2892,7 +2959,7 @@ class Drawer {
     let maxSize = 0;
     let largestCommonRing = null;
 
-    for (var i = 0; i < commonRings.length; i++) {
+    for (let i = 0; i < commonRings.length; i++) {
       let ring = this.getRing(commonRings[i]);
       let size = ring.getSize();
 
@@ -2919,7 +2986,7 @@ class Drawer {
   getVerticesAt(position, radius, excludeVertexId) {
     let locals = Array();
 
-    for (var i = 0; i < this.graph.vertices.length; i++) {
+    for (let i = 0; i < this.graph.vertices.length; i++) {
       let vertex = this.graph.vertices[i];
 
       if (vertex.id === excludeVertexId || !vertex.positioned) {
@@ -2947,7 +3014,7 @@ class Drawer {
     let minDist = 99999;
     let minVertex = null;
 
-    for (var i = 0; i < this.graph.vertices.length; i++) {
+    for (let i = 0; i < this.graph.vertices.length; i++) {
       let v = this.graph.vertices[i];
 
       if (v.id === vertex.id) {
@@ -3009,7 +3076,7 @@ class Drawer {
 
 
   getRing(ringId) {
-    for (var i = 0; i < this.rings.length; i++) {
+    for (let i = 0; i < this.rings.length; i++) {
       if (this.rings[i].id == ringId) {
         return this.rings[i];
       }
@@ -3051,7 +3118,7 @@ class Drawer {
   removeRingConnectionsBetween(vertexIdA, vertexIdB) {
     let toRemove = Array();
 
-    for (var i = 0; i < this.ringConnections.length; i++) {
+    for (let i = 0; i < this.ringConnections.length; i++) {
       let ringConnection = this.ringConnections[i];
 
       if (ringConnection.firstRingId === vertexIdA && ringConnection.secondRingId === vertexIdB || ringConnection.firstRingId === vertexIdB && ringConnection.secondRingId === vertexIdA) {
@@ -3059,20 +3126,20 @@ class Drawer {
       }
     }
 
-    for (var i = 0; i < toRemove.length; i++) {
+    for (let i = 0; i < toRemove.length; i++) {
       this.removeRingConnection(toRemove[i]);
     }
   }
   /**
    * Get a ring connection with a given id.
-   * 
-   * @param {Number} id 
+   *
+   * @param {Number} id
    * @returns {RingConnection} The ring connection with the specified id.
    */
 
 
   getRingConnection(id) {
-    for (var i = 0; i < this.ringConnections.length; i++) {
+    for (let i = 0; i < this.ringConnections.length; i++) {
       if (this.ringConnections[i].id == id) {
         return this.ringConnections[i];
       }
@@ -3090,10 +3157,10 @@ class Drawer {
   getRingConnections(ringId, ringIds) {
     let ringConnections = Array();
 
-    for (var i = 0; i < this.ringConnections.length; i++) {
+    for (let i = 0; i < this.ringConnections.length; i++) {
       let rc = this.ringConnections[i];
 
-      for (var j = 0; j < ringIds.length; j++) {
+      for (let j = 0; j < ringIds.length; j++) {
         let id = ringIds[j];
 
         if (rc.firstRingId === ringId && rc.secondRingId === id || rc.firstRingId === id && rc.secondRingId === ringId) {
@@ -3115,12 +3182,12 @@ class Drawer {
     let total = 0.0;
     let overlapScores = new Float32Array(this.graph.vertices.length);
 
-    for (var i = 0; i < this.graph.vertices.length; i++) {
+    for (let i = 0; i < this.graph.vertices.length; i++) {
       overlapScores[i] = 0;
     }
 
-    for (var i = 0; i < this.graph.vertices.length; i++) {
-      var j = this.graph.vertices.length;
+    for (let i = 0; i < this.graph.vertices.length; i++) {
+      let j = this.graph.vertices.length;
 
       while (--j > i) {
         let a = this.graph.vertices[i];
@@ -3143,7 +3210,7 @@ class Drawer {
 
     let sortable = Array();
 
-    for (var i = 0; i < this.graph.vertices.length; i++) {
+    for (let i = 0; i < this.graph.vertices.length; i++) {
       sortable.push({
         id: i,
         score: overlapScores[i]
@@ -3166,13 +3233,13 @@ class Drawer {
    * @param {Vertex} vertexB A vertex.
    * @param {Vector2[]} sides An array containing the two normals of the line spanned by the two provided vertices.
    * @returns {Object} Returns an object containing the following information: {
-          totalSideCount: Counts the sides of each vertex in the molecule, is an array [ a, b ],
-          totalPosition: Same as position, but based on entire molecule,
-          sideCount: Counts the sides of each neighbour, is an array [ a, b ],
-          position: which side to position the second bond, is 0 or 1, represents the index in the normal array. This is based on only the neighbours
-          anCount: the number of neighbours of vertexA,
-          bnCount: the number of neighbours of vertexB
-      }
+        totalSideCount: Counts the sides of each vertex in the molecule, is an array [ a, b ],
+        totalPosition: Same as position, but based on entire molecule,
+        sideCount: Counts the sides of each neighbour, is an array [ a, b ],
+        position: which side to position the second bond, is 0 or 1, represents the index in the normal array. This is based on only the neighbours
+        anCount: the number of neighbours of vertexA,
+        bnCount: the number of neighbours of vertexB
+    }
    */
 
 
@@ -3188,7 +3255,7 @@ class Drawer {
 
     let sideCount = [0, 0];
 
-    for (var i = 0; i < tn.length; i++) {
+    for (let i = 0; i < tn.length; i++) {
       let v = this.graph.vertices[tn[i]].position;
 
       if (v.sameSideAs(vertexA.position, vertexB.position, sides[0])) {
@@ -3202,7 +3269,7 @@ class Drawer {
 
     let totalSideCount = [0, 0];
 
-    for (var i = 0; i < this.graph.vertices.length; i++) {
+    for (let i = 0; i < this.graph.vertices.length; i++) {
       let v = this.graph.vertices[i].position;
 
       if (v.sameSideAs(vertexA.position, vertexB.position, sides[0])) {
@@ -3232,7 +3299,7 @@ class Drawer {
     let ringSize = ring.getSize();
     let total = new Vector2(0, 0);
 
-    for (var i = 0; i < ringSize; i++) {
+    for (let i = 0; i < ringSize; i++) {
       total.add(this.graph.vertices[ring.members[i]].position);
     }
 
@@ -3252,8 +3319,8 @@ class Drawer {
     let center = ring.center;
     let smallest = Number.MAX_VALUE; // Always get the smallest ring.
 
-    for (var i = 0; i < rings.length; i++) {
-      for (var j = 0; j < ring.rings.length; j++) {
+    for (let i = 0; i < rings.length; i++) {
+      for (let j = 0; j < ring.rings.length; j++) {
         if (rings[i] === ring.rings[j].id) {
           if (ring.rings[j].getSize() < smallest) {
             center = ring.rings[j].center;
@@ -3279,7 +3346,7 @@ class Drawer {
     this.graph.traverseBF(0, function (vertex) {
       let edges = that.graph.getEdges(vertex.id);
 
-      for (var i = 0; i < edges.length; i++) {
+      for (let i = 0; i < edges.length; i++) {
         let edgeId = edges[i];
 
         if (!drawn[edgeId]) {
@@ -3290,7 +3357,7 @@ class Drawer {
     }); // Draw ring for implicitly defined aromatic rings
 
     if (!this.bridgedRing) {
-      for (var i = 0; i < this.rings.length; i++) {
+      for (let i = 0; i < this.rings.length; i++) {
         let ring = this.rings[i];
 
         if (this.isRingAromatic(ring)) {
@@ -3341,12 +3408,12 @@ class Drawer {
         normals[0].multiplyScalar(that.opts.bondSpacing);
         normals[1].multiplyScalar(that.opts.bondSpacing); // Choose the normal that is on the same side as the center
 
-        let line = null;
+        let line;
 
         if (center.sameSideAs(vertexA.position, vertexB.position, Vector2.add(a, normals[0]))) {
-          line = new Line(Vector2.add(a, normals[0]), Vector2.add(b, normals[0]), elementA, elementB);
+          line = new Line(Vector2.add(a, normals[0]), Vector2.add(b, normals[0]), elementA, elementB, false, false, this.isDrawDecayPoint(edge.isDecay));
         } else {
-          line = new Line(Vector2.add(a, normals[1]), Vector2.add(b, normals[1]), elementA, elementB);
+          line = new Line(Vector2.add(a, normals[1]), Vector2.add(b, normals[1]), elementA, elementB, false, false, this.isDrawDecayPoint(edge.isDecay));
         }
 
         line.shorten(this.opts.bondLength - this.opts.shortBondLength * this.opts.bondLength); // The shortened edge
@@ -3358,12 +3425,12 @@ class Drawer {
         } // The normal edge
 
 
-        this.canvasWrapper.drawLine(new Line(a, b, elementA, elementB));
+        this.canvasWrapper.drawLine(new Line(a, b, elementA, elementB, false, false, this.isDrawDecayPoint(edge.isDecay)));
       } else if (edge.center || vertexA.isTerminal() && vertexB.isTerminal()) {
         normals[0].multiplyScalar(that.opts.halfBondSpacing);
         normals[1].multiplyScalar(that.opts.halfBondSpacing);
-        let lineA = new Line(Vector2.add(a, normals[0]), Vector2.add(b, normals[0]), elementA, elementB);
-        let lineB = new Line(Vector2.add(a, normals[1]), Vector2.add(b, normals[1]), elementA, elementB);
+        let lineA = new Line(Vector2.add(a, normals[0]), Vector2.add(b, normals[0]), elementA, elementB, false, false, this.isDrawDecayPoint(edge.isDecay));
+        let lineB = new Line(Vector2.add(a, normals[1]), Vector2.add(b, normals[1]), elementA, elementB, false, false, this.isDrawDecayPoint(edge.isDecay));
         this.canvasWrapper.drawLine(lineA);
         this.canvasWrapper.drawLine(lineB);
       } else if (s.anCount == 0 && s.bnCount > 1 || s.bnCount == 0 && s.anCount > 1) {
@@ -3371,58 +3438,58 @@ class Drawer {
         // Add the spacing to the edges (which are of unit length)
         normals[0].multiplyScalar(that.opts.halfBondSpacing);
         normals[1].multiplyScalar(that.opts.halfBondSpacing);
-        let lineA = new Line(Vector2.add(a, normals[0]), Vector2.add(b, normals[0]), elementA, elementB);
-        let lineB = new Line(Vector2.add(a, normals[1]), Vector2.add(b, normals[1]), elementA, elementB);
+        let lineA = new Line(Vector2.add(a, normals[0]), Vector2.add(b, normals[0]), elementA, elementB, false, false, this.isDrawDecayPoint(edge.isDecay));
+        let lineB = new Line(Vector2.add(a, normals[1]), Vector2.add(b, normals[1]), elementA, elementB, false, false, this.isDrawDecayPoint(edge.isDecay));
         this.canvasWrapper.drawLine(lineA);
         this.canvasWrapper.drawLine(lineB);
       } else if (s.sideCount[0] > s.sideCount[1]) {
         normals[0].multiplyScalar(that.opts.bondSpacing);
         normals[1].multiplyScalar(that.opts.bondSpacing);
-        let line = new Line(Vector2.add(a, normals[0]), Vector2.add(b, normals[0]), elementA, elementB);
+        let line = new Line(Vector2.add(a, normals[0]), Vector2.add(b, normals[0]), elementA, elementB, false, false, this.isDrawDecayPoint(edge.isDecay));
         line.shorten(this.opts.bondLength - this.opts.shortBondLength * this.opts.bondLength);
         this.canvasWrapper.drawLine(line);
-        this.canvasWrapper.drawLine(new Line(a, b, elementA, elementB));
+        this.canvasWrapper.drawLine(new Line(a, b, elementA, elementB, false, false, this.isDrawDecayPoint(edge.isDecay)));
       } else if (s.sideCount[0] < s.sideCount[1]) {
         normals[0].multiplyScalar(that.opts.bondSpacing);
         normals[1].multiplyScalar(that.opts.bondSpacing);
-        let line = new Line(Vector2.add(a, normals[1]), Vector2.add(b, normals[1]), elementA, elementB);
+        let line = new Line(Vector2.add(a, normals[1]), Vector2.add(b, normals[1]), elementA, elementB, false, false, this.isDrawDecayPoint(edge.isDecay));
         line.shorten(this.opts.bondLength - this.opts.shortBondLength * this.opts.bondLength);
         this.canvasWrapper.drawLine(line);
-        this.canvasWrapper.drawLine(new Line(a, b, elementA, elementB));
+        this.canvasWrapper.drawLine(new Line(a, b, elementA, elementB, false, false, this.isDrawDecayPoint(edge.isDecay)));
       } else if (s.totalSideCount[0] > s.totalSideCount[1]) {
         normals[0].multiplyScalar(that.opts.bondSpacing);
         normals[1].multiplyScalar(that.opts.bondSpacing);
-        let line = new Line(Vector2.add(a, normals[0]), Vector2.add(b, normals[0]), elementA, elementB);
+        let line = new Line(Vector2.add(a, normals[0]), Vector2.add(b, normals[0]), elementA, elementB, false, false, this.isDrawDecayPoint(edge.isDecay));
         line.shorten(this.opts.bondLength - this.opts.shortBondLength * this.opts.bondLength);
         this.canvasWrapper.drawLine(line);
-        this.canvasWrapper.drawLine(new Line(a, b, elementA, elementB));
+        this.canvasWrapper.drawLine(new Line(a, b, elementA, elementB, false, false, this.isDrawDecayPoint(edge.isDecay)));
       } else if (s.totalSideCount[0] <= s.totalSideCount[1]) {
         normals[0].multiplyScalar(that.opts.bondSpacing);
         normals[1].multiplyScalar(that.opts.bondSpacing);
-        let line = new Line(Vector2.add(a, normals[1]), Vector2.add(b, normals[1]), elementA, elementB);
+        let line = new Line(Vector2.add(a, normals[1]), Vector2.add(b, normals[1]), elementA, elementB, false, false, this.isDrawDecayPoint(edge.isDecay));
         line.shorten(this.opts.bondLength - this.opts.shortBondLength * this.opts.bondLength);
         this.canvasWrapper.drawLine(line);
-        this.canvasWrapper.drawLine(new Line(a, b, elementA, elementB));
-      } else {}
+        this.canvasWrapper.drawLine(new Line(a, b, elementA, elementB, false, false, this.isDrawDecayPoint(edge.isDecay)));
+      }
     } else if (edge.bondType === '#') {
       normals[0].multiplyScalar(that.opts.bondSpacing / 1.5);
       normals[1].multiplyScalar(that.opts.bondSpacing / 1.5);
-      let lineA = new Line(Vector2.add(a, normals[0]), Vector2.add(b, normals[0]), elementA, elementB);
-      let lineB = new Line(Vector2.add(a, normals[1]), Vector2.add(b, normals[1]), elementA, elementB);
+      let lineA = new Line(Vector2.add(a, normals[0]), Vector2.add(b, normals[0]), elementA, elementB, false, false, this.isDrawDecayPoint(edge.isDecay));
+      let lineB = new Line(Vector2.add(a, normals[1]), Vector2.add(b, normals[1]), elementA, elementB, false, false, this.isDrawDecayPoint(edge.isDecay));
       this.canvasWrapper.drawLine(lineA);
       this.canvasWrapper.drawLine(lineB);
-      this.canvasWrapper.drawLine(new Line(a, b, elementA, elementB));
+      this.canvasWrapper.drawLine(new Line(a, b, elementA, elementB, false, false, this.isDrawDecayPoint(edge.isDecay)));
     } else if (edge.bondType === '.') {// TODO: Something... maybe... version 2?
     } else {
       let isChiralCenterA = vertexA.value.isStereoCenter;
       let isChiralCenterB = vertexB.value.isStereoCenter;
 
       if (edge.wedge === 'up') {
-        this.canvasWrapper.drawWedge(new Line(a, b, elementA, elementB, isChiralCenterA, isChiralCenterB));
+        this.canvasWrapper.drawWedge(new Line(a, b, elementA, elementB, isChiralCenterA, isChiralCenterB, this.isDrawDecayPoint(edge.isDecay)));
       } else if (edge.wedge === 'down') {
-        this.canvasWrapper.drawDashedWedge(new Line(a, b, elementA, elementB, isChiralCenterA, isChiralCenterB));
+        this.canvasWrapper.drawDashedWedge(new Line(a, b, elementA, elementB, isChiralCenterA, isChiralCenterB, this.isDrawDecayPoint(edge.isDecay)));
       } else {
-        this.canvasWrapper.drawLine(new Line(a, b, elementA, elementB, isChiralCenterA, isChiralCenterB));
+        this.canvasWrapper.drawLine(new Line(a, b, elementA, elementB, isChiralCenterA, isChiralCenterB, this.isDrawDecayPoint(edge.isDecay)));
       }
     }
 
@@ -3439,9 +3506,7 @@ class Drawer {
 
 
   drawVertices(debug) {
-    var i = this.graph.vertices.length;
-
-    for (var i = 0; i < this.graph.vertices.length; i++) {
+    for (let i = 0; i < this.graph.vertices.length; i++) {
       let vertex = this.graph.vertices[i];
       let atom = vertex.value;
       let charge = 0;
@@ -3492,7 +3557,7 @@ class Drawer {
 
 
     if (this.opts.debug) {
-      for (var i = 0; i < this.rings.length; i++) {
+      for (let i = 0; i < this.rings.length; i++) {
         let center = this.rings[i].center;
         this.canvasWrapper.drawDebugPoint(center.x, center.y, 'r: ' + this.rings[i].id);
       }
@@ -3508,14 +3573,14 @@ class Drawer {
     // If not, start with a ring
     // else, start with 0
 
-    for (var i = 0; i < this.graph.vertices.length; i++) {
+    for (let i = 0; i < this.graph.vertices.length; i++) {
       if (this.graph.vertices[i].value.bridgedRing !== null) {
         startVertex = this.graph.vertices[i];
         break;
       }
     }
 
-    for (var i = 0; i < this.rings.length; i++) {
+    for (let i = 0; i < this.rings.length; i++) {
       if (this.rings[i].isBridged) {
         startVertex = this.graph.vertices[this.rings[i].members[0]];
       }
@@ -3540,15 +3605,15 @@ class Drawer {
     this.originalRings = Array();
     this.originalRingConnections = Array();
 
-    for (var i = 0; i < this.rings.length; i++) {
+    for (let i = 0; i < this.rings.length; i++) {
       this.originalRings.push(this.rings[i]);
     }
 
-    for (var i = 0; i < this.ringConnections.length; i++) {
+    for (let i = 0; i < this.ringConnections.length; i++) {
       this.originalRingConnections.push(this.ringConnections[i]);
     }
 
-    for (var i = 0; i < this.graph.vertices.length; i++) {
+    for (let i = 0; i < this.graph.vertices.length; i++) {
       this.graph.vertices[i].value.backupRings();
     }
   }
@@ -3563,7 +3628,7 @@ class Drawer {
     this.rings = Array();
     this.ringConnections = Array();
 
-    for (var i = 0; i < bridgedRings.length; i++) {
+    for (let i = 0; i < bridgedRings.length; i++) {
       let bridgedRing = bridgedRings[i];
 
       for (var j = 0; j < bridgedRing.rings.length; j++) {
@@ -3572,15 +3637,15 @@ class Drawer {
       }
     }
 
-    for (var i = 0; i < this.originalRings.length; i++) {
+    for (let i = 0; i < this.originalRings.length; i++) {
       this.rings.push(this.originalRings[i]);
     }
 
-    for (var i = 0; i < this.originalRingConnections.length; i++) {
+    for (let i = 0; i < this.originalRingConnections.length; i++) {
       this.ringConnections.push(this.originalRingConnections[i]);
     }
 
-    for (var i = 0; i < this.graph.vertices.length; i++) {
+    for (let i = 0; i < this.graph.vertices.length; i++) {
       this.graph.vertices[i].value.restoreRings();
     }
   } // TODO: This needs some cleaning up
@@ -3628,7 +3693,7 @@ class Drawer {
       this.setRingCenter(ring);
       center = ring.center; // Setting the centers for the subrings
 
-      for (var i = 0; i < ring.rings.length; i++) {
+      for (let i = 0; i < ring.rings.length; i++) {
         this.setRingCenter(ring.rings[i]);
       }
     } else {
@@ -3651,7 +3716,7 @@ class Drawer {
     ring.positioned = true;
     ring.center = center; // Draw neighbours in decreasing order of connectivity
 
-    for (var i = 0; i < orderedNeighbours.length; i++) {
+    for (let i = 0; i < orderedNeighbours.length; i++) {
       let neighbour = this.getRing(orderedNeighbours[i].neighbour);
 
       if (neighbour.positioned) {
@@ -3720,11 +3785,11 @@ class Drawer {
     } // Next, draw atoms that are not part of a ring that are directly attached to this ring
 
 
-    for (var i = 0; i < ring.members.length; i++) {
+    for (let i = 0; i < ring.members.length; i++) {
       let ringMember = this.graph.vertices[ring.members[i]];
       let ringMemberNeighbours = ringMember.neighbours; // If there are multiple, the ovlerap will be resolved in the appropriate step
 
-      for (var j = 0; j < ringMemberNeighbours.length; j++) {
+      for (let j = 0; j < ringMemberNeighbours.length; j++) {
         let v = this.graph.vertices[ringMemberNeighbours[j]];
 
         if (v.positioned) {
@@ -3799,7 +3864,7 @@ class Drawer {
   }
   /**
    * Returns the current (positioned vertices so far) center of mass.
-   * 
+   *
    * @returns {Vector2} The current center of mass.
    */
 
@@ -3808,7 +3873,7 @@ class Drawer {
     let total = new Vector2(0, 0);
     let count = 0;
 
-    for (var i = 0; i < this.graph.vertices.length; i++) {
+    for (let i = 0; i < this.graph.vertices.length; i++) {
       let vertex = this.graph.vertices[i];
 
       if (vertex.positioned) {
@@ -3833,7 +3898,7 @@ class Drawer {
     let count = 0;
     let rSq = r * r;
 
-    for (var i = 0; i < this.graph.vertices.length; i++) {
+    for (let i = 0; i < this.graph.vertices.length; i++) {
       let vertex = this.graph.vertices[i];
 
       if (vertex.positioned && vec.distanceSq(vertex.position) < rSq) {
@@ -3854,10 +3919,10 @@ class Drawer {
     let done = Array(this.graph.vertices.length); // Looking for overlaps created by two bonds coming out of a ring atom, which both point straight
     // away from the ring and are thus perfectly overlapping.
 
-    for (var i = 0; i < this.rings.length; i++) {
+    for (let i = 0; i < this.rings.length; i++) {
       let ring = this.rings[i];
 
-      for (var j = 0; j < ring.members.length; j++) {
+      for (let j = 0; j < ring.members.length; j++) {
         let vertex = this.graph.vertices[ring.members[j]];
 
         if (done[vertex.id]) {
@@ -3871,7 +3936,7 @@ class Drawer {
           // Look for rings where there are atoms with two bonds outside the ring (overlaps)
           let rings = Array();
 
-          for (var k = 0; k < vertex.value.rings.length; k++) {
+          for (let k = 0; k < vertex.value.rings.length; k++) {
             rings.push(vertex.value.rings[k]);
           }
 
@@ -3885,7 +3950,7 @@ class Drawer {
           // where the angle has to be adjusted to account for fused ring
           let rings = Array();
 
-          for (var k = 0; k < vertex.value.rings.length; k++) {
+          for (let k = 0; k < vertex.value.rings.length; k++) {
             rings.push(vertex.value.rings[k]);
           }
 
@@ -3898,7 +3963,7 @@ class Drawer {
       }
     }
 
-    for (var i = 0; i < overlaps.length; i++) {
+    for (let i = 0; i < overlaps.length; i++) {
       let overlap = overlaps[i];
 
       if (overlap.vertices.length === 2) {
@@ -3944,7 +4009,7 @@ class Drawer {
 
 
   resolveSecondaryOverlaps(scores) {
-    for (var i = 0; i < scores.length; i++) {
+    for (let i = 0; i < scores.length; i++) {
       if (scores[i].score > this.opts.overlapSensitivity) {
         let vertex = this.graph.vertices[scores[i].id];
 
@@ -4050,7 +4115,7 @@ class Drawer {
         let pos = new Vector2(0.0, 0.0);
 
         if (previousVertex.value.bridgedRing === null && previousVertex.value.rings.length > 1) {
-          for (var i = 0; i < neighbours.length; i++) {
+          for (let i = 0; i < neighbours.length; i++) {
             let neighbour = this.graph.vertices[neighbours[i]];
 
             if (ArrayHelper.containsAll(neighbour.value.rings, previousVertex.value.rings)) {
@@ -4061,7 +4126,7 @@ class Drawer {
         }
 
         if (joinedVertex === null) {
-          for (var i = 0; i < neighbours.length; i++) {
+          for (let i = 0; i < neighbours.length; i++) {
             let v = this.graph.vertices[neighbours[i]];
 
             if (v.positioned && this.areVerticesInSameRing(v, previousVertex)) {
@@ -4121,7 +4186,7 @@ class Drawer {
       let tmpNeighbours = vertex.getNeighbours();
       let neighbours = Array(); // Remove neighbours that are not drawn
 
-      for (var i = 0; i < tmpNeighbours.length; i++) {
+      for (let i = 0; i < tmpNeighbours.length; i++) {
         if (this.graph.vertices[tmpNeighbours[i]].value.isDrawn) {
           neighbours.push(tmpNeighbours[i]);
         }
@@ -4258,9 +4323,7 @@ class Drawer {
         }
 
         let cisVertex = this.graph.vertices[neighbours[cis]];
-        let transVertex = this.graph.vertices[neighbours[trans]];
-        let edgeCis = this.graph.getEdge(vertex.id, cisVertex.id);
-        let edgeTrans = this.graph.getEdge(vertex.id, transVertex.id); // If the origin tree is the shortest, make them the main chain
+        let transVertex = this.graph.vertices[neighbours[trans]]; // If the origin tree is the shortest, make them the main chain
 
         let originShortest = false;
 
@@ -4385,7 +4448,7 @@ class Drawer {
   getCommonRingbondNeighbour(vertex) {
     let neighbours = vertex.neighbours;
 
-    for (var i = 0; i < neighbours.length; i++) {
+    for (let i = 0; i < neighbours.length; i++) {
       let neighbour = this.graph.vertices[neighbours[i]];
 
       if (ArrayHelper.containsAll(neighbour.value.rings, vertex.value.rings)) {
@@ -4404,7 +4467,7 @@ class Drawer {
 
 
   isPointInRing(vec) {
-    for (var i = 0; i < this.rings.length; i++) {
+    for (let i = 0; i < this.rings.length; i++) {
       let ring = this.rings[i];
 
       if (!ring.positioned) {
@@ -4460,11 +4523,7 @@ class Drawer {
     } // Ringbonds are not rotatable
 
 
-    if (vertexA.value.rings.length > 0 && vertexB.value.rings.length > 0 && this.areVerticesInSameRing(vertexA, vertexB)) {
-      return false;
-    }
-
-    return true;
+    return !(vertexA.value.rings.length > 0 && vertexB.value.rings.length > 0 && this.areVerticesInSameRing(vertexA, vertexB));
   }
   /**
    * Check whether or not a ring is an implicitly defined aromatic ring (lower case smiles).
@@ -4475,7 +4534,7 @@ class Drawer {
 
 
   isRingAromatic(ring) {
-    for (var i = 0; i < ring.members.length; i++) {
+    for (let i = 0; i < ring.members.length; i++) {
       let vertex = this.graph.vertices[ring.members[i]];
 
       if (!vertex.value.isPartOfAromaticRing) {
@@ -4497,8 +4556,7 @@ class Drawer {
     let v1 = this.graph.vertices[edge.sourceId].position;
     let v2 = this.graph.vertices[edge.targetId].position; // Get the normalized normals for the edge
 
-    let normals = Vector2.units(v1, v2);
-    return normals;
+    return Vector2.units(v1, v2);
   }
   /**
    * Returns an array of vertices that are neighbouring a vertix but are not members of a ring (including bridges).
@@ -4513,7 +4571,7 @@ class Drawer {
     let vertex = this.graph.vertices[vertexId];
     let neighbours = vertex.neighbours;
 
-    for (var i = 0; i < neighbours.length; i++) {
+    for (let i = 0; i < neighbours.length; i++) {
       let neighbour = this.graph.vertices[neighbours[i]];
       let nIntersections = ArrayHelper.intersection(vertex.value.rings, neighbour.value.rings).length;
 
@@ -4532,7 +4590,7 @@ class Drawer {
   annotateStereochemistry() {
     let maxDepth = 10; // For each stereo-center
 
-    for (var i = 0; i < this.graph.vertices.length; i++) {
+    for (let i = 0; i < this.graph.vertices.length; i++) {
       let vertex = this.graph.vertices[i];
 
       if (!vertex.value.isStereoCenter) {
@@ -4543,13 +4601,13 @@ class Drawer {
       let nNeighbours = neighbours.length;
       let priorities = Array(nNeighbours);
 
-      for (var j = 0; j < nNeighbours; j++) {
+      for (let j = 0; j < nNeighbours; j++) {
         let visited = new Uint8Array(this.graph.vertices.length);
         let priority = Array(Array());
         visited[vertex.id] = 1;
         this.visitStereochemistry(neighbours[j], vertex.id, visited, priority, maxDepth, 0); // Sort each level according to atomic number
 
-        for (var k = 0; k < priority.length; k++) {
+        for (let k = 0; k < priority.length; k++) {
           priority[k].sort(function (a, b) {
             return b - a;
           });
@@ -4561,40 +4619,40 @@ class Drawer {
       let maxLevels = 0;
       let maxEntries = 0;
 
-      for (var j = 0; j < priorities.length; j++) {
+      for (let j = 0; j < priorities.length; j++) {
         if (priorities[j][1].length > maxLevels) {
           maxLevels = priorities[j][1].length;
         }
 
-        for (var k = 0; k < priorities[j][1].length; k++) {
+        for (let k = 0; k < priorities[j][1].length; k++) {
           if (priorities[j][1][k].length > maxEntries) {
             maxEntries = priorities[j][1][k].length;
           }
         }
       }
 
-      for (var j = 0; j < priorities.length; j++) {
+      for (let j = 0; j < priorities.length; j++) {
         let diff = maxLevels - priorities[j][1].length;
 
-        for (var k = 0; k < diff; k++) {
+        for (let k = 0; k < diff; k++) {
           priorities[j][1].push([]);
         } // Break ties by the position in the SMILES string as per specification
 
 
         priorities[j][1].push([neighbours[j]]); // Make all same length. Fill with zeroes.
 
-        for (var k = 0; k < priorities[j][1].length; k++) {
+        for (let k = 0; k < priorities[j][1].length; k++) {
           let diff = maxEntries - priorities[j][1][k].length;
 
-          for (var l = 0; l < diff; l++) {
+          for (let l = 0; l < diff; l++) {
             priorities[j][1][k].push(0);
           }
         }
       }
 
       priorities.sort(function (a, b) {
-        for (var j = 0; j < a[1].length; j++) {
-          for (var k = 0; k < a[1][j].length; k++) {
+        for (let j = 0; j < a[1].length; j++) {
+          for (let k = 0; k < a[1][j].length; k++) {
             if (a[1][j][k] > b[1][j][k]) {
               return -1;
             } else if (a[1][j][k] < b[1][j][k]) {
@@ -4607,7 +4665,7 @@ class Drawer {
       });
       let order = new Uint8Array(nNeighbours);
 
-      for (var j = 0; j < nNeighbours; j++) {
+      for (let j = 0; j < nNeighbours; j++) {
         order[j] = priorities[j][0];
         vertex.value.priority = j;
       } // Check the angles between elements 0 and 1, and 0 and 2 to determine whether they are
@@ -4617,9 +4675,7 @@ class Drawer {
 
       let posA = this.graph.vertices[neighbours[order[0]]].position;
       let posB = this.graph.vertices[neighbours[order[1]]].position;
-      let posC = this.graph.vertices[neighbours[order[2]]].position;
-      let cwA = posA.relativeClockwise(posB, vertex.position);
-      let cwB = posA.relativeClockwise(posC, vertex.position); // If the second priority is clockwise from the first, the ligands are drawn clockwise, since
+      let cwA = posA.relativeClockwise(posB, vertex.position); // If the second priority is clockwise from the first, the ligands are drawn clockwise, since
       // The hydrogen can be drawn on either side
 
       let isCw = cwA === -1;
@@ -4649,7 +4705,7 @@ class Drawer {
       let showHydrogen = vertex.value.rings.length > 1 && vertex.value.hasHydrogen;
       let offset = vertex.value.hasHydrogen ? 1 : 0;
 
-      for (var j = 0; j < order.length - offset; j++) {
+      for (let j = 0; j < order.length - offset; j++) {
         wedgeOrder[j] = new Uint32Array(2);
         let neighbour = this.graph.vertices[neighbours[order[j]]];
         wedgeOrder[j][0] += neighbour.value.isStereoCenter ? 0 : 100000; // wedgeOrder[j][0] += neighbour.value.rings.length > 0 ? 0 : 10000;
@@ -4680,7 +4736,7 @@ class Drawer {
         } else {
           let wedge = wedgeB;
 
-          for (var j = order.length - 1; j >= 0; j--) {
+          for (let j = order.length - 1; j >= 0; j--) {
             if (wedge === wedgeA) {
               wedge = wedgeB;
             } else {
@@ -4700,14 +4756,15 @@ class Drawer {
     }
   }
   /**
-   * 
-   * 
+   *
+   *
    * @param {Number} vertexId The id of a vertex.
    * @param {(Number|null)} previousVertexId The id of the parent vertex of the vertex.
    * @param {Uint8Array} visited An array containing the visited flag for all vertices in the graph.
    * @param {Array} priority An array of arrays storing the atomic numbers for each level.
    * @param {Number} maxDepth The maximum depth.
    * @param {Number} depth The current depth.
+   * @param {Number} parentAtomicNumber
    */
 
 
@@ -4720,13 +4777,13 @@ class Drawer {
       priority.push(Array());
     }
 
-    for (var i = 0; i < this.graph.getEdge(vertexId, previousVertexId).weight; i++) {
+    for (let i = 0; i < this.graph.getEdge(vertexId, previousVertexId).weight; i++) {
       priority[depth].push(parentAtomicNumber * 1000 + atomicNumber);
     }
 
     let neighbours = this.graph.vertices[vertexId].neighbours;
 
-    for (var i = 0; i < neighbours.length; i++) {
+    for (let i = 0; i < neighbours.length; i++) {
       if (visited[neighbours[i]] !== 1 && depth < maxDepth - 1) {
         this.visitStereochemistry(neighbours[i], vertexId, visited.slice(), priority, maxDepth, depth + 1, atomicNumber);
       }
@@ -4736,11 +4793,11 @@ class Drawer {
     if (depth < maxDepth - 1) {
       let bonds = 0;
 
-      for (var i = 0; i < neighbours.length; i++) {
+      for (let i = 0; i < neighbours.length; i++) {
         bonds += this.graph.getEdge(vertexId, neighbours[i]).weight;
       }
 
-      for (var i = 0; i < vertex.value.getMaxBonds() - bonds; i++) {
+      for (let i = 0; i < vertex.value.getMaxBonds() - bonds; i++) {
         if (priority.length <= depth + 1) {
           priority.push(Array());
         }
@@ -4756,12 +4813,12 @@ class Drawer {
 
 
   initPseudoElements() {
-    for (var i = 0; i < this.graph.vertices.length; i++) {
+    for (let i = 0; i < this.graph.vertices.length; i++) {
       const vertex = this.graph.vertices[i];
       const neighbourIds = vertex.neighbours;
       let neighbours = Array(neighbourIds.length);
 
-      for (var j = 0; j < neighbourIds.length; j++) {
+      for (let j = 0; j < neighbourIds.length; j++) {
         neighbours[j] = this.graph.vertices[neighbourIds[j]];
       } // Ignore atoms that have less than 3 neighbours, except if
       // the vertex is connected to a ring and has two neighbours
@@ -4787,7 +4844,7 @@ class Drawer {
       let heteroAtomCount = 0;
       let ctn = 0;
 
-      for (var j = 0; j < neighbours.length; j++) {
+      for (let j = 0; j < neighbours.length; j++) {
         let neighbour = neighbours[j];
         let neighbouringElement = neighbour.value.element;
         let neighbourCount = neighbour.getNeighbourCount();
@@ -4808,7 +4865,7 @@ class Drawer {
 
       let previous = null;
 
-      for (var j = 0; j < neighbours.length; j++) {
+      for (let j = 0; j < neighbours.length; j++) {
         let neighbour = neighbours[j];
 
         if (neighbour.getNeighbourCount() > 1) {
@@ -4816,7 +4873,7 @@ class Drawer {
         }
       }
 
-      for (var j = 0; j < neighbours.length; j++) {
+      for (let j = 0; j < neighbours.length; j++) {
         let neighbour = neighbours[j];
 
         if (neighbour.getNeighbourCount() > 1) {
@@ -4837,7 +4894,7 @@ class Drawer {
     } // The second pass
 
 
-    for (var i = 0; i < this.graph.vertices.length; i++) {
+    for (let i = 0; i < this.graph.vertices.length; i++) {
       const vertex = this.graph.vertices[i];
       const atom = vertex.value;
       const element = atom.element;
@@ -4849,11 +4906,11 @@ class Drawer {
       const neighbourIds = vertex.neighbours;
       let neighbours = Array(neighbourIds.length);
 
-      for (var j = 0; j < neighbourIds.length; j++) {
+      for (let j = 0; j < neighbourIds.length; j++) {
         neighbours[j] = this.graph.vertices[neighbourIds[j]];
       }
 
-      for (var j = 0; j < neighbours.length; j++) {
+      for (let j = 0; j < neighbours.length; j++) {
         let neighbour = neighbours[j].value;
 
         if (!neighbour.hasAttachedPseudoElements || neighbour.getAttachedPseudoElementsCount() !== 2) {
@@ -4870,11 +4927,133 @@ class Drawer {
     }
   }
 
+  getDecays() {
+    this.graph.getDecays();
+  }
+
+  buildBlockSmiles() {
+    return this.graph.buildSmiles();
+  }
+  /**
+   * Find edge and mark it as decay point and redraw graph
+   * @param e event
+   */
+
+
+  handleMouseClick(e) {
+    if (this.opts.drawDecayPoints === DecayState.VALUES.NO) {
+      return;
+    }
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!this.graph) {
+      return;
+    }
+
+    this.findAndReDrawEdge(e.clientX - this.opts.offsetX, e.clientY - this.opts.offsetY + document.body.scrollTop);
+  }
+  /**
+   * Find edge which was clicked, mark edge as decay point and redraw graph
+   * @param mouseX mouse positionX - offsetX
+   * @param mouseY mouse positionY - offsetY
+   */
+
+
+  findAndReDrawEdge(mouseX, mouseY) {
+    for (let i = 0; i < this.graph.edges.length; ++i) {
+      let vertexA = this.graph.vertices[this.graph.edges[i].sourceId];
+      let vertexB = this.graph.vertices[this.graph.edges[i].targetId];
+
+      if (!vertexA || !vertexB) {
+        continue;
+      }
+
+      let scale = this.computeScale();
+      let line = new Line(vertexA.position, vertexB.position, null, null, false, false, true);
+      let l = this.computeEdgeLeftPoint(line, scale);
+      let r = this.computeEdgeRightPoint(line, scale);
+
+      if (mouseX < l.x - this.opts.mouseTolerance || mouseX > r.x + this.opts.mouseTolerance) {
+        continue;
+      }
+
+      if (mouseY > l.y - this.opts.mouseTolerance && mouseY < r.y + this.opts.mouseTolerance || mouseY > r.y - this.opts.mouseTolerance && mouseY < l.y + this.opts.mouseTolerance) {
+        this.reDrawGraphWithEdgeAsDecay(i);
+        break;
+      }
+    }
+  }
+  /**
+   * Make edge decay point and redraw graph
+   * @param {Number} edgeId
+   */
+
+
+  reDrawGraphWithEdgeAsDecay(edgeId) {
+    this.graph.revertEdgeDecayPoint(edgeId);
+    this.canvasWrapper.updateSize(this.opts.width, this.opts.height);
+    this.canvasWrapper.scale(this.graph.vertices);
+    this.drawEdges(this.opts.debug);
+    this.drawVertices(this.opts.debug);
+    this.canvasWrapper.reset();
+  }
+  /**
+   * Compute scale of canvas
+   * @return {number} scale
+   */
+
+
+  computeScale() {
+    let scaleX = this.canvasWrapper.canvas.offsetWidth / this.canvasWrapper.drawingWidth;
+    let scaleY = this.canvasWrapper.canvas.offsetHeight / this.canvasWrapper.drawingHeight;
+    return scaleX < scaleY ? scaleX : scaleY;
+  }
+  /**
+   * Compute left point of edge for compare
+   * @param {Line} line
+   * @param {Number} scale
+   * @return {Vector2} point
+   */
+
+
+  computeEdgeLeftPoint(line, scale) {
+    return this.computeEdgePoint(line.getLeftVector().clone(), scale);
+  }
+  /**
+   * Compute right point of edge for compare
+   * @param {Line} line
+   * @param {Number} scale
+   * @return {Vector2} point
+   */
+
+
+  computeEdgeRightPoint(line, scale) {
+    return this.computeEdgePoint(line.getRightVector().clone(), scale);
+  }
+  /**
+   * Compute point coordinates for compare
+   * add offset to coordinates and multiply coordinates with scale
+   * @param {Vector2} point
+   * @param {Number} scale
+   * @return {Vector2} point
+   */
+
+
+  computeEdgePoint(point, scale) {
+    point.x += this.canvasWrapper.offsetX;
+    point.y += this.canvasWrapper.offsetY;
+    point.x *= scale;
+    point.y *= scale;
+    return point;
+  }
+
 }
 
 module.exports = Drawer;
 
-},{"./ArrayHelper":2,"./Atom":3,"./CanvasWrapper":4,"./Edge":6,"./Graph":7,"./Line":8,"./MathHelper":9,"./Ring":11,"./RingConnection":12,"./SSSR":13,"./ThemeManager":16,"./Vector2":18,"./Vertex":19}],6:[function(require,module,exports){
+},{"./ArrayHelper":2,"./Atom":3,"./CanvasWrapper":4,"./DecayState":6,"./Edge":8,"./Graph":9,"./Line":10,"./MathHelper":11,"./Ring":14,"./RingConnection":15,"./SSSR":16,"./ThemeManager":21,"./Vector2":23,"./Vertex":24}],8:[function(require,module,exports){
 "use strict";
 
 //@ts-check
@@ -4908,6 +5087,7 @@ class Edge {
     this.isPartOfAromaticRing = false;
     this.center = false;
     this.wedge = '';
+    this.isDecay = false;
   }
   /**
    * Set the bond type of this edge. This also sets the edge weight.
@@ -4918,6 +5098,15 @@ class Edge {
   setBondType(bondType) {
     this.bondType = bondType;
     this.weight = Edge.bonds[bondType];
+  }
+  /**
+   * Set decay
+   * @param {Boolean} decay point
+   */
+
+
+  setDecay(decay) {
+    this.isDecay = decay;
   }
   /**
    * An object mapping the bond type to the number of bonds.
@@ -4941,10 +5130,12 @@ class Edge {
 
 module.exports = Edge;
 
-},{}],7:[function(require,module,exports){
+},{}],9:[function(require,module,exports){
 "use strict";
 
 //@ts-check
+const DecayPoint = require('./DecayPoint');
+
 const MathHelper = require('./MathHelper');
 
 const Vector2 = require('./Vector2');
@@ -4956,11 +5147,22 @@ const Edge = require('./Edge');
 const Ring = require('./Ring');
 
 const Atom = require('./Atom');
-/** 
- * A class representing the molecular graph. 
- * 
+
+const VertexState = require('./VertexState');
+
+const SmallGraph = require('./SmallGraph');
+
+const Node = require('./Node');
+
+const SequenceType = require('./SequenceType');
+
+const DecayState = require('./DecayState');
+/**
+ * A class representing the molecular graph.
+ *
  * @property {Vertex[]} vertices The vertices of the graph.
  * @property {Edge[]} edges The edges of this graph.
+ * @property {Number[]} decays The id of edges marked as decay point of this graph.
  * @property {Object} vertexIdsToEdgeId A map mapping vertex ids to the edge between the two vertices. The key is defined as vertexAId + '_' + vertexBId.
  * @property {Boolean} isometric A boolean indicating whether or not the SMILES associated with this graph is isometric.
  */
@@ -4969,15 +5171,22 @@ const Atom = require('./Atom');
 class Graph {
   /**
    * The constructor of the class Graph.
-   * 
+   *
    * @param {Object} parseTree A SMILES parse tree.
    * @param {Boolean} [isomeric=false] A boolean specifying whether or not the SMILES is isomeric.
+   * @param options
    */
-  constructor(parseTree, isomeric = false) {
+  constructor(parseTree, isomeric = false, options = {}) {
     this.vertices = Array();
     this.edges = Array();
+    this.decays = Array();
     this.vertexIdsToEdgeId = {};
-    this.isomeric = isomeric; // Used for the bridge detection algorithm
+    this.isomeric = isomeric;
+    this._startingVertexes = [];
+    this._isCyclic = false;
+    this._digitCounter = 1;
+    this._printedDigits = [];
+    this.options = options; // Used for the bridge detection algorithm
 
     this._time = 0;
 
@@ -4987,6 +5196,7 @@ class Graph {
    * PRIVATE FUNCTION. Initializing the graph from the parse tree.
    *
    * @param {Object} node The current node in the parse tree.
+   * @param order
    * @param {Number} parentVertexId=null The id of the previous vertex.
    * @param {Boolean} isBranch=false Whether or not the bond leading to this vertex is a branch bond. Branches are represented by parentheses in smiles (e.g. CC(O)C).
    */
@@ -5012,7 +5222,7 @@ class Graph {
       parentVertex.spanningTreeChildren.push(vertex.id); // Add edge between this node and its parent
 
       let edge = new Edge(parentVertexId, vertex.id, 1);
-      let vertexId = null;
+      let vertexId;
 
       if (isBranch) {
         edge.setBondType(vertex.value.branchBond || '-');
@@ -5024,7 +5234,7 @@ class Graph {
         vertexId = parentVertex.id;
       }
 
-      let edgeId = this.addEdge(edge);
+      this.addEdge(edge);
     }
 
     let offset = node.ringbondCount + 1;
@@ -5060,6 +5270,233 @@ class Graph {
 
     if (node.hasNext) {
       this._init(node.next, node.branchCount + offset, vertex.id);
+    }
+  }
+  /**
+   * Find decay points of molecule
+   * Types of decay points, declared in DecayPoint
+   */
+
+
+  findDecayPoints() {
+    if (!Object.keys(this.options).length) {
+      return;
+    }
+
+    switch (this.options.drawDecayPoints) {
+      default:
+      case DecayState.VALUES.NO:
+        return;
+
+      case DecayState.VALUES.STANDARD:
+        this.standardDecays();
+        break;
+
+      case DecayState.VALUES.SOURCE:
+        this.sourceDecays();
+        break;
+
+      case DecayState.VALUES.STANDARD_AND_SOURCE:
+        this.standardDecays();
+        this.sourceDecays();
+        break;
+    }
+  }
+
+  reduceDecays() {
+    this._decaysCopy = [];
+    this.dfsSmilesInitialization();
+
+    for (let i = 0; i < this.decays.length; i++) {
+      this.smallBlockDfsStart(this.edges[this.decays[i]]);
+    }
+
+    this.decays = [];
+    this.decays = this._decaysCopy;
+    this.setStandardDecays();
+  }
+
+  dfsSmallInitialization(vertices) {
+    for (let i = 0; i < vertices.length; ++i) {
+      this.vertices[vertices[i]].vertexState = VertexState.VALUES.NOT_FOUND;
+    }
+  }
+
+  smallBlockDfsStart(edge) {
+    let stackVisitedVertexes = [];
+    let depth = this.smallDfs(this.vertices[edge.sourceId], 0, stackVisitedVertexes); // this.dfsSmallInitialization(stackVisitedVertexes);
+
+    this.dfsSmilesInitialization();
+
+    if (depth > 3) {
+      stackVisitedVertexes = [];
+      depth = this.smallDfs(this.vertices[edge.targetId], 0, stackVisitedVertexes); // this.dfsSmallInitialization(stackVisitedVertexes);
+
+      this.dfsSmilesInitialization();
+
+      if (depth > 3) {
+        this._decaysCopy.push(edge.id);
+      }
+    }
+  }
+
+  smallDfs(vertex, depth, stackVisitedVertexes) {
+    stackVisitedVertexes.push(vertex.id);
+
+    if (depth > 3) {
+      return depth;
+    }
+
+    if (vertex.vertexState !== VertexState.VALUES.NOT_FOUND) {
+      return depth;
+    }
+
+    vertex.vertexState = VertexState.VALUES.OPEN;
+    ++depth;
+
+    for (let i = 0; i < vertex.edges.length; ++i) {
+      let edge = this.edges[vertex.edges[i]];
+
+      if (edge.isDecay) {
+        continue;
+      }
+
+      let nextVertex = Graph.getProperVertex(vertex.id, edge.sourceId, edge.targetId);
+      depth = this.smallDfs(this.vertices[nextVertex], depth, stackVisitedVertexes);
+    }
+
+    vertex.vertexState = VertexState.VALUES.CLOSED;
+    return depth;
+  }
+
+  setStandardDecays() {
+    this.edges.forEach(e => {
+      e.setDecay(false);
+    });
+    this.decays.forEach(e => {
+      this.edges[e].setDecay(true);
+    });
+  }
+
+  standardDecays() {
+    for (let i = 0; i < this.edges.length; i++) {
+      if (this.edges[i].bondType === '=') {
+        let dec = this.isDecayPoint(this.edges[i].sourceId, this.edges[i].targetId, i);
+
+        if (dec !== false) {
+          this.edges[dec].setDecay(true);
+          this.decays.push(dec);
+        }
+      }
+    }
+
+    this.reduceDecays();
+  }
+
+  sourceDecays() {
+    this.options.decaySource.forEach(e => {
+      this.edges[e].setDecay(true);
+      this.decays.push(e);
+    });
+  }
+  /**
+   * check if its decay point of specific decay types
+   * @param sourceId
+   * @param targetId
+   * @param edgeBondId
+   * @param decayTypes DecayPoint
+   * @returns {int|boolean} return edge id when found, otherwise return false
+   */
+
+
+  isDecayPoint(sourceId, targetId, edgeBondId, decayTypes = DecayPoint.VALUES.ALL) {
+    switch (decayTypes) {
+      case DecayPoint.VALUES.ALL:
+        let found = this.getNeighbourEdgeDecayIdOfCONH(sourceId, targetId, edgeBondId);
+
+        if (found === false) {
+          return this.getNeighbourEdgeDecayIdOfCOO(sourceId, targetId, edgeBondId);
+        } else {
+          return found;
+        }
+
+      case DecayPoint.VALUES.COO:
+        return this.getNeighbourEdgeDecayIdOfCOO(sourceId, targetId, edgeBondId);
+
+      case DecayPoint.VALUES.CONH:
+        return this.getNeighbourEdgeDecayIdOfCONH(sourceId, targetId, edgeBondId);
+    }
+  }
+  /**
+   * Find decay points of -CO-O- type
+   * @param sourceId
+   * @param targetId
+   * @param edgeBondId
+   * @returns {int|boolean}
+   */
+
+
+  getNeighbourEdgeDecayIdOfCOO(sourceId, targetId, edgeBondId) {
+    if (this.vertices[sourceId].value.element === 'O' && this.vertices[targetId].value.element === 'C') {
+      return this.getNeighbourEdgeDecayId(targetId, 'O', edgeBondId);
+    } else if (this.vertices[targetId].value.element === 'O' && this.vertices[sourceId].value.element === 'C') {
+      return this.getNeighbourEdgeDecayId(sourceId, 'O', edgeBondId);
+    }
+
+    return false;
+  }
+  /**
+   * Find decay points of -CO-NH- type
+   * @param sourceId
+   * @param targetId
+   * @param edgeBondId
+   * @returns {int|boolean}
+   */
+
+
+  getNeighbourEdgeDecayIdOfCONH(sourceId, targetId, edgeBondId) {
+    if (this.vertices[sourceId].value.element === 'O' && this.vertices[targetId].value.element === 'C') {
+      return this.getNeighbourEdgeDecayId(targetId, 'N', edgeBondId);
+    } else if (this.vertices[targetId].value.element === 'O' && this.vertices[sourceId].value.element === 'C') {
+      return this.getNeighbourEdgeDecayId(sourceId, 'N', edgeBondId);
+    }
+
+    return false;
+  }
+  /**
+   * Find decay point edge id of right neighbour
+   * @param vertexId
+   * @param element
+   * @param edgeBondId
+   * @returns {int|boolean}
+   */
+
+
+  getNeighbourEdgeDecayId(vertexId, element, edgeBondId) {
+    for (let i = 0; i < this.vertices[vertexId].edges.length; i++) {
+      let edgeId = this.checkNeighbourEdgeId(this.vertices[vertexId].edges[i], vertexId, element);
+
+      if (edgeId !== false && edgeId !== edgeBondId) {
+        return edgeId;
+      }
+    }
+
+    return false;
+  }
+  /**
+   * Find edge id of decay point
+   * @param edgeId
+   * @param vertexId
+   * @param element
+   * @returns {int|boolean}
+   */
+
+
+  checkNeighbourEdgeId(edgeId, vertexId, element) {
+    if (this.edges[edgeId].sourceId === vertexId && this.vertices[this.edges[edgeId].targetId].value.element === element || this.edges[edgeId].targetId === vertexId && this.vertices[this.edges[edgeId].sourceId].value.element === element) {
+      return edgeId;
+    } else {
+      return false;
     }
   }
   /**
@@ -5152,7 +5589,7 @@ class Graph {
   }
   /**
    * Returns an array containing the vertex ids of this graph.
-   * 
+   *
    * @returns {Number[]} An array containing all vertex ids of this graph.
    */
 
@@ -5168,7 +5605,7 @@ class Graph {
   }
   /**
    * Returns an array containing source, target arrays of this graphs edges.
-   * 
+   *
    * @returns {Array[]} An array containing source, target arrays of this graphs edges. Example: [ [ 2, 5 ], [ 6, 9 ] ].
    */
 
@@ -5184,7 +5621,7 @@ class Graph {
   }
   /**
    * Get the adjacency matrix of the graph.
-   * 
+   *
    * @returns {Array[]} The adjancency matrix of the molecular graph.
    */
 
@@ -5208,7 +5645,7 @@ class Graph {
   }
   /**
    * Get the adjacency matrix of the graph with all bridges removed (thus the components). Thus the remaining vertices are all part of ring systems.
-   * 
+   *
    * @returns {Array[]} The adjancency matrix of the molecular graph with all bridges removed.
    */
 
@@ -5238,7 +5675,7 @@ class Graph {
   }
   /**
    * Get the adjacency matrix of a subgraph.
-   * 
+   *
    * @param {Number[]} vertexIds An array containing the vertex ids contained within the subgraph.
    * @returns {Array[]} The adjancency matrix of the subgraph.
    */
@@ -5267,7 +5704,7 @@ class Graph {
   }
   /**
    * Get the distance matrix of the graph.
-   * 
+   *
    * @returns {Array[]} The distance matrix of the graph.
    */
 
@@ -5304,7 +5741,7 @@ class Graph {
   }
   /**
    * Get the distance matrix of a subgraph.
-   * 
+   *
    * @param {Number[]} vertexIds An array containing the vertex ids contained within the subgraph.
    * @returns {Array[]} The distance matrix of the subgraph.
    */
@@ -5342,7 +5779,7 @@ class Graph {
   }
   /**
    * Get the adjacency list of the graph.
-   * 
+   *
    * @returns {Array[]} The adjancency list of the graph.
    */
 
@@ -5369,7 +5806,7 @@ class Graph {
   }
   /**
    * Get the adjacency list of a subgraph.
-   * 
+   *
    * @param {Number[]} vertexIds An array containing the vertex ids contained within the subgraph.
    * @returns {Array[]} The adjancency list of the subgraph.
    */
@@ -5397,7 +5834,7 @@ class Graph {
   }
   /**
    * Returns an array containing the edge ids of bridges. A bridge splits the graph into multiple components when removed.
-   * 
+   *
    * @returns {Number[]} An array containing the edge ids of the bridges.
    */
 
@@ -5424,7 +5861,7 @@ class Graph {
   }
   /**
    * Traverses the graph in breadth-first order.
-   * 
+   *
    * @param {Number} startVertexId The id of the starting vertex.
    * @param {Function} callback The callback function to be called on every vertex.
    */
@@ -5517,7 +5954,7 @@ class Graph {
   /**
    * Positiones the (sub)graph using Kamada and Kawais algorithm for drawing general undirected graphs. https://pdfs.semanticscholar.org/b8d3/bca50ccc573c5cb99f7d201e8acce6618f04.pdf
    * There are undocumented layout parameters. They are undocumented for a reason, so be very careful.
-   * 
+   *
    * @param {Number[]} vertexIds An array containing vertexIds to be placed using the force based layout.
    * @param {Vector2} center The center of the layout.
    * @param {Number} startVertexId A vertex id. Should be the starting vertex - e.g. the first to be positioned and connected to a previously place vertex.
@@ -5790,7 +6227,7 @@ class Graph {
   }
   /**
    * Returns the connected components of the graph.
-   * 
+   *
    * @param {Array[]} adjacencyMatrix An adjacency matrix.
    * @returns {Set[]} Connected components as sets.
    */
@@ -5799,7 +6236,7 @@ class Graph {
   static getConnectedComponents(adjacencyMatrix) {
     let length = adjacencyMatrix.length;
     let visited = new Array(length);
-    let components = new Array();
+    let components = [];
     let count = 0;
     visited.fill(false);
 
@@ -5821,8 +6258,8 @@ class Graph {
     return components;
   }
   /**
-   * Returns the number of connected components for the graph. 
-   * 
+   * Returns the number of connected components for the graph.
+   *
    * @param {Array[]} adjacencyMatrix An adjacency matrix.
    * @returns {Number} The number of connected components of the supplied graph.
    */
@@ -5882,12 +6319,692 @@ class Graph {
       Graph._ccGetDfs(v, visited, adjacencyMatrix, component);
     }
   }
+  /**
+   * Revert decay point value and update list of decay points
+   * when edge isn't decay point -> change mark edge as decay point and add edge to decays list
+   * when edge is decay point -> unmark edge as decay point and remove edgeId from list of decays
+   * @param edgeId
+   */
+
+
+  revertEdgeDecayPoint(edgeId) {
+    this.edges[edgeId].isDecay = !this.edges[edgeId].isDecay;
+
+    if (this.edges[edgeId].isDecay) {
+      this.decays.push(edgeId);
+    } else {
+      let index = this.decays.indexOf(edgeId);
+
+      if (index > -1) {
+        this.decays.splice(index, 1);
+      }
+    }
+  }
+
+  getDecays() {
+    return this.decays;
+  }
+  /**
+   * Build block of SMILES based on decay points
+   * DFS pass through graph
+   * but the numbers are already setup in vertex.value.ringbonds array so no need to second pass of dfs
+   */
+
+
+  buildSmiles() {
+    let smiles = [];
+    this.dfsSmilesInitialization();
+
+    if (this.decays.length === 0) {
+      this.startDfs(this.vertices[0], smiles);
+      return [smiles, '[0]', SequenceType.VALUES.OTHER, this.decays];
+    } else {
+      this.dfsBuildSmilesStart(smiles);
+    }
+
+    this.dfsSmilesInitialization();
+    this.dfsSmallStart();
+
+    this._smallGraph.oneCyclic();
+
+    this._smallGraph.dfsSequenceStart();
+
+    return {
+      blockSmiles: smiles,
+      sequence: this._smallGraph.sequence,
+      sequenceType: this._smallGraph.sequenceType,
+      decays: this.decays
+    };
+  }
+
+  dfsSmallStart() {
+    this._smallGraph = new SmallGraph();
+
+    for (let index = 0; index < this._startingVertexes.length; ++index) {
+      this._smallGraph.addVertex(new Node(this._startingVertexes[index].component));
+
+      this.dfsSmall(this._startingVertexes[index]);
+    }
+  }
+  /**
+   * Initialize graph for dfs
+   * set for all vertices vertexState to NotFound
+   */
+
+
+  dfsSmilesInitialization() {
+    for (let i = 0; i < this.vertices.length; ++i) {
+      this.vertices[i].vertexState = VertexState.VALUES.NOT_FOUND;
+    }
+  }
+  /**
+   * Starting function for DFS
+   * starts on decay points (on edge), so start on both side of edge
+   * @param {Array} smiles output param, array of SMILES blocks (string)
+   */
+
+
+  dfsBuildSmilesStart(smiles) {
+    this._cnt = 0;
+    this._markComponent = false;
+    this._startingVertexes = [];
+
+    for (let i = 0; i < this.decays.length; ++i) {
+      let edge = this.edges[this.decays[i]];
+      this.startDfs(this.vertices[edge.sourceId], smiles);
+      this.markingComponents();
+      this.startDfs(this.vertices[edge.targetId], smiles);
+      this.markingComponents();
+    }
+  }
+
+  markingComponents() {
+    if (this._markComponent) {
+      this._cnt++;
+      this._markComponent = false;
+    }
+  }
+  /**
+   * Start DFS for build SMILES of blocks
+   * @param {Vertex} vertex to start DFS
+   * @param {Array} smiles output param, array od SMILES
+   */
+
+
+  startDfs(vertex, smiles) {
+    let stackSmiles = [];
+    this.first = vertex.id;
+    this.isCyclic = false;
+    this._digitCounter = 1;
+    this.dfsSmiles(vertex, stackSmiles);
+
+    if (this._isCyclic) {
+      this.closedToNotFound();
+      stackSmiles = [];
+      this.dfsSmiles(vertex, stackSmiles, -1, true);
+    }
+
+    this.closedToFullyClosed();
+    stackSmiles = Graph.removeUnnecessaryParentheses(stackSmiles);
+    let smile = Graph.removeUnnecessaryNumbers(stackSmiles.join(""));
+
+    if (smile.length !== 0) {
+      smiles.push(smile);
+    }
+  }
+
+  closedToNotFound() {
+    for (let i = 0; i < this.vertices.length; ++i) {
+      if (this.vertices[i].vertexState === VertexState.VALUES.CLOSED) {
+        this.vertices[i].vertexState = VertexState.VALUES.NOT_FOUND;
+      }
+    }
+  }
+
+  closedToFullyClosed() {
+    for (let i = 0; i < this.vertices.length; ++i) {
+      if (this.vertices[i].vertexState === VertexState.VALUES.CLOSED) {
+        this.vertices[i].vertexState = VertexState.VALUES.FULLY_CLOSED;
+      }
+    }
+  }
+  /**
+   * DFS for SMILES
+   * @param {Vertex} vertex
+   * @param {Array} stackSmiles output param
+   * @param lastVertexId last vertex id for setup digits
+   * @param isSecondPass is second pass of dfs
+   */
+
+
+  dfsSmiles(vertex, stackSmiles, lastVertexId = -1, isSecondPass = false) {
+    if (vertex.vertexState === VertexState.VALUES.OPEN && !isSecondPass && lastVertexId !== -1) {
+      this._isCyclic = true;
+
+      if (!vertex.digits.some(e => this.vertices[lastVertexId].digits.includes(e))) {
+        vertex.digits.push(this._digitCounter);
+        this.vertices[lastVertexId].digits.push(this._digitCounter);
+        this._digitCounter++;
+      }
+    }
+
+    if (vertex.vertexState !== VertexState.VALUES.NOT_FOUND) {
+      return;
+    }
+
+    if (vertex.value.element === 'H') {
+      return;
+    }
+
+    if (this.first === vertex.id && vertex.value.element === "C") {
+      stackSmiles.push("O");
+    }
+
+    if (vertex.value.bracket) {
+      stackSmiles.push("[");
+      Graph.printVertexValue(stackSmiles, vertex);
+
+      if (vertex.value.bracket.hcount > 0) {
+        stackSmiles.push('H');
+
+        if (vertex.value.bracket.hcount > 1) {
+          stackSmiles.push(vertex.value.bracket.hcount);
+        }
+      }
+
+      if (vertex.value.bracket.charge > 0) {
+        stackSmiles.push('+');
+        stackSmiles.push(vertex.value.bracket.charge);
+      } else if (vertex.value.bracket.charge < 0) {
+        stackSmiles.push(vertex.value.bracket.charge);
+      }
+
+      stackSmiles.push("]");
+    } else {
+      Graph.printVertexValue(stackSmiles, vertex);
+    }
+
+    if (isSecondPass) {
+      stackSmiles.push(this.smilesNumbersAdd(vertex));
+    }
+
+    if (!this._markComponent) {
+      this._startingVertexes.push(vertex);
+    }
+
+    vertex.component = this._cnt;
+    this._markComponent = true;
+    vertex.vertexState = VertexState.VALUES.OPEN;
+
+    for (let i = 0; i < vertex.edges.length; ++i) {
+      let edge = this.edges[vertex.edges[i]];
+
+      if (edge.isDecay) {
+        if (vertex.value.element === "C" && vertex.id !== this.first) {
+          stackSmiles.push("(");
+          stackSmiles.push("O");
+          stackSmiles.push(")");
+        }
+
+        continue;
+      }
+
+      stackSmiles.push("(");
+      Graph.addBondTypeToStack(edge, stackSmiles);
+      let nextVertex = Graph.getProperVertex(vertex.id, edge.sourceId, edge.targetId);
+
+      if (lastVertexId !== nextVertex) {
+        this.dfsSmiles(this.vertices[nextVertex], stackSmiles, vertex.id, isSecondPass);
+      }
+
+      Graph.checkStack(stackSmiles);
+    }
+
+    vertex.vertexState = VertexState.VALUES.CLOSED;
+  }
+
+  dfsSmall(vertex) {
+    if (vertex.vertexState !== VertexState.VALUES.NOT_FOUND) {
+      return;
+    }
+
+    vertex.vertexState = VertexState.VALUES.OPEN;
+
+    for (let i = 0; i < vertex.edges.length; ++i) {
+      let edge = this.edges[vertex.edges[i]];
+
+      if (edge.isDecay) {
+        this._smallGraph.addNeighbour(vertex.component, this.vertices[Graph.getProperVertex(vertex.id, edge.sourceId, edge.targetId)].component);
+
+        continue;
+      }
+
+      let nextVertex = Graph.getProperVertex(vertex.id, edge.sourceId, edge.targetId);
+      this.dfsSmall(this.vertices[nextVertex]);
+    }
+
+    vertex.vertexState = VertexState.VALUES.CLOSED;
+  }
+
+  static printVertexValue(stackSmiles, vertex) {
+    if (vertex.value.isPartOfAromaticRing) {
+      stackSmiles.push(vertex.value.element.toLowerCase());
+    } else {
+      stackSmiles.push(vertex.value.element);
+    }
+  }
+  /**
+   * Remove numbers which is neighbours in SMILES notation -> need to perform in cyclic structures
+   * @param {String} smiles SMILES
+   * @return {String} repaired SMILES
+   */
+
+
+  static removeUnnecessaryNumbers(smiles) {
+    if (smiles === null) {
+      return '';
+    }
+
+    try {
+      let numbers = this.getNumbers(smiles);
+
+      for (let number of numbers) {
+        let first = this.findFirst(smiles, number);
+        let second = this.findSecond(smiles, first + 1, number);
+        let tmpRange = this.removeRangeLast(smiles, first, second, number);
+        smiles = this.repairSmiles(smiles, tmpRange, first, second, number);
+      }
+
+      return smiles;
+    } catch (ex) {
+      return smiles;
+    }
+  }
+  /**
+   * Remove unnecessary numbers from SMILES
+   * @param {String} smiles
+   * @param {Number} first
+   * @param {Number} second
+   * @param {Number} number
+   * @return {*}
+   */
+
+
+  static removeNumbers(smiles, first, second, number) {
+    if (number > 9) {
+      let numLength = number.toString().length;
+      smiles = smiles.slice(0, first - 1) + smiles.slice(first + numLength);
+      return smiles.slice(0, second - 2 - numLength) + smiles.slice(second - 1);
+    } else {
+      smiles = smiles.slice(0, first) + smiles.slice(first + 1);
+      return smiles.slice(0, second - 1) + smiles.slice(second);
+    }
+  }
+  /**
+   * Reapair SMILES
+   * @param {String} smiles
+   * @param {String} tmpRange
+   * @param {Number} first
+   * @param {Number} second
+   * @param {Number} number
+   * @return {String|*}
+   */
+
+
+  static repairSmiles(smiles, tmpRange, first, second, number) {
+    let pattern = new RegExp("^(Br|Cl|[BCNOPSFIbcnopsfi])$");
+
+    if (pattern.test(tmpRange)) {
+      return this.removeNumbers(smiles, first, second, number);
+    }
+
+    let patternOrg = new RegExp("^(Br|Cl|[BCNOPSFIbcnopsfi])");
+
+    if (patternOrg.test(tmpRange)) {
+      return smiles;
+    }
+
+    while (tmpRange.length !== 0) {
+      if (tmpRange[0] === '(') {
+        tmpRange = tmpRange.substring(1);
+
+        if (pattern.test(tmpRange)) {
+          return this.removeNumbers(smiles, first, second, number);
+        }
+
+        let leftBrackets = 1;
+        let rightBrackets = 0;
+
+        while (leftBrackets !== rightBrackets) {
+          switch (tmpRange[0]) {
+            case '(':
+              leftBrackets++;
+              break;
+
+            case ')':
+              rightBrackets++;
+              break;
+          }
+
+          if ("" === tmpRange) {
+            return smiles;
+          }
+
+          tmpRange = tmpRange.substring(1);
+        }
+
+        return this.repairSmiles(smiles, tmpRange, first, second, number);
+      } else {
+        tmpRange = tmpRange.substring(1);
+      }
+    }
+
+    return smiles;
+  }
+  /**
+   * Substring in range and remove last Organic Subset
+   * @param smiles
+   * @param first
+   * @param second
+   * @param number
+   * @return {string}
+   */
+
+
+  static removeRangeLast(smiles, first, second, number) {
+    if (number > 9) {
+      return smiles.substring(first + number.toString().length, second - 1);
+    } else {
+      return smiles.substring(first + 1, second);
+    }
+  }
+  /**
+   * Get numbers from SMILES
+   * @param smiles
+   * @return {Set<Number>}
+   */
+
+
+  static getNumbers(smiles) {
+    let numbers = new Set();
+
+    for (let index = 0; index < smiles.length; ++index) {
+      if (!isNaN(smiles[index])) {
+        numbers.add(smiles[index]);
+      } else if (smiles[index] === '%') {
+        index++;
+        let num = "";
+
+        while (!isNaN(smiles[index])) {
+          num += smiles[index];
+          index++;
+
+          if (index >= smiles.length) {
+            break;
+          }
+        }
+
+        index--;
+        numbers.add(num);
+      }
+    }
+
+    return numbers;
+  }
+  /**
+   * return index of first occurrence number
+   * @param smiles
+   * @param number
+   * @return {number}
+   */
+
+
+  static findFirst(smiles, number) {
+    return smiles.indexOf(number);
+  }
+  /**
+   * return index of first occurrence number from index + 1
+   * @param smiles
+   * @param from range no including this point (from, Infinity) = [from + 1, Infinity)
+   * @param number
+   * @return {*}
+   */
+
+
+  static findSecond(smiles, from, number) {
+    let result = smiles.indexOf(number, from);
+
+    if (result === -1) {
+      throw "Not Found";
+    }
+
+    return result;
+  }
+
+  smilesNumbersAdd(vertex) {
+    let numbers = '';
+
+    for (let i = 0; i < vertex.digits.length; ++i) {
+      let num = vertex.digits[i];
+
+      if (this._printedDigits.some(e => e === num)) {
+        let nextVertex = this.vertices.find(e => e.digits.includes(num) && e.id !== vertex.id);
+        let intersection = vertex.edges.filter(element => nextVertex.edges.includes(element));
+
+        if (intersection.length > 0) {
+          let bond = this.edges[intersection[0]].bondType;
+
+          if (bond !== '-') {
+            numbers += bond;
+          }
+        }
+      }
+
+      this._printedDigits.push(num);
+
+      let numString = num.toString();
+
+      if (numString.length === 1) {
+        numbers += numString;
+      } else {
+        numbers += '%' + numString;
+      }
+    }
+
+    return numbers;
+  }
+  /**
+   * Return other vertex id then the actual vertex id
+   * when vertexId === sourceId return targetId
+   * when vertexId === targetId return sourceId
+   * @param {Number} vertexId actual vertex id
+   * @param {Number} sourceId source vertex id
+   * @param {Number} targetId target vertex id
+   * @return {Number}
+   */
+
+
+  static getProperVertex(vertexId, sourceId, targetId) {
+    if (vertexId === sourceId) return targetId;else return sourceId;
+  }
+
+  static repairNumbers(smiles) {
+    try {
+      let numbers = Array.from(this.getNumbers(smiles));
+      numbers.sort(function (a, b) {
+        return b - a;
+      });
+      let index = 1;
+
+      for (let number of numbers) {
+        if (index === number) {
+          continue;
+        }
+
+        let first = this.findFirst(smiles, number);
+
+        if (number > 9) {
+          smiles = smiles.slice(0, first - 1) + index + smiles.slice(first + number.toString().length);
+          let second = this.findSecond(smiles, first + 1, number);
+          smiles = smiles.slice(0, second - 1) + index + smiles.slice(second + number.toString().length);
+        } else {
+          smiles = smiles.slice(0, first) + index + smiles.slice(first + 1);
+          let second = this.findSecond(smiles, first + 1, number);
+          smiles = smiles.slice(0, second) + index + smiles.slice(second + 1);
+        }
+
+        index++;
+      }
+    } catch (e) {
+      return smiles;
+    }
+
+    return smiles;
+  }
+  /**
+   * Remove unnecessary parentheses from SMILES
+   * example CCC(CC)(C) -> CCC(CC)C
+   * example C(=O)C(C(C)) -> C(=O)CCC
+   * @param {Array} stackRight
+   * @return {Array}
+   */
+
+
+  static removeUnnecessaryParentheses(stackRight) {
+    if (stackRight.length === 0) return [];
+    let stackLeft = [],
+        lastLiteral = "",
+        literal = "";
+
+    while (stackRight.length > 0) {
+      literal = stackRight.shift();
+
+      if (")".localeCompare(literal) === 0 && ")".localeCompare(lastLiteral) === 0) {
+        Graph.removeParentheses(stackLeft, false, literal);
+      } else {
+        stackLeft.push(literal);
+      }
+
+      lastLiteral = literal;
+    }
+
+    literal = stackLeft.pop();
+
+    if (")".localeCompare(literal) === 0 && stackRight.length === 0) {
+      Graph.removeParentheses(stackLeft);
+    } else {
+      stackLeft.push(literal);
+    }
+
+    return stackLeft;
+  }
+  /**
+   * Remove unnecessary parentheses from stack
+   * go through stack and when find proper closing bracket,
+   * then remove it and push back removed data when searching in stack
+   * @param {Array} stack with unnecessary parentheses to remove
+   * @param {Boolean} end treat with situation when ")" is last character of stack -> end = true, else where end = false
+   * @param {String} literal, when end = false, need to pop from stack and at the end add literal back to stack
+   */
+
+
+  static removeParentheses(stack, end = true, literal = "") {
+    let stackTmp = [];
+    let leftBraces = 0,
+        rightBraces = 1;
+
+    if (!end) {
+      stack.pop();
+    }
+
+    while (true) {
+      let lit = stack.pop();
+
+      if ("(".localeCompare(lit) === 0) {
+        leftBraces++;
+      } else if (")".localeCompare(lit) === 0) {
+        rightBraces++;
+      }
+
+      if (leftBraces === rightBraces) {
+        Graph.moveAllValuesInStackToAnotherStack(stackTmp, stack);
+
+        if (!end) {
+          stack.push(literal);
+        }
+
+        break;
+      }
+
+      stackTmp.push(lit);
+    }
+  }
+  /**
+   * Remove all values from stackSource and push it to stackDestination
+   * @param {Array} stackSource stack to remove values
+   * @param {Array} stackDestination stack to add values from stackSource
+   */
+
+
+  static moveAllValuesInStackToAnotherStack(stackSource, stackDestination) {
+    while (stackSource.length > 0) {
+      stackDestination.push(stackSource.pop());
+    }
+  }
+  /**
+   * Check last value of stack
+   * if it one of (, -, = or # then remove all characters in stack to first ( from the end of stack
+   * elsewhere add ) to stack
+   * @param {Array} stackSmiles
+   */
+
+
+  static checkStack(stackSmiles) {
+    switch (stackSmiles[stackSmiles.length - 1]) {
+      case "(":
+      case "-":
+      case "=":
+      case "#":
+        Graph.removeAllFromStackToFirstLeftBrace(stackSmiles);
+        break;
+
+      default:
+        stackSmiles.push(")");
+    }
+  }
+  /**
+   * Remove all characters from stack to first "("
+   * @param {Array} stackSmiles
+   */
+
+
+  static removeAllFromStackToFirstLeftBrace(stackSmiles) {
+    let literal = stackSmiles.pop();
+
+    while (literal !== "(") {
+      if (stackSmiles.length === 0) break;
+      literal = stackSmiles.pop();
+    }
+  }
+  /**
+   * Add bond type to stack
+   * if edge have = or # bond type add it to stack
+   * @param {Edge} edge
+   * @param {Array} stackSmiles
+   */
+
+
+  static addBondTypeToStack(edge, stackSmiles) {
+    if (edge.bondType === "=" || edge.bondType === "#") {
+      stackSmiles.push(edge.bondType);
+    }
+  }
 
 }
 
 module.exports = Graph;
 
-},{"./Atom":3,"./Edge":6,"./MathHelper":9,"./Ring":11,"./Vector2":18,"./Vertex":19}],8:[function(require,module,exports){
+},{"./Atom":3,"./DecayPoint":5,"./DecayState":6,"./Edge":8,"./MathHelper":11,"./Node":12,"./Ring":14,"./SequenceType":17,"./SmallGraph":18,"./Vector2":23,"./Vertex":24,"./VertexState":25}],10:[function(require,module,exports){
 "use strict";
 
 //@ts-check
@@ -5914,14 +7031,16 @@ class Line {
    * @param {string} [elementTo=null] A one-letter representation of the element associated with the vector marking the end of the line.
    * @param {Boolean} [chiralFrom=false] Whether or not the from atom is a chiral center.
    * @param {Boolean} [chiralTo=false] Whether or not the to atom is a chiral center.
+   * @param {Boolean} [isDecayPoint=false] Whether or not the edge is a decay point
    */
-  constructor(from = new Vector2(0, 0), to = new Vector2(0, 0), elementFrom = null, elementTo = null, chiralFrom = false, chiralTo = false) {
+  constructor(from = new Vector2(0, 0), to = new Vector2(0, 0), elementFrom = null, elementTo = null, chiralFrom = false, chiralTo = false, isDecayPoint = false) {
     this.from = from;
     this.to = to;
     this.elementFrom = elementFrom;
     this.elementTo = elementTo;
     this.chiralFrom = chiralFrom;
     this.chiralTo = chiralTo;
+    this.isDecayPoint = isDecayPoint;
   }
   /**
    * Clones this line and returns the clone.
@@ -6196,7 +7315,7 @@ class Line {
 
 module.exports = Line;
 
-},{"./Vector2":18}],9:[function(require,module,exports){
+},{"./Vector2":23}],11:[function(require,module,exports){
 "use strict";
 
 /** 
@@ -6369,7 +7488,29 @@ class MathHelper {
 
 module.exports = MathHelper;
 
-},{}],10:[function(require,module,exports){
+},{}],12:[function(require,module,exports){
+"use strict";
+
+//@ts-check
+const VertexState = require("./VertexState");
+
+class Node {
+  constructor(id) {
+    this.id = id;
+    this.neighbours = [];
+    this.onRing = false;
+    this.vertexState = VertexState.VALUES.NOT_FOUND;
+  }
+
+  addNeighbour(neighbour) {
+    this.neighbours.push(neighbour);
+  }
+
+}
+
+module.exports = Node;
+
+},{"./VertexState":25}],13:[function(require,module,exports){
 "use strict";
 
 // WHEN REPLACING, CHECK FOR:
@@ -8269,7 +9410,7 @@ module.exports = function () {
   };
 }();
 
-},{}],11:[function(require,module,exports){
+},{}],14:[function(require,module,exports){
 "use strict";
 
 //@ts-check
@@ -8491,7 +9632,7 @@ class Ring {
 
 module.exports = Ring;
 
-},{"./ArrayHelper":2,"./RingConnection":12,"./Vector2":18,"./Vertex":19}],12:[function(require,module,exports){
+},{"./ArrayHelper":2,"./RingConnection":15,"./Vector2":23,"./Vertex":24}],15:[function(require,module,exports){
 "use strict";
 
 //@ts-check
@@ -8665,7 +9806,7 @@ class RingConnection {
 
 module.exports = RingConnection;
 
-},{"./Ring":11,"./Vertex":19}],13:[function(require,module,exports){
+},{"./Ring":14,"./Vertex":24}],16:[function(require,module,exports){
 "use strict";
 
 //@ts-check
@@ -9276,7 +10417,279 @@ class SSSR {
 
 module.exports = SSSR;
 
-},{"./Graph":7}],14:[function(require,module,exports){
+},{"./Graph":9}],17:[function(require,module,exports){
+"use strict";
+
+//@ts-check
+class SequenceType {
+  static get VALUES() {
+    return {
+      LINEAR: "linear",
+      CYCLIC: "cyclic",
+      BRANCH: "branched",
+      BRANCH_CYCLIC: "branch-cyclic",
+      LINEAR_POLYKETIDE: "linear-polyketide",
+      CYCLIC_POLYKETIDE: "cyclic-polyketide",
+      OTHER: "other"
+    };
+  }
+
+  static getTypeFromValues(isCyclic, isBranch, isOther) {
+    if (isOther) {
+      return this.VALUES.OTHER;
+    }
+
+    if (!isCyclic && !isBranch) {
+      return this.VALUES.LINEAR;
+    } else if (isCyclic && !isBranch) {
+      return this.VALUES.CYCLIC;
+    } else if (!isCyclic) {
+      return this.VALUES.BRANCH;
+    } else {
+      return this.VALUES.BRANCH_CYCLIC;
+    }
+  }
+
+}
+
+module.exports = SequenceType;
+
+},{}],18:[function(require,module,exports){
+"use strict";
+
+//@ts-check
+const Node = require('./Node');
+
+const SequenceType = require('./SequenceType');
+
+const VertexState = require('./VertexState');
+
+class SmallGraph {
+  constructor() {
+    this._nodes = [];
+    this.isOther = false;
+    this._branch = false;
+    this.isCyclic = false;
+    this.isBranched = false;
+    this.sequenceType = SequenceType.VALUES.LINEAR;
+    this._nodeOnRing = null;
+  }
+
+  addVertex(node) {
+    this._nodes.push(node);
+  }
+
+  addNeighbour(nodeId, neighbour) {
+    this._nodes[nodeId].addNeighbour(neighbour);
+  }
+
+  dfsInitialization() {
+    this._nodes.forEach(e => e.vertexState = VertexState.VALUES.NOT_FOUND);
+  }
+
+  getSourceNode() {
+    for (let index = 0; index < this._nodes.length; ++index) {
+      if (this._nodes[index].neighbours.length === 1) {
+        return this._nodes[index];
+      }
+    }
+
+    return null;
+  }
+
+  oneCyclic() {
+    if (this._nodes.length === 0) {
+      return false;
+    }
+
+    this.dfsInitialization();
+    this.isCyclic = false;
+    this.dfsCyclic(this._nodes[0], -1);
+  }
+
+  dfsCyclic(vertex, vertexFromId) {
+    if (vertex.vertexState === VertexState.VALUES.OPEN) {
+      this.isCyclic = true;
+      this._nodeOnRing = vertex;
+    }
+
+    if (vertex.vertexState !== VertexState.VALUES.NOT_FOUND) {
+      return;
+    }
+
+    vertex.vertexState = VertexState.VALUES.OPEN;
+
+    for (let i = 0; i < vertex.neighbours.length; ++i) {
+      if (vertexFromId !== vertex.neighbours[i]) {
+        this.dfsCyclic(this._nodes[vertex.neighbours[i]], vertex.id);
+      }
+    }
+
+    vertex.vertexState = VertexState.VALUES.CLOSED;
+  }
+
+  dfsSequenceStart() {
+    if (this._nodes.length === 0) {
+      return "";
+    }
+
+    this.dfsInitialization();
+    this.sequence = "";
+
+    if (this.isCyclic) {
+      this.findRing(this._nodeOnRing);
+      this.dfsSequenceCyclic(this._nodeOnRing);
+    } else {
+      this.dfsSequence(this.getSourceNode(), -1);
+    }
+
+    if (this.sequence.charAt(this.sequence.length - 1) === '-') {
+      this.sequence = this.sequence.substr(0, this.sequence.length - 1);
+    }
+
+    this.sequenceType = SequenceType.getTypeFromValues(this.isCyclic, this.isBranched, this.isOther);
+  }
+
+  arrayContainsTimes(array, searchValue, times) {
+    let cnt = 0;
+
+    for (let index = 0; index < array.length; ++index) {
+      if (array[index] === searchValue) {
+        cnt++;
+
+        if (cnt === times) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }
+
+  findRing(start) {
+    let queue = [];
+    let firstPath = [start.id];
+    let firstPass = true;
+    queue.push(firstPath);
+
+    while (queue.length !== 0) {
+      let path = queue.pop();
+      let last = path[path.length - 1];
+      let node = this._nodes[last];
+
+      if (node.id === start.id && !firstPass) {
+        if (path.length === 3 && path[0] === path[2] && !this.arrayContainsTimes(this._nodes[path[0]].neighbours, path[1], 2)) {
+          continue;
+        }
+
+        path.forEach(v => this._nodes[v].onRing = true);
+        continue;
+      }
+
+      node.neighbours.forEach(neighbour => {
+        if (!path.some(e => e === neighbour) || neighbour === start.id) {
+          let newPath = [...path];
+          newPath.push(neighbour);
+          queue.push(newPath);
+        }
+      });
+      firstPass = false;
+    }
+  }
+
+  sortByRingPreference(array) {
+    let sortedArray = [...array];
+    sortedArray.sort((a, b) => {
+      if (this._nodes[a].onRing === this._nodes[b].onRing) {
+        return 0;
+      } else if (this._nodes[a].onRing) {
+        return 1;
+      } else {
+        return -1;
+      }
+    });
+    return sortedArray;
+  }
+
+  dfsSequenceCyclic(vertex, vertexFromId) {
+    if (vertex.vertexState !== VertexState.VALUES.NOT_FOUND) {
+      return;
+    }
+
+    this.printLeftBrace(vertex);
+    this.printDash();
+    vertex.vertexState = VertexState.VALUES.OPEN;
+    this.printVertex(vertex.id);
+    let sortedNeighbours = this.sortByRingPreference(vertex.neighbours);
+
+    for (let index = 0; index < sortedNeighbours.length; ++index) {
+      if (vertexFromId === sortedNeighbours[index]) {
+        continue;
+      }
+
+      this.dfsSequenceCyclic(this._nodes[sortedNeighbours[index]], vertex.id);
+    }
+
+    this.printRightBrace();
+    vertex.vertexState = VertexState.VALUES.CLOSED;
+  }
+
+  printVertex(vertexId) {
+    this.sequence += `[${vertexId}]`;
+  }
+
+  printDash() {
+    if (']' === this.sequence[this.sequence.length - 1]) {
+      this.sequence += '-';
+    }
+  }
+
+  printLeftBrace(vertex) {
+    if (vertex.neighbours.length > 2) {
+      if (this.isBranched) {
+        this.isOther = true;
+      }
+
+      this.sequence += '\\(';
+      this._branch = true;
+      this.isBranched = true;
+    }
+  }
+
+  printRightBrace() {
+    if (this._branch) {
+      this.sequence += '\\)';
+      this._branch = false;
+    }
+  }
+
+  dfsSequence(vertex, vertexFromId) {
+    if (vertex.vertexState !== VertexState.VALUES.NOT_FOUND) {
+      return;
+    }
+
+    this.printLeftBrace(vertex);
+    this.printDash();
+    vertex.vertexState = VertexState.VALUES.OPEN;
+    this.printVertex(vertex.id);
+
+    for (let index = 0; index < vertex.neighbours.length; ++index) {
+      if (vertexFromId === vertex.neighbours[index]) {
+        continue;
+      }
+
+      this.dfsSequence(this._nodes[vertex.neighbours[index]], vertex.id);
+    }
+
+    this.printRightBrace();
+    vertex.vertexState = VertexState.VALUES.CLOSED;
+  }
+
+}
+
+module.exports = SmallGraph;
+
+},{"./Node":12,"./SequenceType":17,"./VertexState":25}],19:[function(require,module,exports){
 "use strict";
 
 // we use the drawer to do all the preprocessing. then we take over the drawing
@@ -9608,7 +11021,7 @@ class SvgDrawer {
 
 module.exports = SvgDrawer;
 
-},{"./ArrayHelper":2,"./Atom":3,"./Drawer":5,"./Graph":7,"./Line":8,"./SvgWrapper":15,"./ThemeManager":16,"./Vector2":18}],15:[function(require,module,exports){
+},{"./ArrayHelper":2,"./Atom":3,"./Drawer":7,"./Graph":9,"./Line":10,"./SvgWrapper":20,"./ThemeManager":21,"./Vector2":23}],20:[function(require,module,exports){
 "use strict";
 
 const {
@@ -10179,7 +11592,7 @@ class SvgWrapper {
 
 module.exports = SvgWrapper;
 
-},{"./Line":8,"./UtilityFunctions":17,"./Vector2":18}],16:[function(require,module,exports){
+},{"./Line":10,"./UtilityFunctions":22,"./Vector2":23}],21:[function(require,module,exports){
 "use strict";
 
 class ThemeManager {
@@ -10227,7 +11640,7 @@ class ThemeManager {
 
 module.exports = ThemeManager;
 
-},{}],17:[function(require,module,exports){
+},{}],22:[function(require,module,exports){
 "use strict";
 
 /**
@@ -10255,7 +11668,7 @@ module.exports = {
   getChargeText
 };
 
-},{}],18:[function(require,module,exports){
+},{}],23:[function(require,module,exports){
 "use strict";
 
 //@ts-check
@@ -10882,7 +12295,7 @@ class Vector2 {
 
 module.exports = Vector2;
 
-},{}],19:[function(require,module,exports){
+},{}],24:[function(require,module,exports){
 "use strict";
 
 //@ts-check
@@ -10893,6 +12306,8 @@ const ArrayHelper = require('./ArrayHelper');
 const Vector2 = require('./Vector2');
 
 const Atom = require('./Atom');
+
+const VertexState = require('./VertexState');
 /** 
  * A class representing a vertex.
  * 
@@ -10911,6 +12326,7 @@ const Atom = require('./Atom');
  * @property {Number[]} neighbours The vertex ids of neighbouring vertices.
  * @property {String[]} neighbouringElements The element symbols associated with neighbouring vertices.
  * @property {Boolean} forcePositioned A boolean indicating whether or not this vertex was positioned using a force-based approach.
+ * @property {Number} vertexState enum of VertexState for DFS.
  */
 
 
@@ -10938,6 +12354,9 @@ class Vertex {
     this.neighbours = Array();
     this.neighbouringElements = Array();
     this.forcePositioned = false;
+    this.vertexState = VertexState.VALUES.NOT_FOUND;
+    this.component = -1;
+    this.digits = [];
   }
   /**
    * Set the 2D coordinates of the vertex.
@@ -11245,5 +12664,27 @@ class Vertex {
 
 module.exports = Vertex;
 
-},{"./ArrayHelper":2,"./Atom":3,"./MathHelper":9,"./Vector2":18}]},{},[1])
+},{"./ArrayHelper":2,"./Atom":3,"./MathHelper":11,"./Vector2":23,"./VertexState":25}],25:[function(require,module,exports){
+"use strict";
+
+//@ts-check
+class VertexState {
+  /**
+   * Enum values of Vertex State for DFS
+   * @return {{NOT_FOUND: number, OPEN: number, CLOSED: number, FULLY_CLOSED: number}}
+   */
+  static get VALUES() {
+    return {
+      NOT_FOUND: 0,
+      OPEN: 1,
+      CLOSED: 2,
+      FULLY_CLOSED: 3
+    };
+  }
+
+}
+
+module.exports = VertexState;
+
+},{}]},{},[1])
 
