@@ -4928,7 +4928,7 @@ class Drawer {
   }
 
   getDecays() {
-    this.graph.getDecays();
+    return this.graph.getDecays();
   }
 
   buildBlockSmiles() {
