@@ -1168,6 +1168,7 @@ class Graph {
      */
     buildSmiles() {
         let smiles = [];
+        this._polyketide = false;
         this.dfsSmilesInitialization();
         if (this.decays.length === 0) {
             this.startDfs(this.vertices[0], smiles);
@@ -1244,9 +1245,6 @@ class Graph {
         this._digitCounter = 1;
         this.dfsSmiles(vertex, stackSmiles, isPolyketide);
         let polyketideFlag = isPolyketide.getValue();
-        if (polyketideFlag) {
-            this._polyketide = true;
-        }
         if (this._isCyclic) {
             this.closedToNotFound();
             stackSmiles = [];
@@ -1258,6 +1256,9 @@ class Graph {
         let smile = Graph.removeUnnecessaryNumbers(stackSmiles.join(""));
         if (smile.length !== 0) {
             smiles.push({smiles: smile, isPolyketide: polyketideFlag});
+            if (polyketideFlag === true) {
+                this._polyketide = true;
+            }
         }
     }
 
