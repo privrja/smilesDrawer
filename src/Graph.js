@@ -12,6 +12,7 @@ const Node = require('./Node');
 const SequenceType = require('./SequenceType');
 const DecayState = require('./DecayState');
 const MutableBoolean = require('./MutableBoolean');
+const MutableCounter = require('./MutableCounter');
 
 /**
  * A class representing the molecular graph.
@@ -34,6 +35,7 @@ class Graph {
         this.vertices = Array();
         this.edges = Array();
         this.decays = Array();
+        this.decaysAll = Array();
         this.vertexIdsToEdgeId = {};
         this.isomeric = isomeric;
         this._startingVertexes = [];
@@ -177,13 +179,10 @@ class Graph {
     smallBlockDfsStart(edge) {
         let stackVisitedVertexes = [];
         let depth = this.smallDfs(this.vertices[edge.sourceId], 0, stackVisitedVertexes);
-        // this.dfsSmallInitialization(stackVisitedVertexes);
         this.dfsSmilesInitialization();
-
         if (depth > 3) {
             stackVisitedVertexes = [];
             depth = this.smallDfs(this.vertices[edge.targetId], 0, stackVisitedVertexes);
-            // this.dfsSmallInitialization(stackVisitedVertexes);
             this.dfsSmilesInitialization();
             if (depth > 3) {
                 this._decaysCopy.push(edge.id);
@@ -232,6 +231,8 @@ class Graph {
                 if (dec !== false) {
                     this.edges[dec].setDecay(true);
                     this.decays.push(dec);
+                    this.edges[dec].setDecayAll(true);
+                    this.decaysAll.push(dec);
                 }
             }
         }
@@ -241,7 +242,9 @@ class Graph {
     sourceDecays() {
         this.options.decaySource.forEach(e => {
             this.edges[e].setDecay(true);
+            this.edges[e].setDecayAll(true);
             this.decays.push(e);
+            this.decaysAll.push(e);
         });
     }
 
@@ -1147,12 +1150,18 @@ class Graph {
      */
     revertEdgeDecayPoint(edgeId) {
         this.edges[edgeId].isDecay = !this.edges[edgeId].isDecay;
+        this.edges[edgeId].isDecayAll = !this.edges[edgeId].isDecayAll;
         if (this.edges[edgeId].isDecay) {
             this.decays.push(edgeId);
+            this.decaysAll.push(edgeId);
         } else {
             let index = this.decays.indexOf(edgeId);
             if (index > -1) {
                 this.decays.splice(index, 1);
+            }
+            index = this.decaysAll.indexOf(edgeId);
+            if (index > -1) {
+                this.decaysAll.splice(index, 1);
             }
         }
     }
@@ -1239,27 +1248,31 @@ class Graph {
      */
     startDfs(vertex, smiles) {
         let isPolyketide = new MutableBoolean(true);
+        let cntDecays = new MutableCounter();
+        let through = [];
         let stackSmiles = [];
         this.first = vertex.id;
         this._isCyclic = false;
         this._digitCounter = 1;
-        console.log('New block');
-        this.dfsSmiles(vertex, stackSmiles, isPolyketide);
-        let polyketideFlag = isPolyketide.getValue();
-        console.log('dfsend');
+        this.dfsSmiles(vertex, stackSmiles, isPolyketide, cntDecays, through);
+        console.log("Last test ", cntDecays, isPolyketide.getValue(), through.every(vertex => vertex === 'O' || vertex === 'N'));
+        if (cntDecays.getValue() < 2 && isPolyketide.getValue() === true) {
+            console.log(through.every(vertex => vertex === 'O' || vertex === 'N'));
+            isPolyketide.setValue(through.every(vertex => vertex === 'O' || vertex === 'N'));
+        }
         if (this._isCyclic) {
             this.closedToNotFound();
             stackSmiles = [];
-            this.dfsSmiles(vertex, stackSmiles, new MutableBoolean(true), -1, true);
+            this.dfsSmiles(vertex, stackSmiles, new MutableBoolean(true), new MutableCounter(), [], -1, true);
         }
         this.closedToFullyClosed();
 
         stackSmiles = Graph.removeUnnecessaryParentheses(stackSmiles);
         let smile = Graph.removeUnnecessaryNumbers(stackSmiles.join(""));
         if (smile.length !== 0) {
-            console.log('smiles ', smile, polyketideFlag);
-            smiles.push({smiles: smile, isPolyketide: polyketideFlag});
-            if (polyketideFlag === true) {
+            smiles.push({smiles: smile, isPolyketide: isPolyketide.getValue()});
+            console.log(smile, isPolyketide.getValue(), through);
+            if (isPolyketide.getValue() === true) {
                 this._polyketide = true;
             }
         }
@@ -1286,10 +1299,12 @@ class Graph {
      * @param {Vertex} vertex
      * @param {Array} stackSmiles output param
      * @param {MutableBoolean} isPolyketide
+     * @param {MutableCounter} cntDecays
+     * @param {Array} through
      * @param lastVertexId last vertex id for setup digits
      * @param isSecondPass is second pass of dfs
      */
-    dfsSmiles(vertex, stackSmiles, isPolyketide, lastVertexId = -1, isSecondPass = false) {
+    dfsSmiles(vertex, stackSmiles, isPolyketide, cntDecays, through,  lastVertexId = -1, isSecondPass = false) {
         if (vertex.vertexState === VertexState.VALUES.OPEN && !isSecondPass && lastVertexId !== -1) {
             this._isCyclic = true;
             if (!vertex.digits.some(e => this.vertices[lastVertexId].digits.includes(e))) {
@@ -1307,7 +1322,6 @@ class Graph {
             return;
         }
 
-        console.log("first", isPolyketide.getValue());
         if (this.first === vertex.id && vertex.value.element === "C" && isPolyketide.getValue()) {
             stackSmiles.push("O");
             isPolyketide.setValue(false);
@@ -1345,8 +1359,13 @@ class Graph {
         vertex.vertexState = VertexState.VALUES.OPEN;
         for (let i = 0; i < vertex.edges.length; ++i) {
             let edge = this.edges[vertex.edges[i]];
+            let nextVertex = Graph.getProperVertex(vertex.id, edge.sourceId, edge.targetId);
+            if (edge.isDecayAll && lastVertexId !== nextVertex) {
+                console.log(vertex);
+                through.push(vertex.value.element);
+            }
             if (edge.isDecay) {
-                console.log("second", isPolyketide.getValue());
+                cntDecays.increment();
                 if (vertex.value.element === "C" && vertex.id !== this.first && isPolyketide.getValue()) {
                     stackSmiles.push("(");
                     stackSmiles.push("O");
@@ -1357,9 +1376,8 @@ class Graph {
             }
             stackSmiles.push("(");
             Graph.addBondTypeToStack(edge, stackSmiles);
-            let nextVertex = Graph.getProperVertex(vertex.id, edge.sourceId, edge.targetId);
             if (lastVertexId !== nextVertex) {
-                this.dfsSmiles(this.vertices[nextVertex], stackSmiles, isPolyketide, vertex.id, isSecondPass);
+                this.dfsSmiles(this.vertices[nextVertex], stackSmiles, isPolyketide, cntDecays, through, vertex.id, isSecondPass);
             }
             Graph.checkStack(stackSmiles);
         }

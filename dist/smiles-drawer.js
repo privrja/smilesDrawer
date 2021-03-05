@@ -120,7 +120,7 @@ if (!Array.prototype.fill) {
 
 module.exports = SmilesDrawer;
 
-},{"./src/Drawer":7,"./src/Parser":14,"./src/SvgDrawer":20}],2:[function(require,module,exports){
+},{"./src/Drawer":7,"./src/Parser":15,"./src/SvgDrawer":21}],2:[function(require,module,exports){
 "use strict";
 
 //@ts-check
@@ -1916,7 +1916,7 @@ class CanvasWrapper {
 
 module.exports = CanvasWrapper;
 
-},{"./Line":10,"./MathHelper":11,"./Ring":15,"./UtilityFunctions":23,"./Vector2":24,"./Vertex":25}],5:[function(require,module,exports){
+},{"./Line":10,"./MathHelper":11,"./Ring":16,"./UtilityFunctions":24,"./Vector2":25,"./Vertex":26}],5:[function(require,module,exports){
 "use strict";
 
 //@ts-check
@@ -5053,7 +5053,7 @@ class Drawer {
 
 module.exports = Drawer;
 
-},{"./ArrayHelper":2,"./Atom":3,"./CanvasWrapper":4,"./DecayState":6,"./Edge":8,"./Graph":9,"./Line":10,"./MathHelper":11,"./Ring":15,"./RingConnection":16,"./SSSR":17,"./ThemeManager":22,"./Vector2":24,"./Vertex":25}],8:[function(require,module,exports){
+},{"./ArrayHelper":2,"./Atom":3,"./CanvasWrapper":4,"./DecayState":6,"./Edge":8,"./Graph":9,"./Line":10,"./MathHelper":11,"./Ring":16,"./RingConnection":17,"./SSSR":18,"./ThemeManager":23,"./Vector2":25,"./Vertex":26}],8:[function(require,module,exports){
 "use strict";
 
 //@ts-check
@@ -5088,6 +5088,7 @@ class Edge {
     this.center = false;
     this.wedge = '';
     this.isDecay = false;
+    this.isDecayAll = false;
   }
   /**
    * Set the bond type of this edge. This also sets the edge weight.
@@ -5107,6 +5108,15 @@ class Edge {
 
   setDecay(decay) {
     this.isDecay = decay;
+  }
+  /**
+   * Set decay All
+   * @param {Boolean} decay point
+   */
+
+
+  setDecayAll(decay) {
+    this.isDecayAll = decay;
   }
   /**
    * An object mapping the bond type to the number of bonds.
@@ -5159,6 +5169,8 @@ const SequenceType = require('./SequenceType');
 const DecayState = require('./DecayState');
 
 const MutableBoolean = require('./MutableBoolean');
+
+const MutableCounter = require('./MutableCounter');
 /**
  * A class representing the molecular graph.
  *
@@ -5182,6 +5194,7 @@ class Graph {
     this.vertices = Array();
     this.edges = Array();
     this.decays = Array();
+    this.decaysAll = Array();
     this.vertexIdsToEdgeId = {};
     this.isomeric = isomeric;
     this._startingVertexes = [];
@@ -5327,14 +5340,12 @@ class Graph {
 
   smallBlockDfsStart(edge) {
     let stackVisitedVertexes = [];
-    let depth = this.smallDfs(this.vertices[edge.sourceId], 0, stackVisitedVertexes); // this.dfsSmallInitialization(stackVisitedVertexes);
-
+    let depth = this.smallDfs(this.vertices[edge.sourceId], 0, stackVisitedVertexes);
     this.dfsSmilesInitialization();
 
     if (depth > 3) {
       stackVisitedVertexes = [];
-      depth = this.smallDfs(this.vertices[edge.targetId], 0, stackVisitedVertexes); // this.dfsSmallInitialization(stackVisitedVertexes);
-
+      depth = this.smallDfs(this.vertices[edge.targetId], 0, stackVisitedVertexes);
       this.dfsSmilesInitialization();
 
       if (depth > 3) {
@@ -5389,6 +5400,8 @@ class Graph {
         if (dec !== false) {
           this.edges[dec].setDecay(true);
           this.decays.push(dec);
+          this.edges[dec].setDecayAll(true);
+          this.decaysAll.push(dec);
         }
       }
     }
@@ -5399,7 +5412,9 @@ class Graph {
   sourceDecays() {
     this.options.decaySource.forEach(e => {
       this.edges[e].setDecay(true);
+      this.edges[e].setDecayAll(true);
       this.decays.push(e);
+      this.decaysAll.push(e);
     });
   }
   /**
@@ -6332,14 +6347,22 @@ class Graph {
 
   revertEdgeDecayPoint(edgeId) {
     this.edges[edgeId].isDecay = !this.edges[edgeId].isDecay;
+    this.edges[edgeId].isDecayAll = !this.edges[edgeId].isDecayAll;
 
     if (this.edges[edgeId].isDecay) {
       this.decays.push(edgeId);
+      this.decaysAll.push(edgeId);
     } else {
       let index = this.decays.indexOf(edgeId);
 
       if (index > -1) {
         this.decays.splice(index, 1);
+      }
+
+      index = this.decaysAll.indexOf(edgeId);
+
+      if (index > -1) {
+        this.decaysAll.splice(index, 1);
       }
     }
   }
@@ -6438,19 +6461,24 @@ class Graph {
 
   startDfs(vertex, smiles) {
     let isPolyketide = new MutableBoolean(true);
+    let cntDecays = new MutableCounter();
+    let through = [];
     let stackSmiles = [];
     this.first = vertex.id;
     this._isCyclic = false;
     this._digitCounter = 1;
-    console.log('New block');
-    this.dfsSmiles(vertex, stackSmiles, isPolyketide);
-    let polyketideFlag = isPolyketide.getValue();
-    console.log('dfsend');
+    this.dfsSmiles(vertex, stackSmiles, isPolyketide, cntDecays, through);
+    console.log("Last test ", cntDecays, isPolyketide.getValue(), through.every(vertex => vertex === 'O' || vertex === 'N'));
+
+    if (cntDecays.getValue() < 2 && isPolyketide.getValue() === true) {
+      console.log(through.every(vertex => vertex === 'O' || vertex === 'N'));
+      isPolyketide.setValue(through.every(vertex => vertex === 'O' || vertex === 'N'));
+    }
 
     if (this._isCyclic) {
       this.closedToNotFound();
       stackSmiles = [];
-      this.dfsSmiles(vertex, stackSmiles, new MutableBoolean(true), -1, true);
+      this.dfsSmiles(vertex, stackSmiles, new MutableBoolean(true), new MutableCounter(), [], -1, true);
     }
 
     this.closedToFullyClosed();
@@ -6458,13 +6486,13 @@ class Graph {
     let smile = Graph.removeUnnecessaryNumbers(stackSmiles.join(""));
 
     if (smile.length !== 0) {
-      console.log('smiles ', smile, polyketideFlag);
       smiles.push({
         smiles: smile,
-        isPolyketide: polyketideFlag
+        isPolyketide: isPolyketide.getValue()
       });
+      console.log(smile, isPolyketide.getValue(), through);
 
-      if (polyketideFlag === true) {
+      if (isPolyketide.getValue() === true) {
         this._polyketide = true;
       }
     }
@@ -6490,12 +6518,14 @@ class Graph {
    * @param {Vertex} vertex
    * @param {Array} stackSmiles output param
    * @param {MutableBoolean} isPolyketide
+   * @param {MutableCounter} cntDecays
+   * @param {Array} through
    * @param lastVertexId last vertex id for setup digits
    * @param isSecondPass is second pass of dfs
    */
 
 
-  dfsSmiles(vertex, stackSmiles, isPolyketide, lastVertexId = -1, isSecondPass = false) {
+  dfsSmiles(vertex, stackSmiles, isPolyketide, cntDecays, through, lastVertexId = -1, isSecondPass = false) {
     if (vertex.vertexState === VertexState.VALUES.OPEN && !isSecondPass && lastVertexId !== -1) {
       this._isCyclic = true;
 
@@ -6513,8 +6543,6 @@ class Graph {
     if (vertex.value.element === 'H') {
       return;
     }
-
-    console.log("first", isPolyketide.getValue());
 
     if (this.first === vertex.id && vertex.value.element === "C" && isPolyketide.getValue()) {
       stackSmiles.push("O");
@@ -6559,9 +6587,15 @@ class Graph {
 
     for (let i = 0; i < vertex.edges.length; ++i) {
       let edge = this.edges[vertex.edges[i]];
+      let nextVertex = Graph.getProperVertex(vertex.id, edge.sourceId, edge.targetId);
+
+      if (edge.isDecayAll && lastVertexId !== nextVertex) {
+        console.log(vertex);
+        through.push(vertex.value.element);
+      }
 
       if (edge.isDecay) {
-        console.log("second", isPolyketide.getValue());
+        cntDecays.increment();
 
         if (vertex.value.element === "C" && vertex.id !== this.first && isPolyketide.getValue()) {
           stackSmiles.push("(");
@@ -6575,10 +6609,9 @@ class Graph {
 
       stackSmiles.push("(");
       Graph.addBondTypeToStack(edge, stackSmiles);
-      let nextVertex = Graph.getProperVertex(vertex.id, edge.sourceId, edge.targetId);
 
       if (lastVertexId !== nextVertex) {
-        this.dfsSmiles(this.vertices[nextVertex], stackSmiles, isPolyketide, vertex.id, isSecondPass);
+        this.dfsSmiles(this.vertices[nextVertex], stackSmiles, isPolyketide, cntDecays, through, vertex.id, isSecondPass);
       }
 
       Graph.checkStack(stackSmiles);
@@ -7028,7 +7061,7 @@ class Graph {
 
 module.exports = Graph;
 
-},{"./Atom":3,"./DecayPoint":5,"./DecayState":6,"./Edge":8,"./MathHelper":11,"./MutableBoolean":12,"./Node":13,"./Ring":15,"./SequenceType":18,"./SmallGraph":19,"./Vector2":24,"./Vertex":25,"./VertexState":26}],10:[function(require,module,exports){
+},{"./Atom":3,"./DecayPoint":5,"./DecayState":6,"./Edge":8,"./MathHelper":11,"./MutableBoolean":12,"./MutableCounter":13,"./Node":14,"./Ring":16,"./SequenceType":19,"./SmallGraph":20,"./Vector2":25,"./Vertex":26,"./VertexState":27}],10:[function(require,module,exports){
 "use strict";
 
 //@ts-check
@@ -7339,7 +7372,7 @@ class Line {
 
 module.exports = Line;
 
-},{"./Vector2":24}],11:[function(require,module,exports){
+},{"./Vector2":25}],11:[function(require,module,exports){
 "use strict";
 
 /** 
@@ -7541,6 +7574,33 @@ module.exports = MutableBoolean;
 },{}],13:[function(require,module,exports){
 "use strict";
 
+/**
+ * @param {Number} value
+ */
+class MutableCounter {
+  constructor() {
+    this.value = 0;
+  }
+
+  increment() {
+    this.value++;
+  }
+
+  reset() {
+    this.value = 0;
+  }
+
+  getValue() {
+    return this.value;
+  }
+
+}
+
+module.exports = MutableCounter;
+
+},{}],14:[function(require,module,exports){
+"use strict";
+
 //@ts-check
 const VertexState = require("./VertexState");
 
@@ -7560,7 +7620,7 @@ class Node {
 
 module.exports = Node;
 
-},{"./VertexState":26}],14:[function(require,module,exports){
+},{"./VertexState":27}],15:[function(require,module,exports){
 "use strict";
 
 // WHEN REPLACING, CHECK FOR:
@@ -9460,7 +9520,7 @@ module.exports = function () {
   };
 }();
 
-},{}],15:[function(require,module,exports){
+},{}],16:[function(require,module,exports){
 "use strict";
 
 //@ts-check
@@ -9682,7 +9742,7 @@ class Ring {
 
 module.exports = Ring;
 
-},{"./ArrayHelper":2,"./RingConnection":16,"./Vector2":24,"./Vertex":25}],16:[function(require,module,exports){
+},{"./ArrayHelper":2,"./RingConnection":17,"./Vector2":25,"./Vertex":26}],17:[function(require,module,exports){
 "use strict";
 
 //@ts-check
@@ -9856,7 +9916,7 @@ class RingConnection {
 
 module.exports = RingConnection;
 
-},{"./Ring":15,"./Vertex":25}],17:[function(require,module,exports){
+},{"./Ring":16,"./Vertex":26}],18:[function(require,module,exports){
 "use strict";
 
 //@ts-check
@@ -10467,7 +10527,7 @@ class SSSR {
 
 module.exports = SSSR;
 
-},{"./Graph":9}],18:[function(require,module,exports){
+},{"./Graph":9}],19:[function(require,module,exports){
 "use strict";
 
 //@ts-check
@@ -10504,7 +10564,7 @@ class SequenceType {
 
 module.exports = SequenceType;
 
-},{}],19:[function(require,module,exports){
+},{}],20:[function(require,module,exports){
 "use strict";
 
 //@ts-check
@@ -10739,7 +10799,7 @@ class SmallGraph {
 
 module.exports = SmallGraph;
 
-},{"./Node":13,"./SequenceType":18,"./VertexState":26}],20:[function(require,module,exports){
+},{"./Node":14,"./SequenceType":19,"./VertexState":27}],21:[function(require,module,exports){
 "use strict";
 
 // we use the drawer to do all the preprocessing. then we take over the drawing
@@ -11071,7 +11131,7 @@ class SvgDrawer {
 
 module.exports = SvgDrawer;
 
-},{"./ArrayHelper":2,"./Atom":3,"./Drawer":7,"./Graph":9,"./Line":10,"./SvgWrapper":21,"./ThemeManager":22,"./Vector2":24}],21:[function(require,module,exports){
+},{"./ArrayHelper":2,"./Atom":3,"./Drawer":7,"./Graph":9,"./Line":10,"./SvgWrapper":22,"./ThemeManager":23,"./Vector2":25}],22:[function(require,module,exports){
 "use strict";
 
 const {
@@ -11642,7 +11702,7 @@ class SvgWrapper {
 
 module.exports = SvgWrapper;
 
-},{"./Line":10,"./UtilityFunctions":23,"./Vector2":24}],22:[function(require,module,exports){
+},{"./Line":10,"./UtilityFunctions":24,"./Vector2":25}],23:[function(require,module,exports){
 "use strict";
 
 class ThemeManager {
@@ -11690,7 +11750,7 @@ class ThemeManager {
 
 module.exports = ThemeManager;
 
-},{}],23:[function(require,module,exports){
+},{}],24:[function(require,module,exports){
 "use strict";
 
 /**
@@ -11718,7 +11778,7 @@ module.exports = {
   getChargeText
 };
 
-},{}],24:[function(require,module,exports){
+},{}],25:[function(require,module,exports){
 "use strict";
 
 //@ts-check
@@ -12345,7 +12405,7 @@ class Vector2 {
 
 module.exports = Vector2;
 
-},{}],25:[function(require,module,exports){
+},{}],26:[function(require,module,exports){
 "use strict";
 
 //@ts-check
@@ -12714,7 +12774,7 @@ class Vertex {
 
 module.exports = Vertex;
 
-},{"./ArrayHelper":2,"./Atom":3,"./MathHelper":11,"./Vector2":24,"./VertexState":26}],26:[function(require,module,exports){
+},{"./ArrayHelper":2,"./Atom":3,"./MathHelper":11,"./Vector2":25,"./VertexState":27}],27:[function(require,module,exports){
 "use strict";
 
 //@ts-check

@@ -30,6 +30,7 @@ class Edge {
         this.center = false;
         this.wedge = '';
         this.isDecay = false;
+        this.isDecayAll = false;
     }
 
     /**
@@ -50,6 +51,14 @@ class Edge {
     }
 
     /**
+     * Set decay All
+     * @param {Boolean} decay point
+     */
+    setDecayAll(decay) {
+        this.isDecayAll = decay;
+    }
+
+    /**
      * An object mapping the bond type to the number of bonds.
      *
      * @returns {Object} The object containing the map.
@@ -66,4 +75,4 @@ class Edge {
     }
 }
 
-module.exports = Edge
+module.exports = Edge;
