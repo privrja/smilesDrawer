@@ -120,7 +120,7 @@ if (!Array.prototype.fill) {
 
 module.exports = SmilesDrawer;
 
-},{"./src/Drawer":7,"./src/Parser":13,"./src/SvgDrawer":19}],2:[function(require,module,exports){
+},{"./src/Drawer":7,"./src/Parser":14,"./src/SvgDrawer":20}],2:[function(require,module,exports){
 "use strict";
 
 //@ts-check
@@ -1916,7 +1916,7 @@ class CanvasWrapper {
 
 module.exports = CanvasWrapper;
 
-},{"./Line":10,"./MathHelper":11,"./Ring":14,"./UtilityFunctions":22,"./Vector2":23,"./Vertex":24}],5:[function(require,module,exports){
+},{"./Line":10,"./MathHelper":11,"./Ring":15,"./UtilityFunctions":23,"./Vector2":24,"./Vertex":25}],5:[function(require,module,exports){
 "use strict";
 
 //@ts-check
@@ -5053,7 +5053,7 @@ class Drawer {
 
 module.exports = Drawer;
 
-},{"./ArrayHelper":2,"./Atom":3,"./CanvasWrapper":4,"./DecayState":6,"./Edge":8,"./Graph":9,"./Line":10,"./MathHelper":11,"./Ring":14,"./RingConnection":15,"./SSSR":16,"./ThemeManager":21,"./Vector2":23,"./Vertex":24}],8:[function(require,module,exports){
+},{"./ArrayHelper":2,"./Atom":3,"./CanvasWrapper":4,"./DecayState":6,"./Edge":8,"./Graph":9,"./Line":10,"./MathHelper":11,"./Ring":15,"./RingConnection":16,"./SSSR":17,"./ThemeManager":22,"./Vector2":24,"./Vertex":25}],8:[function(require,module,exports){
 "use strict";
 
 //@ts-check
@@ -5157,6 +5157,8 @@ const Node = require('./Node');
 const SequenceType = require('./SequenceType');
 
 const DecayState = require('./DecayState');
+
+const MutableBoolean = require('./MutableBoolean');
 /**
  * A class representing the molecular graph.
  *
@@ -5184,6 +5186,7 @@ class Graph {
     this.isomeric = isomeric;
     this._startingVertexes = [];
     this._isCyclic = false;
+    this._polyketide = false;
     this._digitCounter = 1;
     this._printedDigits = [];
     this.options = options; // Used for the bridge detection algorithm
@@ -6372,8 +6375,9 @@ class Graph {
     return {
       blockSmiles: smiles,
       sequence: this._smallGraph.sequence,
-      sequenceType: this._smallGraph.sequenceType,
-      decays: this.decays
+      sequenceType: this._smallGraph.sequenceType + ((this._smallGraph.sequenceType === 'linear' || this._smallGraph.sequenceType === 'cyclic') && this._polyketide ? '-polyketide' : ''),
+      decays: this.decays,
+      isPolyketide: this._polyketide
     };
   }
 
@@ -6432,16 +6436,22 @@ class Graph {
 
 
   startDfs(vertex, smiles) {
+    let isPolyketide = new MutableBoolean(true);
     let stackSmiles = [];
     this.first = vertex.id;
-    this.isCyclic = false;
+    this._isCyclic = false;
     this._digitCounter = 1;
-    this.dfsSmiles(vertex, stackSmiles);
+    this.dfsSmiles(vertex, stackSmiles, isPolyketide);
+    let polyketideFlag = isPolyketide.getValue();
+
+    if (polyketideFlag) {
+      this._polyketide = true;
+    }
 
     if (this._isCyclic) {
       this.closedToNotFound();
       stackSmiles = [];
-      this.dfsSmiles(vertex, stackSmiles, -1, true);
+      this.dfsSmiles(vertex, stackSmiles, isPolyketide, -1, true);
     }
 
     this.closedToFullyClosed();
@@ -6449,7 +6459,10 @@ class Graph {
     let smile = Graph.removeUnnecessaryNumbers(stackSmiles.join(""));
 
     if (smile.length !== 0) {
-      smiles.push(smile);
+      smiles.push({
+        smiles: smile,
+        isPolyketide: polyketideFlag
+      });
     }
   }
 
@@ -6472,12 +6485,13 @@ class Graph {
    * DFS for SMILES
    * @param {Vertex} vertex
    * @param {Array} stackSmiles output param
+   * @param {MutableBoolean} isPolyketide
    * @param lastVertexId last vertex id for setup digits
    * @param isSecondPass is second pass of dfs
    */
 
 
-  dfsSmiles(vertex, stackSmiles, lastVertexId = -1, isSecondPass = false) {
+  dfsSmiles(vertex, stackSmiles, isPolyketide, lastVertexId = -1, isSecondPass = false) {
     if (vertex.vertexState === VertexState.VALUES.OPEN && !isSecondPass && lastVertexId !== -1) {
       this._isCyclic = true;
 
@@ -6496,8 +6510,9 @@ class Graph {
       return;
     }
 
-    if (this.first === vertex.id && vertex.value.element === "C") {
+    if (this.first === vertex.id && vertex.value.element === "C" && isPolyketide.getValue()) {
       stackSmiles.push("O");
+      isPolyketide.setValue(false);
     }
 
     if (vertex.value.bracket) {
@@ -6540,10 +6555,11 @@ class Graph {
       let edge = this.edges[vertex.edges[i]];
 
       if (edge.isDecay) {
-        if (vertex.value.element === "C" && vertex.id !== this.first) {
+        if (vertex.value.element === "C" && vertex.id !== this.first && isPolyketide.getValue()) {
           stackSmiles.push("(");
           stackSmiles.push("O");
           stackSmiles.push(")");
+          isPolyketide.setValue(false);
         }
 
         continue;
@@ -6554,7 +6570,7 @@ class Graph {
       let nextVertex = Graph.getProperVertex(vertex.id, edge.sourceId, edge.targetId);
 
       if (lastVertexId !== nextVertex) {
-        this.dfsSmiles(this.vertices[nextVertex], stackSmiles, vertex.id, isSecondPass);
+        this.dfsSmiles(this.vertices[nextVertex], stackSmiles, isPolyketide, vertex.id, isSecondPass);
       }
 
       Graph.checkStack(stackSmiles);
@@ -7004,7 +7020,7 @@ class Graph {
 
 module.exports = Graph;
 
-},{"./Atom":3,"./DecayPoint":5,"./DecayState":6,"./Edge":8,"./MathHelper":11,"./Node":12,"./Ring":14,"./SequenceType":17,"./SmallGraph":18,"./Vector2":23,"./Vertex":24,"./VertexState":25}],10:[function(require,module,exports){
+},{"./Atom":3,"./DecayPoint":5,"./DecayState":6,"./Edge":8,"./MathHelper":11,"./MutableBoolean":12,"./Node":13,"./Ring":15,"./SequenceType":18,"./SmallGraph":19,"./Vector2":24,"./Vertex":25,"./VertexState":26}],10:[function(require,module,exports){
 "use strict";
 
 //@ts-check
@@ -7315,7 +7331,7 @@ class Line {
 
 module.exports = Line;
 
-},{"./Vector2":23}],11:[function(require,module,exports){
+},{"./Vector2":24}],11:[function(require,module,exports){
 "use strict";
 
 /** 
@@ -7491,6 +7507,32 @@ module.exports = MathHelper;
 },{}],12:[function(require,module,exports){
 "use strict";
 
+/**
+ *@property {boolean} value is boolean
+ */
+class MutableBoolean {
+  /**
+   * @param {boolean} value
+   */
+  constructor(value) {
+    this.value = value;
+  }
+
+  setValue(value) {
+    this.value = value;
+  }
+
+  getValue() {
+    return this.value;
+  }
+
+}
+
+module.exports = MutableBoolean;
+
+},{}],13:[function(require,module,exports){
+"use strict";
+
 //@ts-check
 const VertexState = require("./VertexState");
 
@@ -7510,7 +7552,7 @@ class Node {
 
 module.exports = Node;
 
-},{"./VertexState":25}],13:[function(require,module,exports){
+},{"./VertexState":26}],14:[function(require,module,exports){
 "use strict";
 
 // WHEN REPLACING, CHECK FOR:
@@ -9410,7 +9452,7 @@ module.exports = function () {
   };
 }();
 
-},{}],14:[function(require,module,exports){
+},{}],15:[function(require,module,exports){
 "use strict";
 
 //@ts-check
@@ -9632,7 +9674,7 @@ class Ring {
 
 module.exports = Ring;
 
-},{"./ArrayHelper":2,"./RingConnection":15,"./Vector2":23,"./Vertex":24}],15:[function(require,module,exports){
+},{"./ArrayHelper":2,"./RingConnection":16,"./Vector2":24,"./Vertex":25}],16:[function(require,module,exports){
 "use strict";
 
 //@ts-check
@@ -9806,7 +9848,7 @@ class RingConnection {
 
 module.exports = RingConnection;
 
-},{"./Ring":14,"./Vertex":24}],16:[function(require,module,exports){
+},{"./Ring":15,"./Vertex":25}],17:[function(require,module,exports){
 "use strict";
 
 //@ts-check
@@ -10417,7 +10459,7 @@ class SSSR {
 
 module.exports = SSSR;
 
-},{"./Graph":9}],17:[function(require,module,exports){
+},{"./Graph":9}],18:[function(require,module,exports){
 "use strict";
 
 //@ts-check
@@ -10454,7 +10496,7 @@ class SequenceType {
 
 module.exports = SequenceType;
 
-},{}],18:[function(require,module,exports){
+},{}],19:[function(require,module,exports){
 "use strict";
 
 //@ts-check
@@ -10689,7 +10731,7 @@ class SmallGraph {
 
 module.exports = SmallGraph;
 
-},{"./Node":12,"./SequenceType":17,"./VertexState":25}],19:[function(require,module,exports){
+},{"./Node":13,"./SequenceType":18,"./VertexState":26}],20:[function(require,module,exports){
 "use strict";
 
 // we use the drawer to do all the preprocessing. then we take over the drawing
@@ -11021,7 +11063,7 @@ class SvgDrawer {
 
 module.exports = SvgDrawer;
 
-},{"./ArrayHelper":2,"./Atom":3,"./Drawer":7,"./Graph":9,"./Line":10,"./SvgWrapper":20,"./ThemeManager":21,"./Vector2":23}],20:[function(require,module,exports){
+},{"./ArrayHelper":2,"./Atom":3,"./Drawer":7,"./Graph":9,"./Line":10,"./SvgWrapper":21,"./ThemeManager":22,"./Vector2":24}],21:[function(require,module,exports){
 "use strict";
 
 const {
@@ -11592,7 +11634,7 @@ class SvgWrapper {
 
 module.exports = SvgWrapper;
 
-},{"./Line":10,"./UtilityFunctions":22,"./Vector2":23}],21:[function(require,module,exports){
+},{"./Line":10,"./UtilityFunctions":23,"./Vector2":24}],22:[function(require,module,exports){
 "use strict";
 
 class ThemeManager {
@@ -11640,7 +11682,7 @@ class ThemeManager {
 
 module.exports = ThemeManager;
 
-},{}],22:[function(require,module,exports){
+},{}],23:[function(require,module,exports){
 "use strict";
 
 /**
@@ -11668,7 +11710,7 @@ module.exports = {
   getChargeText
 };
 
-},{}],23:[function(require,module,exports){
+},{}],24:[function(require,module,exports){
 "use strict";
 
 //@ts-check
@@ -12295,7 +12337,7 @@ class Vector2 {
 
 module.exports = Vector2;
 
-},{}],24:[function(require,module,exports){
+},{}],25:[function(require,module,exports){
 "use strict";
 
 //@ts-check
@@ -12664,7 +12706,7 @@ class Vertex {
 
 module.exports = Vertex;
 
-},{"./ArrayHelper":2,"./Atom":3,"./MathHelper":11,"./Vector2":23,"./VertexState":25}],25:[function(require,module,exports){
+},{"./ArrayHelper":2,"./Atom":3,"./MathHelper":11,"./Vector2":24,"./VertexState":26}],26:[function(require,module,exports){
 "use strict";
 
 //@ts-check

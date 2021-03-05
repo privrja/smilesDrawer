@@ -11,6 +11,7 @@ const SmallGraph = require('./SmallGraph');
 const Node = require('./Node');
 const SequenceType = require('./SequenceType');
 const DecayState = require('./DecayState');
+const MutableBoolean = require('./MutableBoolean');
 
 /**
  * A class representing the molecular graph.
@@ -37,6 +38,7 @@ class Graph {
         this.isomeric = isomeric;
         this._startingVertexes = [];
         this._isCyclic = false;
+        this._polyketide = false;
         this._digitCounter = 1;
         this._printedDigits = [];
         this.options = options;
@@ -1180,8 +1182,9 @@ class Graph {
         return {
             blockSmiles: smiles,
             sequence: this._smallGraph.sequence,
-            sequenceType: this._smallGraph.sequenceType,
-            decays: this.decays
+            sequenceType: this._smallGraph.sequenceType + ((this._smallGraph.sequenceType === 'linear' || this._smallGraph.sequenceType === 'cyclic') && this._polyketide ? '-polyketide' : ''),
+            decays: this.decays,
+            isPolyketide: this._polyketide
         }
     }
 
@@ -1234,22 +1237,27 @@ class Graph {
      * @param {Array} smiles output param, array od SMILES
      */
     startDfs(vertex, smiles) {
+        let isPolyketide = new MutableBoolean(true);
         let stackSmiles = [];
         this.first = vertex.id;
-        this.isCyclic = false;
+        this._isCyclic = false;
         this._digitCounter = 1;
-        this.dfsSmiles(vertex, stackSmiles);
+        this.dfsSmiles(vertex, stackSmiles, isPolyketide);
+        let polyketideFlag = isPolyketide.getValue();
+        if (polyketideFlag) {
+            this._polyketide = true;
+        }
         if (this._isCyclic) {
             this.closedToNotFound();
             stackSmiles = [];
-            this.dfsSmiles(vertex, stackSmiles, -1, true);
+            this.dfsSmiles(vertex, stackSmiles, isPolyketide, -1, true);
         }
         this.closedToFullyClosed();
 
         stackSmiles = Graph.removeUnnecessaryParentheses(stackSmiles);
         let smile = Graph.removeUnnecessaryNumbers(stackSmiles.join(""));
         if (smile.length !== 0) {
-            smiles.push(smile);
+            smiles.push({smiles: smile, isPolyketide: polyketideFlag});
         }
     }
 
@@ -1273,10 +1281,11 @@ class Graph {
      * DFS for SMILES
      * @param {Vertex} vertex
      * @param {Array} stackSmiles output param
+     * @param {MutableBoolean} isPolyketide
      * @param lastVertexId last vertex id for setup digits
      * @param isSecondPass is second pass of dfs
      */
-    dfsSmiles(vertex, stackSmiles, lastVertexId = -1, isSecondPass = false) {
+    dfsSmiles(vertex, stackSmiles, isPolyketide, lastVertexId = -1, isSecondPass = false) {
         if (vertex.vertexState === VertexState.VALUES.OPEN && !isSecondPass && lastVertexId !== -1) {
             this._isCyclic = true;
             if (!vertex.digits.some(e => this.vertices[lastVertexId].digits.includes(e))) {
@@ -1294,8 +1303,9 @@ class Graph {
             return;
         }
 
-        if (this.first === vertex.id && vertex.value.element === "C") {
+        if (this.first === vertex.id && vertex.value.element === "C" && isPolyketide.getValue()) {
             stackSmiles.push("O");
+            isPolyketide.setValue(false);
         }
 
         if (vertex.value.bracket) {
@@ -1331,10 +1341,11 @@ class Graph {
         for (let i = 0; i < vertex.edges.length; ++i) {
             let edge = this.edges[vertex.edges[i]];
             if (edge.isDecay) {
-                if (vertex.value.element === "C" && vertex.id !== this.first) {
+                if (vertex.value.element === "C" && vertex.id !== this.first && isPolyketide.getValue()) {
                     stackSmiles.push("(");
                     stackSmiles.push("O");
                     stackSmiles.push(")");
+                    isPolyketide.setValue(false);
                 }
                 continue;
             }
@@ -1342,7 +1353,7 @@ class Graph {
             Graph.addBondTypeToStack(edge, stackSmiles);
             let nextVertex = Graph.getProperVertex(vertex.id, edge.sourceId, edge.targetId);
             if (lastVertexId !== nextVertex) {
-                this.dfsSmiles(this.vertices[nextVertex], stackSmiles, vertex.id, isSecondPass);
+                this.dfsSmiles(this.vertices[nextVertex], stackSmiles, isPolyketide, vertex.id, isSecondPass);
             }
             Graph.checkStack(stackSmiles);
         }
