@@ -1255,6 +1255,7 @@ class Graph {
         this._isCyclic = false;
         this._digitCounter = 1;
         this.dfsSmiles(vertex, stackSmiles, isPolyketide, cntDecays, through);
+        // console.log("Last test ", cntDecays, isPolyketide.getValue(), through.every(vertex => vertex === 'O' || vertex === 'N'));
         if (cntDecays.getValue() < 2 && isPolyketide.getValue() === true) {
             isPolyketide.setValue(through.every(vertex => vertex === 'O' || vertex === 'N'));
         }
@@ -1269,6 +1270,7 @@ class Graph {
         let smile = Graph.removeUnnecessaryNumbers(stackSmiles.join(""));
         if (smile.length !== 0) {
             smiles.push({smiles: smile, isPolyketide: isPolyketide.getValue()});
+            // console.log(smile, isPolyketide.getValue(), through);
             if (isPolyketide.getValue() === true) {
                 this._polyketide = true;
             }

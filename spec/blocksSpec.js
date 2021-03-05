@@ -160,17 +160,17 @@ describe("blocks", function () {
         let expected = {
             blockSmiles: [
                 {smiles: 'NC(C(O)=O)Cc1nc[nH]c1', isPolyketide: false},
-                {smiles: 'OC(=O)C(N)CC(O)=O', isPolyketide: false},
+                {smiles: 'OC(=O)C(N)CC=O', isPolyketide: false},
                 {smiles: 'NC(C(O)=O)Cc1ccccc1', isPolyketide: false},
                 {smiles: 'NC(C(O)=O)CCCNC(N)=N', isPolyketide: false},
                 {smiles: 'NC(C(O)=O)Cc1c[nH]c2c1cccc2', isPolyketide: false},
-                {smiles: 'NC(CCCCN)C(O)=O', isPolyketide: false},
+                {smiles: 'NC(CCCCN)C(O)=O', isPolyketide: true},
                 {smiles: 'OC(C(CCCC)NC(C)=O)=O', isPolyketide: false}
             ],
             sequence: '[0]-[2]-[3]-[4]-[5]\\([1]-[6]\\)',
             sequenceType: 'branch-cyclic',
             decays: [28, 25, 22, 19, 16, 9, 5],
-            isPolyketide: false,
+            isPolyketide: true,
         };
         expect(result).toEqual(expected);
     });
