@@ -1243,18 +1243,21 @@ class Graph {
         this.first = vertex.id;
         this._isCyclic = false;
         this._digitCounter = 1;
+        console.log('New block');
         this.dfsSmiles(vertex, stackSmiles, isPolyketide);
         let polyketideFlag = isPolyketide.getValue();
+        console.log('dfsend');
         if (this._isCyclic) {
             this.closedToNotFound();
             stackSmiles = [];
-            this.dfsSmiles(vertex, stackSmiles, isPolyketide, -1, true);
+            this.dfsSmiles(vertex, stackSmiles, new MutableBoolean(true), -1, true);
         }
         this.closedToFullyClosed();
 
         stackSmiles = Graph.removeUnnecessaryParentheses(stackSmiles);
         let smile = Graph.removeUnnecessaryNumbers(stackSmiles.join(""));
         if (smile.length !== 0) {
+            console.log('smiles ', smile, polyketideFlag);
             smiles.push({smiles: smile, isPolyketide: polyketideFlag});
             if (polyketideFlag === true) {
                 this._polyketide = true;
@@ -1304,6 +1307,7 @@ class Graph {
             return;
         }
 
+        console.log("first", isPolyketide.getValue());
         if (this.first === vertex.id && vertex.value.element === "C" && isPolyketide.getValue()) {
             stackSmiles.push("O");
             isPolyketide.setValue(false);
@@ -1342,6 +1346,7 @@ class Graph {
         for (let i = 0; i < vertex.edges.length; ++i) {
             let edge = this.edges[vertex.edges[i]];
             if (edge.isDecay) {
+                console.log("second", isPolyketide.getValue());
                 if (vertex.value.element === "C" && vertex.id !== this.first && isPolyketide.getValue()) {
                     stackSmiles.push("(");
                     stackSmiles.push("O");

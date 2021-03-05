@@ -294,14 +294,14 @@ describe("blocks", function () {
         let result = smilesDrawer.buildBlockSmiles();
         let expected = {
             blockSmiles: [
-                {smiles: 'NCCSC(CCCC=CCC=CCC=CCC=CCC=CCC)=O', isPolyketide: false},
+                {smiles: 'NCCSC(CCCC=CCC=CCC=CCC=CCC=CCC)=O', isPolyketide: true},
                 {smiles: 'OC(=O)CCN', isPolyketide: false},
                 {smiles: 'OC(=O)[CH](O)C(C)(C)COP(O)(=O)OP(O)(=O)OC[CH]1O[CH](C(O)[CH]1OP(O)(O)=O)N3C=NC2=C3N=CN=C2N', isPolyketide: false}
             ],
             sequence: '[0]-[1]-[2]',
-            sequenceType: 'linear',
+            sequenceType: 'linear-polyketide',
             decays: [24, 29],
-            isPolyketide: false,
+            isPolyketide: true,
         };
         expect(result).toEqual(expected);
     });
