@@ -14,6 +14,7 @@ const XXX = 'CCCCC(C(NC5CC(NCCCCC(NC(C(NC(C(NC(C(NC(C(NC5=O)Cc4nc[nH]c4)=O)Cc3cc
 const LINEARIZED_PSEUDACYCLIN_A = 'C(CCC(NC(=O)C(NC(=O)C)C(C)CC)C(=O)NC(CC1=CC=CC=C1)C(O)=O)NC(=O)C(C(CC)C)NC(=O)C(C(CC)C)NC(=O)C1CCCN1';
 const PYOVERDIN_PA_A = 'CC(C1C(=O)NC(C(=O)NCCCCC(C(=O)NC(C(=O)N1)CCCN(C=O)O)NC(=O)C(CCCN(C=O)O)NC(=O)C(CO)NC(=O)C(CCCN=C(N)N)NC(=O)C(CO)NC(=O)C2CCNC3=C(C=C4C=C(C(=O)C=C4N23)O)NC(=O)CCC(=O)O)C(C)O)O';
 const MICAFUNGIN = 'CCCCCOC1=CC=C(C=C1)C2=CC(=NO2)C3=CC=C(C=C3)C(=O)NC4CC(C(NC(=O)C5C(C(CN5C(=O)C(NC(=O)C(NC(=O)C6CC(CN6C(=O)C(NC4=O)C(C)O)O)C(C(C7=CC(=C(C=C7)O)OS(=O)(=O)O)O)O)C(CC(=O)N)O)C)O)O)O';
+const DESFERI_FERIOXAMINE_B = 'CC(=O)N(CCCCCNC(=O)CCC(=O)N(CCCCCNC(=O)CCC(=O)N(CCCCCN)O)O)O';
 
 describe("blocks", function () {
     let smilesDrawer = new SmilesDrawer.Drawer({drawDecayPoints: DecayState.VALUES.STANDARD});
@@ -302,6 +303,43 @@ describe("blocks", function () {
             sequenceType: 'linear-polyketide',
             decays: [24, 29],
             isPolyketide: true,
+        };
+        expect(result).toEqual(expected);
+    });
+
+    it('Desferi-ferioxamine B blocks', function () {
+        smilesDrawer.draw(SmilesDrawer.Parser.parse(DESFERI_FERIOXAMINE_B), 'output-canvas', 'light', true);
+        let result = smilesDrawer.buildBlockSmiles();
+        let expected = {
+            blockSmiles: [
+                {smiles: 'NCCCCCN(C(C)=O)O', isPolyketide: true},
+                {smiles: 'OC(=O)CCC=O', isPolyketide: false},
+                {smiles: 'N(CCCCCN)O', isPolyketide: true},
+                {smiles: 'OC(=O)CCC=O', isPolyketide: false},
+                {smiles: 'N(CCCCCN)O', isPolyketide: true},
+            ],
+            sequence: '[0]-[1]-[2]-[3]-[4]',
+            decays: [9, 15, 22, 28],
+            isPolyketide: true
+        };
+        expect(result).toEqual(expected);
+    });
+
+    it('Desferi-ferioxamine B blocks modification', function () {
+        smilesDrawer.draw(SmilesDrawer.Parser.parse(DESFERI_FERIOXAMINE_B), 'output-canvas', 'light', true);
+        let result = smilesDrawer.buildBlockSmiles();
+        let expected = {
+            blockSmiles: [
+                {smiles: 'NCCCCCN(C(C)=O)O', isPolyketide: true},
+                {smiles: 'OC(=O)CCC=O', isPolyketide: false},
+                {smiles: 'N(CCCCCN)O', isPolyketide: true},
+                {smiles: 'OC(=O)CCC=O', isPolyketide: false},
+                {smiles: 'N(CCCCCN)O', isPolyketide: true},
+                {smiles: 'OC(C)=O', isPolyketide: false}
+            ],
+            sequence: '[4]-[3]-[2]-[1]-[0]-[5]',
+            decays: [9, 15, 22, 28, 2],
+            isPolyketide: true
         };
         expect(result).toEqual(expected);
     });
