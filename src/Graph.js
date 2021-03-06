@@ -1248,21 +1248,22 @@ class Graph {
      */
     startDfs(vertex, smiles) {
         let isPolyketide = new MutableBoolean(true);
-        let cntDecays = new MutableCounter();
+        let decaysCounter = new MutableCounter();
+        let vertexCounter = new MutableCounter();
         let through = [];
         let stackSmiles = [];
         this.first = vertex.id;
         this._isCyclic = false;
         this._digitCounter = 1;
-        this.dfsSmiles(vertex, stackSmiles, isPolyketide, cntDecays, through);
-        // console.log("Last test ", cntDecays, isPolyketide.getValue(), through.every(vertex => vertex === 'O' || vertex === 'N'));
-        if (cntDecays.getValue() < 2 && isPolyketide.getValue() === true) {
-            isPolyketide.setValue(through.every(vertex => vertex === 'O' || vertex === 'N'));
+        this.dfsSmiles(vertex, stackSmiles, isPolyketide, decaysCounter, through, vertexCounter);
+        // console.log("Last test ", decaysCounter, isPolyketide.getValue(), through.every(vertex => vertex === 'O' || vertex === 'N'));
+        if (decaysCounter.getValue() < 2 && isPolyketide.getValue() === true) {
+            isPolyketide.setValue(through.every(vertex => vertex === 'O' || vertex === 'N') && vertexCounter.getValue() > 4);
         }
         if (this._isCyclic) {
             this.closedToNotFound();
             stackSmiles = [];
-            this.dfsSmiles(vertex, stackSmiles, new MutableBoolean(true), new MutableCounter(), [], -1, true);
+            this.dfsSmiles(vertex, stackSmiles, new MutableBoolean(true), new MutableCounter(), [], new MutableCounter(), -1, true);
         }
         this.closedToFullyClosed();
 
@@ -1300,10 +1301,11 @@ class Graph {
      * @param {MutableBoolean} isPolyketide
      * @param {MutableCounter} cntDecays
      * @param {Array} through
+     * @param {MutableCounter} vertexCounter
      * @param lastVertexId last vertex id for setup digits
      * @param isSecondPass is second pass of dfs
      */
-    dfsSmiles(vertex, stackSmiles, isPolyketide, cntDecays, through,  lastVertexId = -1, isSecondPass = false) {
+    dfsSmiles(vertex, stackSmiles, isPolyketide, cntDecays, through, vertexCounter,  lastVertexId = -1, isSecondPass = false) {
         if (vertex.vertexState === VertexState.VALUES.OPEN && !isSecondPass && lastVertexId !== -1) {
             this._isCyclic = true;
             if (!vertex.digits.some(e => this.vertices[lastVertexId].digits.includes(e))) {
@@ -1345,6 +1347,7 @@ class Graph {
         } else {
             Graph.printVertexValue(stackSmiles, vertex);
         }
+        vertexCounter.increment();
 
         if (isSecondPass) {
             stackSmiles.push(this.smilesNumbersAdd(vertex));
@@ -1375,7 +1378,7 @@ class Graph {
             stackSmiles.push("(");
             Graph.addBondTypeToStack(edge, stackSmiles);
             if (lastVertexId !== nextVertex) {
-                this.dfsSmiles(this.vertices[nextVertex], stackSmiles, isPolyketide, cntDecays, through, vertex.id, isSecondPass);
+                this.dfsSmiles(this.vertices[nextVertex], stackSmiles, isPolyketide, cntDecays, through, vertexCounter, vertex.id, isSecondPass);
             }
             Graph.checkStack(stackSmiles);
         }
