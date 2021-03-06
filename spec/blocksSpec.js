@@ -319,6 +319,7 @@ describe("blocks", function () {
                 {smiles: 'N(CCCCCN)O', isPolyketide: true},
             ],
             sequence: '[0]-[1]-[2]-[3]-[4]',
+            sequenceType: 'linear-polyketide',
             decays: [9, 15, 22, 28],
             isPolyketide: true
         };
@@ -338,6 +339,7 @@ describe("blocks", function () {
                 {smiles: 'OC(C)=O', isPolyketide: false}
             ],
             sequence: '[4]-[3]-[2]-[1]-[0]-[5]',
+            sequenceType: 'linear-polyketide',
             decays: [9, 15, 22, 28, 2],
             isPolyketide: true
         };
