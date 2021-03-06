@@ -326,24 +326,4 @@ describe("blocks", function () {
         expect(result).toEqual(expected);
     });
 
-    it('Desferi-ferioxamine B blocks modification', function () {
-        smilesDrawer.draw(SmilesDrawer.Parser.parse(DESFERI_FERIOXAMINE_B), 'output-canvas', 'light', true);
-        let result = smilesDrawer.buildBlockSmiles();
-        let expected = {
-            blockSmiles: [
-                {smiles: 'NCCCCCN(C(C)=O)O', isPolyketide: true},
-                {smiles: 'OC(=O)CCC=O', isPolyketide: false},
-                {smiles: 'N(CCCCCN)O', isPolyketide: true},
-                {smiles: 'OC(=O)CCC=O', isPolyketide: false},
-                {smiles: 'N(CCCCCN)O', isPolyketide: true},
-                {smiles: 'OC(C)=O', isPolyketide: false}
-            ],
-            sequence: '[4]-[3]-[2]-[1]-[0]-[5]',
-            sequenceType: 'linear-polyketide',
-            decays: [9, 15, 22, 28, 2],
-            isPolyketide: true
-        };
-        expect(result).toEqual(expected);
-    });
-
 });
