@@ -66,7 +66,7 @@ class SmallGraph {
 
     dfsSequenceStart() {
         if (this._nodes.length === 0) {
-            return "";
+            return;
         }
         this.dfsInitialization();
         this.sequence = "";
@@ -74,7 +74,14 @@ class SmallGraph {
             this.findRing(this._nodeOnRing);
             this.dfsSequenceCyclic(this._nodeOnRing);
         } else {
-            this.dfsSequence(this.getSourceNode(), -1);
+            let sourceNode = this.getSourceNode();
+            if (sourceNode !== null) {
+                this.dfsSequence(this.getSourceNode(), -1);
+            } else {
+                this.sequenceType = 'other';
+                this.isOther = true;
+                return;
+            }
         }
         if (this.sequence.charAt(this.sequence.length - 1) === '-') {
             this.sequence = this.sequence.substr(0, this.sequence.length - 1);
