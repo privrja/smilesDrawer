@@ -6468,7 +6468,8 @@ class Graph {
     this.first = vertex.id;
     this._isCyclic = false;
     this._digitCounter = 1;
-    this.dfsSmiles(vertex, stackSmiles, isPolyketide, decaysCounter, through, vertexCounter); // console.log("Last test ", decaysCounter, isPolyketide.getValue(), through.every(vertex => vertex === 'O' || vertex === 'N'));
+    this._printedDigits = [];
+    this.dfsSmiles(vertex, stackSmiles, isPolyketide, decaysCounter, through, vertexCounter);
 
     if (decaysCounter.getValue() < 2 && isPolyketide.getValue() === true) {
       isPolyketide.setValue(through.every(vertex => vertex === 'O' || vertex === 'N') && vertexCounter.getValue() > 4);
@@ -6488,7 +6489,7 @@ class Graph {
       smiles.push({
         smiles: smile,
         isPolyketide: isPolyketide.getValue()
-      }); // console.log(smile, isPolyketide.getValue(), through);
+      });
 
       if (isPolyketide.getValue() === true) {
         this._polyketide = true;
