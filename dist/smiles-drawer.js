@@ -16,7 +16,7 @@ var canUseDOM = !!(typeof window !== 'undefined' && window.document && window.do
  */
 
 var SmilesDrawer = {
-  Version: '1.0.0'
+  Version: '2.1.0'
 };
 SmilesDrawer.Drawer = Drawer;
 SmilesDrawer.Parser = Parser;

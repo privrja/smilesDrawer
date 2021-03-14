@@ -1,6 +1,6 @@
 ![Smiles Drawer](https://github.com/reymond-group/smilesDrawer/blob/master/logo.png?raw=true)
 
-# Smiles Drawer
+# Smiles Drawer (Original application)
 
 Current Version: 1.2.0 ([Rumble](https://www.youtube.com/watch?v=ucTg6rZJCu4))
 
