@@ -10807,11 +10807,11 @@ class SmallGraph {
     let sortedNeighbours = this.sortByRingPreference(vertex.neighbours);
 
     for (let index = 0; index < sortedNeighbours.length; ++index) {
-      if (vertexFromId === sortedNeighbours[index]) {
+      if (vertexFromId === sortedNeighbours[index].neighbour) {
         continue;
       }
 
-      this.dfsSequenceCyclic(this._nodes[sortedNeighbours[index]], vertex.id);
+      this.dfsSequenceCyclic(this._nodes[sortedNeighbours[index].neighbour], vertex.id);
     }
 
     this.printRightBrace();
