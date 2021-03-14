@@ -188,7 +188,7 @@ describe("blocks", function () {
                 {smiles: 'OC(=O)C(C(CC)C)N', isPolyketide: false},
                 {smiles: 'OC(=O)C1CCCN1', isPolyketide: false}
             ],
-            sequence: '[5]\\([1]-[0]\\)[2]-[3]-[4]',
+            sequence: '[2]\\([0]-[3]-[4]-[5]\\)[1]',
             sequenceType: 'branched',
             decays: [4, 17, 30, 38, 46],
             isPolyketide: false,
