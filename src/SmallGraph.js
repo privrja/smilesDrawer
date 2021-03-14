@@ -1,7 +1,9 @@
 //@ts-check
-const Node = require('./Node')
-const SequenceType = require('./SequenceType')
-const VertexState = require('./VertexState')
+const Node = require('./Node');
+const SequenceType = require('./SequenceType');
+const VertexState = require('./VertexState');
+const Neighbour = require('./Neighbour');
+const Direction = require('./Direction');
 
 class SmallGraph {
 
@@ -19,8 +21,8 @@ class SmallGraph {
         this._nodes.push(node);
     }
 
-    addNeighbour(nodeId, neighbour) {
-        this._nodes[nodeId].addNeighbour(neighbour);
+    addNeighbour(nodeId, neighbour, direction) {
+        this._nodes[nodeId].addNeighbour(new Neighbour(neighbour, direction));
     }
 
     dfsInitialization() {
@@ -28,10 +30,21 @@ class SmallGraph {
     }
 
     getSourceNode() {
+        let ends = [];
         for (let index = 0; index < this._nodes.length; ++index) {
             if (this._nodes[index].neighbours.length === 1) {
-                return this._nodes[index];
+                if (this._nodes[index].neighbours[0].direction === Direction.VALUES.N) {
+                    return this._nodes[index];
+                }
+                if (this._nodes[index].neighbours[0].direction === Direction.VALUES.POLYKETIDE
+                    && this._nodes[this._nodes[index].neighbours[0].neighbour].direction === Direction.VALUES.C) {
+                    return this._nodes[index];
+                }
+                ends.push(this._nodes[index]);
             }
+        }
+        if (ends.length > 0) {
+            return ends[0];
         }
         return null;
     }
@@ -57,8 +70,8 @@ class SmallGraph {
 
         vertex.vertexState = VertexState.VALUES.OPEN;
         for (let i = 0; i < vertex.neighbours.length; ++i) {
-            if (vertexFromId !== vertex.neighbours[i]) {
-                this.dfsCyclic(this._nodes[vertex.neighbours[i]], vertex.id);
+            if (vertexFromId !== vertex.neighbours[i].neighbour) {
+                this.dfsCyclic(this._nodes[vertex.neighbours[i].neighbour], vertex.id);
             }
         }
         vertex.vertexState = VertexState.VALUES.CLOSED;
@@ -92,7 +105,7 @@ class SmallGraph {
     arrayContainsTimes(array, searchValue, times) {
         let cnt = 0;
         for (let index = 0; index < array.length; ++index) {
-            if (array[index] === searchValue) {
+            if (array[index].neighbour === searchValue) {
                 cnt++;
                 if (cnt === times) {
                     return true;
@@ -120,9 +133,9 @@ class SmallGraph {
             }
             node.neighbours.forEach(
                 neighbour => {
-                    if (!path.some(e => e === neighbour) || neighbour === start.id) {
+                    if (!path.some(e => e === neighbour.neighbour) || neighbour.neighbour === start.id) {
                         let newPath = [...path];
-                        newPath.push(neighbour);
+                        newPath.push(neighbour.neighbour);
                         queue.push(newPath);
                     }
                 }
@@ -134,9 +147,9 @@ class SmallGraph {
     sortByRingPreference(array) {
         let sortedArray = [...array];
         sortedArray.sort((a, b) => {
-            if (this._nodes[a].onRing === this._nodes[b].onRing) {
+            if (this._nodes[a.neighbour].onRing === this._nodes[b.neighbour].onRing) {
                 return 0
-            } else if (this._nodes[a].onRing) {
+            } else if (this._nodes[a.neighbour].onRing) {
                 return 1;
             } else {
                 return -1;
@@ -201,10 +214,10 @@ class SmallGraph {
         vertex.vertexState = VertexState.VALUES.OPEN;
         this.printVertex(vertex.id);
         for (let index = 0; index < vertex.neighbours.length; ++index) {
-            if (vertexFromId === vertex.neighbours[index]) {
+            if (vertexFromId === vertex.neighbours[index].neighbour) {
                 continue;
             }
-            this.dfsSequence(this._nodes[vertex.neighbours[index]], vertex.id);
+            this.dfsSequence(this._nodes[vertex.neighbours[index].neighbour], vertex.id);
         }
         this.printRightBrace();
         vertex.vertexState = VertexState.VALUES.CLOSED;

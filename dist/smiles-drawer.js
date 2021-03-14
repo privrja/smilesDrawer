@@ -120,7 +120,7 @@ if (!Array.prototype.fill) {
 
 module.exports = SmilesDrawer;
 
-},{"./src/Drawer":7,"./src/Parser":15,"./src/SvgDrawer":21}],2:[function(require,module,exports){
+},{"./src/Drawer":8,"./src/Parser":17,"./src/SvgDrawer":23}],2:[function(require,module,exports){
 "use strict";
 
 //@ts-check
@@ -1916,7 +1916,7 @@ class CanvasWrapper {
 
 module.exports = CanvasWrapper;
 
-},{"./Line":10,"./MathHelper":11,"./Ring":16,"./UtilityFunctions":24,"./Vector2":25,"./Vertex":26}],5:[function(require,module,exports){
+},{"./Line":11,"./MathHelper":12,"./Ring":18,"./UtilityFunctions":26,"./Vector2":27,"./Vertex":28}],5:[function(require,module,exports){
 "use strict";
 
 //@ts-check
@@ -1959,6 +1959,34 @@ class DecayState {
 module.exports = DecayState;
 
 },{}],7:[function(require,module,exports){
+"use strict";
+
+class Direction {
+  static get VALUES() {
+    return {
+      N: 0,
+      C: 1,
+      POLYKETIDE: 2
+    };
+  }
+
+  static getProperValue(isPolyketide, vertexElement, vertexId, firstVertexId) {
+    if (isPolyketide) {
+      return this.VALUES.POLYKETIDE;
+    }
+
+    if (vertexElement === "C" && vertexId !== firstVertexId) {
+      return this.VALUES.C;
+    }
+
+    return this.VALUES.N;
+  }
+
+}
+
+module.exports = Direction;
+
+},{}],8:[function(require,module,exports){
 "use strict";
 
 //@ts-check
@@ -5053,7 +5081,7 @@ class Drawer {
 
 module.exports = Drawer;
 
-},{"./ArrayHelper":2,"./Atom":3,"./CanvasWrapper":4,"./DecayState":6,"./Edge":8,"./Graph":9,"./Line":10,"./MathHelper":11,"./Ring":16,"./RingConnection":17,"./SSSR":18,"./ThemeManager":23,"./Vector2":25,"./Vertex":26}],8:[function(require,module,exports){
+},{"./ArrayHelper":2,"./Atom":3,"./CanvasWrapper":4,"./DecayState":6,"./Edge":9,"./Graph":10,"./Line":11,"./MathHelper":12,"./Ring":18,"./RingConnection":19,"./SSSR":20,"./ThemeManager":25,"./Vector2":27,"./Vertex":28}],9:[function(require,module,exports){
 "use strict";
 
 //@ts-check
@@ -5140,7 +5168,7 @@ class Edge {
 
 module.exports = Edge;
 
-},{}],9:[function(require,module,exports){
+},{}],10:[function(require,module,exports){
 "use strict";
 
 //@ts-check
@@ -5171,6 +5199,8 @@ const DecayState = require('./DecayState');
 const MutableBoolean = require('./MutableBoolean');
 
 const MutableCounter = require('./MutableCounter');
+
+const Direction = require('./Direction');
 /**
  * A class representing the molecular graph.
  *
@@ -5202,7 +5232,8 @@ class Graph {
     this._polyketide = false;
     this._digitCounter = 1;
     this._printedDigits = [];
-    this.options = options; // Used for the bridge detection algorithm
+    this.options = options;
+    this._componentsIsPolyketide = []; // Used for the bridge detection algorithm
 
     this._time = 0;
 
@@ -6411,7 +6442,8 @@ class Graph {
     for (let index = 0; index < this._startingVertexes.length; ++index) {
       this._smallGraph.addVertex(new Node(this._startingVertexes[index].component));
 
-      this.dfsSmall(this._startingVertexes[index]);
+      this.first = this._startingVertexes[index];
+      this.dfsSmall(this._startingVertexes[index], this._componentsIsPolyketide[index]);
     }
   }
   /**
@@ -6439,17 +6471,17 @@ class Graph {
 
     for (let i = 0; i < this.decays.length; ++i) {
       let edge = this.edges[this.decays[i]];
-      this.startDfs(this.vertices[edge.sourceId], smiles);
-      this.markingComponents();
-      this.startDfs(this.vertices[edge.targetId], smiles);
-      this.markingComponents();
+      this.markingComponents(this.startDfs(this.vertices[edge.sourceId], smiles));
+      this.markingComponents(this.startDfs(this.vertices[edge.targetId], smiles));
     }
   }
 
-  markingComponents() {
+  markingComponents(isPolyketyde) {
     if (this._markComponent) {
       this._cnt++;
       this._markComponent = false;
+
+      this._componentsIsPolyketide.push(isPolyketyde);
     }
   }
   /**
@@ -6495,6 +6527,8 @@ class Graph {
         this._polyketide = true;
       }
     }
+
+    return isPolyketide.getValue();
   }
 
   closedToNotFound() {
@@ -6621,7 +6655,7 @@ class Graph {
     vertex.vertexState = VertexState.VALUES.CLOSED;
   }
 
-  dfsSmall(vertex) {
+  dfsSmall(vertex, isPolyketide) {
     if (vertex.vertexState !== VertexState.VALUES.NOT_FOUND) {
       return;
     }
@@ -6632,13 +6666,13 @@ class Graph {
       let edge = this.edges[vertex.edges[i]];
 
       if (edge.isDecay) {
-        this._smallGraph.addNeighbour(vertex.component, this.vertices[Graph.getProperVertex(vertex.id, edge.sourceId, edge.targetId)].component);
+        this._smallGraph.addNeighbour(vertex.component, this.vertices[Graph.getProperVertex(vertex.id, edge.sourceId, edge.targetId)].component, Direction.getProperValue(isPolyketide, vertex.value.element, vertex.id, this.first));
 
         continue;
       }
 
       let nextVertex = Graph.getProperVertex(vertex.id, edge.sourceId, edge.targetId);
-      this.dfsSmall(this.vertices[nextVertex]);
+      this.dfsSmall(this.vertices[nextVertex], isPolyketide);
     }
 
     vertex.vertexState = VertexState.VALUES.CLOSED;
@@ -7062,7 +7096,7 @@ class Graph {
 
 module.exports = Graph;
 
-},{"./Atom":3,"./DecayPoint":5,"./DecayState":6,"./Edge":8,"./MathHelper":11,"./MutableBoolean":12,"./MutableCounter":13,"./Node":14,"./Ring":16,"./SequenceType":19,"./SmallGraph":20,"./Vector2":25,"./Vertex":26,"./VertexState":27}],10:[function(require,module,exports){
+},{"./Atom":3,"./DecayPoint":5,"./DecayState":6,"./Direction":7,"./Edge":9,"./MathHelper":12,"./MutableBoolean":13,"./MutableCounter":14,"./Node":16,"./Ring":18,"./SequenceType":21,"./SmallGraph":22,"./Vector2":27,"./Vertex":28,"./VertexState":29}],11:[function(require,module,exports){
 "use strict";
 
 //@ts-check
@@ -7373,7 +7407,7 @@ class Line {
 
 module.exports = Line;
 
-},{"./Vector2":25}],11:[function(require,module,exports){
+},{"./Vector2":27}],12:[function(require,module,exports){
 "use strict";
 
 /** 
@@ -7546,7 +7580,7 @@ class MathHelper {
 
 module.exports = MathHelper;
 
-},{}],12:[function(require,module,exports){
+},{}],13:[function(require,module,exports){
 "use strict";
 
 /**
@@ -7572,7 +7606,7 @@ class MutableBoolean {
 
 module.exports = MutableBoolean;
 
-},{}],13:[function(require,module,exports){
+},{}],14:[function(require,module,exports){
 "use strict";
 
 /**
@@ -7599,7 +7633,20 @@ class MutableCounter {
 
 module.exports = MutableCounter;
 
-},{}],14:[function(require,module,exports){
+},{}],15:[function(require,module,exports){
+"use strict";
+
+class Neighbour {
+  constructor(neighbour, direction) {
+    this.neighbour = neighbour;
+    this.direction = direction;
+  }
+
+}
+
+module.exports = Neighbour;
+
+},{}],16:[function(require,module,exports){
 "use strict";
 
 //@ts-check
@@ -7621,7 +7668,7 @@ class Node {
 
 module.exports = Node;
 
-},{"./VertexState":27}],15:[function(require,module,exports){
+},{"./VertexState":29}],17:[function(require,module,exports){
 "use strict";
 
 // WHEN REPLACING, CHECK FOR:
@@ -9521,7 +9568,7 @@ module.exports = function () {
   };
 }();
 
-},{}],16:[function(require,module,exports){
+},{}],18:[function(require,module,exports){
 "use strict";
 
 //@ts-check
@@ -9743,7 +9790,7 @@ class Ring {
 
 module.exports = Ring;
 
-},{"./ArrayHelper":2,"./RingConnection":17,"./Vector2":25,"./Vertex":26}],17:[function(require,module,exports){
+},{"./ArrayHelper":2,"./RingConnection":19,"./Vector2":27,"./Vertex":28}],19:[function(require,module,exports){
 "use strict";
 
 //@ts-check
@@ -9917,7 +9964,7 @@ class RingConnection {
 
 module.exports = RingConnection;
 
-},{"./Ring":16,"./Vertex":26}],18:[function(require,module,exports){
+},{"./Ring":18,"./Vertex":28}],20:[function(require,module,exports){
 "use strict";
 
 //@ts-check
@@ -10528,7 +10575,7 @@ class SSSR {
 
 module.exports = SSSR;
 
-},{"./Graph":9}],19:[function(require,module,exports){
+},{"./Graph":10}],21:[function(require,module,exports){
 "use strict";
 
 //@ts-check
@@ -10565,7 +10612,7 @@ class SequenceType {
 
 module.exports = SequenceType;
 
-},{}],20:[function(require,module,exports){
+},{}],22:[function(require,module,exports){
 "use strict";
 
 //@ts-check
@@ -10574,6 +10621,10 @@ const Node = require('./Node');
 const SequenceType = require('./SequenceType');
 
 const VertexState = require('./VertexState');
+
+const Neighbour = require('./Neighbour');
+
+const Direction = require('./Direction');
 
 class SmallGraph {
   constructor() {
@@ -10590,8 +10641,8 @@ class SmallGraph {
     this._nodes.push(node);
   }
 
-  addNeighbour(nodeId, neighbour) {
-    this._nodes[nodeId].addNeighbour(neighbour);
+  addNeighbour(nodeId, neighbour, direction) {
+    this._nodes[nodeId].addNeighbour(new Neighbour(neighbour, direction));
   }
 
   dfsInitialization() {
@@ -10599,10 +10650,24 @@ class SmallGraph {
   }
 
   getSourceNode() {
+    let ends = [];
+
     for (let index = 0; index < this._nodes.length; ++index) {
       if (this._nodes[index].neighbours.length === 1) {
-        return this._nodes[index];
+        if (this._nodes[index].neighbours[0].direction === Direction.VALUES.N) {
+          return this._nodes[index];
+        }
+
+        if (this._nodes[index].neighbours[0].direction === Direction.VALUES.POLYKETIDE && this._nodes[this._nodes[index].neighbours[0].neighbour].direction === Direction.VALUES.C) {
+          return this._nodes[index];
+        }
+
+        ends.push(this._nodes[index]);
       }
+    }
+
+    if (ends.length > 0) {
+      return ends[0];
     }
 
     return null;
@@ -10631,8 +10696,8 @@ class SmallGraph {
     vertex.vertexState = VertexState.VALUES.OPEN;
 
     for (let i = 0; i < vertex.neighbours.length; ++i) {
-      if (vertexFromId !== vertex.neighbours[i]) {
-        this.dfsCyclic(this._nodes[vertex.neighbours[i]], vertex.id);
+      if (vertexFromId !== vertex.neighbours[i].neighbour) {
+        this.dfsCyclic(this._nodes[vertex.neighbours[i].neighbour], vertex.id);
       }
     }
 
@@ -10673,7 +10738,7 @@ class SmallGraph {
     let cnt = 0;
 
     for (let index = 0; index < array.length; ++index) {
-      if (array[index] === searchValue) {
+      if (array[index].neighbour === searchValue) {
         cnt++;
 
         if (cnt === times) {
@@ -10706,9 +10771,9 @@ class SmallGraph {
       }
 
       node.neighbours.forEach(neighbour => {
-        if (!path.some(e => e === neighbour) || neighbour === start.id) {
+        if (!path.some(e => e === neighbour.neighbour) || neighbour.neighbour === start.id) {
           let newPath = [...path];
-          newPath.push(neighbour);
+          newPath.push(neighbour.neighbour);
           queue.push(newPath);
         }
       });
@@ -10719,9 +10784,9 @@ class SmallGraph {
   sortByRingPreference(array) {
     let sortedArray = [...array];
     sortedArray.sort((a, b) => {
-      if (this._nodes[a].onRing === this._nodes[b].onRing) {
+      if (this._nodes[a.neighbour].onRing === this._nodes[b.neighbour].onRing) {
         return 0;
-      } else if (this._nodes[a].onRing) {
+      } else if (this._nodes[a.neighbour].onRing) {
         return 1;
       } else {
         return -1;
@@ -10793,11 +10858,11 @@ class SmallGraph {
     this.printVertex(vertex.id);
 
     for (let index = 0; index < vertex.neighbours.length; ++index) {
-      if (vertexFromId === vertex.neighbours[index]) {
+      if (vertexFromId === vertex.neighbours[index].neighbour) {
         continue;
       }
 
-      this.dfsSequence(this._nodes[vertex.neighbours[index]], vertex.id);
+      this.dfsSequence(this._nodes[vertex.neighbours[index].neighbour], vertex.id);
     }
 
     this.printRightBrace();
@@ -10808,7 +10873,7 @@ class SmallGraph {
 
 module.exports = SmallGraph;
 
-},{"./Node":14,"./SequenceType":19,"./VertexState":27}],21:[function(require,module,exports){
+},{"./Direction":7,"./Neighbour":15,"./Node":16,"./SequenceType":21,"./VertexState":29}],23:[function(require,module,exports){
 "use strict";
 
 // we use the drawer to do all the preprocessing. then we take over the drawing
@@ -11140,7 +11205,7 @@ class SvgDrawer {
 
 module.exports = SvgDrawer;
 
-},{"./ArrayHelper":2,"./Atom":3,"./Drawer":7,"./Graph":9,"./Line":10,"./SvgWrapper":22,"./ThemeManager":23,"./Vector2":25}],22:[function(require,module,exports){
+},{"./ArrayHelper":2,"./Atom":3,"./Drawer":8,"./Graph":10,"./Line":11,"./SvgWrapper":24,"./ThemeManager":25,"./Vector2":27}],24:[function(require,module,exports){
 "use strict";
 
 const {
@@ -11711,7 +11776,7 @@ class SvgWrapper {
 
 module.exports = SvgWrapper;
 
-},{"./Line":10,"./UtilityFunctions":24,"./Vector2":25}],23:[function(require,module,exports){
+},{"./Line":11,"./UtilityFunctions":26,"./Vector2":27}],25:[function(require,module,exports){
 "use strict";
 
 class ThemeManager {
@@ -11759,7 +11824,7 @@ class ThemeManager {
 
 module.exports = ThemeManager;
 
-},{}],24:[function(require,module,exports){
+},{}],26:[function(require,module,exports){
 "use strict";
 
 /**
@@ -11787,7 +11852,7 @@ module.exports = {
   getChargeText
 };
 
-},{}],25:[function(require,module,exports){
+},{}],27:[function(require,module,exports){
 "use strict";
 
 //@ts-check
@@ -12414,7 +12479,7 @@ class Vector2 {
 
 module.exports = Vector2;
 
-},{}],26:[function(require,module,exports){
+},{}],28:[function(require,module,exports){
 "use strict";
 
 //@ts-check
@@ -12783,7 +12848,7 @@ class Vertex {
 
 module.exports = Vertex;
 
-},{"./ArrayHelper":2,"./Atom":3,"./MathHelper":11,"./Vector2":25,"./VertexState":27}],27:[function(require,module,exports){
+},{"./ArrayHelper":2,"./Atom":3,"./MathHelper":12,"./Vector2":27,"./VertexState":29}],29:[function(require,module,exports){
 "use strict";
 
 //@ts-check

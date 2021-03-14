@@ -1,5 +1,5 @@
 //@ts-check
-const VertexState = require("./VertexState")
+const VertexState = require("./VertexState");
 
 class Node {
 

@@ -13,6 +13,7 @@ const SequenceType = require('./SequenceType');
 const DecayState = require('./DecayState');
 const MutableBoolean = require('./MutableBoolean');
 const MutableCounter = require('./MutableCounter');
+const Direction = require('./Direction');
 
 /**
  * A class representing the molecular graph.
@@ -44,6 +45,7 @@ class Graph {
         this._digitCounter = 1;
         this._printedDigits = [];
         this.options = options;
+        this._componentsIsPolyketide = [];
 
         // Used for the bridge detection algorithm
         this._time = 0;
@@ -1202,7 +1204,8 @@ class Graph {
         this._smallGraph = new SmallGraph();
         for (let index = 0; index < this._startingVertexes.length; ++index) {
             this._smallGraph.addVertex(new Node(this._startingVertexes[index].component));
-            this.dfsSmall(this._startingVertexes[index]);
+            this.first = this._startingVertexes[index];
+            this.dfsSmall(this._startingVertexes[index], this._componentsIsPolyketide[index]);
         }
     }
 
@@ -1227,17 +1230,16 @@ class Graph {
         this._startingVertexes = [];
         for (let i = 0; i < this.decays.length; ++i) {
             let edge = this.edges[this.decays[i]];
-            this.startDfs(this.vertices[edge.sourceId], smiles);
-            this.markingComponents();
-            this.startDfs(this.vertices[edge.targetId], smiles);
-            this.markingComponents();
+            this.markingComponents(this.startDfs(this.vertices[edge.sourceId], smiles));
+            this.markingComponents(this.startDfs(this.vertices[edge.targetId], smiles));
         }
     }
 
-    markingComponents() {
+    markingComponents(isPolyketyde) {
         if (this._markComponent) {
             this._cnt++;
             this._markComponent = false;
+            this._componentsIsPolyketide.push(isPolyketyde);
         }
     }
 
@@ -1275,6 +1277,7 @@ class Graph {
                 this._polyketide = true;
             }
         }
+        return isPolyketide.getValue();
     }
 
     closedToNotFound() {
@@ -1384,7 +1387,7 @@ class Graph {
         vertex.vertexState = VertexState.VALUES.CLOSED;
     }
 
-    dfsSmall(vertex) {
+    dfsSmall(vertex, isPolyketide) {
         if (vertex.vertexState !== VertexState.VALUES.NOT_FOUND) {
             return;
         }
@@ -1393,11 +1396,12 @@ class Graph {
         for (let i = 0; i < vertex.edges.length; ++i) {
             let edge = this.edges[vertex.edges[i]];
             if (edge.isDecay) {
-                this._smallGraph.addNeighbour(vertex.component, this.vertices[Graph.getProperVertex(vertex.id, edge.sourceId, edge.targetId)].component);
+
+                this._smallGraph.addNeighbour(vertex.component, this.vertices[Graph.getProperVertex(vertex.id, edge.sourceId, edge.targetId)].component, Direction.getProperValue(isPolyketide, vertex.value.element, vertex.id, this.first));
                 continue;
             }
             let nextVertex = Graph.getProperVertex(vertex.id, edge.sourceId, edge.targetId);
-            this.dfsSmall(this.vertices[nextVertex]);
+            this.dfsSmall(this.vertices[nextVertex], isPolyketide);
         }
         vertex.vertexState = VertexState.VALUES.CLOSED;
     }
