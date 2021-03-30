@@ -168,7 +168,7 @@ describe("blocks", function () {
                 {smiles: 'NC(CCCCN)C(O)=O', isPolyketide: true},
                 {smiles: 'OC(C(CCCC)NC(C)=O)=O', isPolyketide: false}
             ],
-            sequence: '[0]-[2]-[3]-[4]-[5]\\([1]-[6]\\)',
+            sequence: '[0]\\([1]-[6]\\)[5]-[4]-[3]-[2]',
             sequenceType: 'branch-cyclic',
             decays: [28, 25, 22, 19, 16, 9, 5],
             isPolyketide: true,

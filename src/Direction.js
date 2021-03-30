@@ -2,7 +2,7 @@
 class Direction {
 
     static get VALUES() {
-        return { N: 0, C: 1, POLYKETIDE: 2 };
+        return { N: 0, POLYKETIDE: 1, C: 2 };
     }
 
     static getProperValue(isPolyketide, vertexElement, vertexId, firstVertexId) {

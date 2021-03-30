@@ -1965,8 +1965,8 @@ class Direction {
   static get VALUES() {
     return {
       N: 0,
-      C: 1,
-      POLYKETIDE: 2
+      POLYKETIDE: 1,
+      C: 2
     };
   }
 
@@ -10785,7 +10785,13 @@ class SmallGraph {
     let sortedArray = [...array];
     sortedArray.sort((a, b) => {
       if (this._nodes[a.neighbour].onRing === this._nodes[b.neighbour].onRing) {
-        return 0;
+        if (a.direction < b.direction) {
+          return -1;
+        } else if (a.direction > b.direction) {
+          return 1;
+        } else {
+          return 0;
+        }
       } else if (this._nodes[a.neighbour].onRing) {
         return 1;
       } else {
