@@ -1191,14 +1191,84 @@ class Graph {
         this.dfsSmallStart();
         this._smallGraph.oneCyclic();
         this._smallGraph.dfsSequenceStart();
+
+        let sequenceData = this.sortSequence(smiles, this._smallGraph.sequence);
+
         return {
-            blockSmiles: smiles,
-            sequence: this._smallGraph.sequence,
+            blockSmiles: sequenceData.smiles,
+            sequence: sequenceData.sequence,
             sequenceType: this._smallGraph.sequenceType + ((this._smallGraph.sequenceType === 'linear' || this._smallGraph.sequenceType === 'cyclic') && this._polyketide ? '-polyketide' : ''),
             decays: this.decays,
             isPolyketide: this._polyketide
         }
     }
+
+    sortSequence(smiles, sequence) {
+        let permutation = this.getSequencePermutation(sequence);
+        let newSmiles = new Array(permutation.length).fill(null);
+        for (let i = 0; i < permutation.length; ++i) {
+            newSmiles[i] = smiles[permutation[i][0]];
+        }
+
+        let position = 0;
+        let char = sequence.charAt(position);
+        let newSequence = '';
+        while (true) {
+            switch (char) {
+                case '0':
+                case '1':
+                case '2':
+                case '3':
+                case '4':
+                case '5':
+                case '6':
+                case '7':
+                case '8':
+                case '9':
+                    let number = char;
+                    ++position;
+                    if (position >= sequence.length) {
+                        return {sequence: sequence, smiles: smiles};
+                    }
+                    char = sequence.charAt(position);
+                    while(!isNaN(char)) {
+                        number += char;
+                        ++position;
+                        if (position >= sequence.length) {
+                            return {sequence: sequence, smiles: smiles};
+                        }
+                        char = sequence.charAt(position);
+                    }
+                    let j;
+                    for (j = 0; j < permutation.length; ++j) {
+                        if (permutation[j][0] === number) {
+                            newSequence += j;
+                            break;
+                        }
+                    }
+                    continue;
+                default:
+                    newSequence += char;
+            }
+
+            ++position;
+            if (position >= sequence.length) {
+                break;
+            }
+            char = sequence.charAt(position);
+        }
+        return {sequence: newSequence, smiles: newSmiles};
+    }
+
+    getSequencePermutation(sequence) {
+        let re = /\d+/g;
+        let match = null;
+        let permutation = [];
+        while ((match = re.exec(sequence)) != null) {
+            permutation.push(match);
+        }
+        return permutation;
+   }
 
     dfsSmallStart() {
         this._smallGraph = new SmallGraph();

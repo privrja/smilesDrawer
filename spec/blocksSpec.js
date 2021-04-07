@@ -76,7 +76,7 @@ describe("blocks", function () {
                 {smiles: 'N(C(C(=O)O)C(C)C)C', isPolyketide: false},
                 {smiles: 'N(C(C(=O)O)C(C(C)CC=CC)O)C', isPolyketide: false}
             ],
-            sequence: '[0]-[10]-[9]-[8]-[7]-[6]-[5]-[4]-[3]-[2]-[1]',
+            sequence: '[0]-[1]-[2]-[3]-[4]-[5]-[6]-[7]-[8]-[9]-[10]',
             sequenceType: 'cyclic',
             decays: [4, 8, 12, 16, 20, 24, 28, 32, 36, 40, 44],
             isPolyketide: false,
@@ -101,7 +101,7 @@ describe("blocks", function () {
                 {smiles: 'N(C(C(=O)O)CC(C)C)C', isPolyketide: false},
                 {smiles: 'N(C(C(=O)O)C(C)C)C', isPolyketide: false}
             ],
-            sequence: '[0]-[10]-[9]-[8]-[7]-[6]-[5]-[4]-[3]-[2]-[1]',
+            sequence: '[0]-[1]-[2]-[3]-[4]-[5]-[6]-[7]-[8]-[9]-[10]',
             sequenceType: 'cyclic',
             decays: [9, 13, 17, 21, 25, 29, 33, 37, 41, 45, 49],
             isPolyketide: false,
@@ -127,7 +127,7 @@ describe("blocks", function () {
                 {smiles: 'OC(C(=O)O)C(C)C', isPolyketide: false},
                 {smiles: 'NC(C(=O)O)C(C)C', isPolyketide: false}
             ],
-            sequence: '[0]-[11]-[10]-[9]-[8]-[7]-[6]-[5]-[4]-[3]-[2]-[1]',
+            sequence: '[0]-[1]-[2]-[3]-[4]-[5]-[6]-[7]-[8]-[9]-[10]-[11]',
             sequenceType: 'cyclic',
             decays: [3, 7, 11, 15, 19, 23, 27, 31, 35, 39, 43, 47],
             isPolyketide: false,
@@ -140,14 +140,14 @@ describe("blocks", function () {
         let result = smilesDrawer.buildBlockSmiles();
         let expected = {
             blockSmiles: [
-                {smiles: 'OC(C(C(CC)C)NC(C)=O)=O', isPolyketide: false},
                 {smiles: 'NC(CCCN)C(O)=O', isPolyketide: false},
-                {smiles: 'OC(=O)C(N)C(C)CC', isPolyketide: false},
-                {smiles: 'OC(=O)C(N)C(C)CC', isPolyketide: false},
+                {smiles: 'OC(C(C(CC)C)NC(C)=O)=O', isPolyketide: false},
+                {smiles: 'OC(=O)C(Cc1ccccc1)N', isPolyketide: false},
                 {smiles: 'OC(=O)C1CCCN1', isPolyketide: false},
-                {smiles: 'OC(=O)C(Cc1ccccc1)N', isPolyketide: false}
+                {smiles: 'OC(=O)C(N)C(C)CC', isPolyketide: false},
+                {smiles: 'OC(=O)C(N)C(C)CC', isPolyketide: false},
             ],
-            sequence: '\\([1]-[0]\\)[2]-[3]-[4]-[5]',
+            sequence: '\\([0]-[1]\\)[2]-[3]-[4]-[5]',
             sequenceType: 'branch-cyclic',
             decays: [10, 16, 20, 24, 31, 42],
             isPolyketide: false,
@@ -161,14 +161,14 @@ describe("blocks", function () {
         let expected = {
             blockSmiles: [
                 {smiles: 'NC(C(O)=O)Cc1nc[nH]c1', isPolyketide: false},
-                {smiles: 'OC(=O)C(N)CC=O', isPolyketide: false},
                 {smiles: 'NC(C(O)=O)Cc1ccccc1', isPolyketide: false},
                 {smiles: 'NC(C(O)=O)CCCNC(N)=N', isPolyketide: false},
                 {smiles: 'NC(C(O)=O)Cc1c[nH]c2c1cccc2', isPolyketide: false},
                 {smiles: 'NC(CCCCN)C(O)=O', isPolyketide: true},
+                {smiles: 'OC(=O)C(N)CC=O', isPolyketide: false},
                 {smiles: 'OC(C(CCCC)NC(C)=O)=O', isPolyketide: false}
             ],
-            sequence: '[0]\\([1]-[6]\\)[5]-[4]-[3]-[2]',
+            sequence: '[0]-[1]-[2]-[3]-[4]\\([5]-[6]\\)',
             sequenceType: 'branch-cyclic',
             decays: [28, 25, 22, 19, 16, 9, 5],
             isPolyketide: true,
@@ -181,14 +181,14 @@ describe("blocks", function () {
         let result = smilesDrawer.buildBlockSmiles();
         let expected = {
             blockSmiles: [
-                {smiles: 'NC(CCCN)C(=O)O', isPolyketide: false},
                 {smiles: 'OC(=O)C(NC(=O)C)C(C)CC', isPolyketide: false},
+                {smiles: 'NC(CCCN)C(=O)O', isPolyketide: false},
+                {smiles: 'OC(=O)C(C(CC)C)N', isPolyketide: false},
+                {smiles: 'OC(=O)C(C(CC)C)N', isPolyketide: false},
+                {smiles: 'OC(=O)C1CCCN1', isPolyketide: false},
                 {smiles: 'NC(CC1=CC=CC=C1)C(O)=O', isPolyketide: false},
-                {smiles: 'OC(=O)C(C(CC)C)N', isPolyketide: false},
-                {smiles: 'OC(=O)C(C(CC)C)N', isPolyketide: false},
-                {smiles: 'OC(=O)C1CCCN1', isPolyketide: false}
             ],
-            sequence: '[2]\\([0]-[3]-[4]-[5]\\)[1]',
+            sequence: '[0]\\([1]-[2]-[3]-[4]\\)[5]',
             sequenceType: 'branched',
             decays: [4, 17, 30, 38, 46],
             isPolyketide: false,
@@ -204,15 +204,15 @@ describe("blocks", function () {
                 {smiles: 'OC(C(C(C)O)N)=O', isPolyketide: false},
                 {smiles: 'NC(C(=O)O)C(C)O', isPolyketide: false},
                 {smiles: 'NCCCCC(C(=O)O)N', isPolyketide: false},
-                {smiles: 'NC(C(=O)O)CCCN(C=O)O', isPolyketide: false},
                 {smiles: 'OC(=O)C(CCCN(C=O)O)N', isPolyketide: false},
                 {smiles: 'OC(=O)C(CO)N', isPolyketide: false},
                 {smiles: 'OC(=O)C(CCCN=C(N)N)N', isPolyketide: false},
                 {smiles: 'OC(=O)C(CO)N', isPolyketide: false},
                 {smiles: 'OC(=O)C2CCNC1=C(C=C3C=C(C(=O)C=C3N12)O)N', isPolyketide: false},
-                {smiles: 'OC(=O)CCC(=O)O', isPolyketide: false}
+                {smiles: 'OC(=O)CCC(=O)O', isPolyketide: false},
+                {smiles: 'NC(C(=O)O)CCCN(C=O)O', isPolyketide: false},
             ],
-            sequence: '[0]-[3]\\([2]-[4]-[5]-[6]-[7]-[8]-[9]\\)[1]',
+            sequence: '[0]-[1]\\([2]-[3]-[4]-[5]-[6]-[7]-[8]\\)[9]',
             sequenceType: 'branch-cyclic',
             decays: [4, 8, 16, 20, 29, 40, 46, 57, 63, 82],
             isPolyketide: false,
@@ -226,15 +226,15 @@ describe("blocks", function () {
         let result = smilesDrawer.buildBlockSmiles();
         let expected = {
             blockSmiles: [
-                {smiles: 'OC(C3=CC=C(C2C=C(C1=CC=C(OCCCCC)C=C1)ON=2)C=C3)=O', isPolyketide: false},
                 {smiles: 'NC(CC(C(N)O)O)C(O)=O', isPolyketide: false},
-                {smiles: 'OC(=O)C1C(C(CN1)C)O', isPolyketide: false},
-                {smiles: 'OC(=O)C(N)C(CC(=O)N)O', isPolyketide: false},
-                {smiles: 'OC(=O)C(N)C(C(C1=CC(=C(C=C1)O)OS(=O)(=O)O)O)O', isPolyketide: false},
+                {smiles: 'OC(C3=CC=C(C2C=C(C1=CC=C(OCCCCC)C=C1)ON=2)C=C3)=O', isPolyketide: false},
+                {smiles: 'OC(=O)C(N)C(C)O', isPolyketide: false},
                 {smiles: 'OC(=O)C1CC(CN1)O', isPolyketide: false},
-                {smiles: 'OC(=O)C(N)C(C)O', isPolyketide: false}
+                {smiles: 'OC(=O)C(N)C(C(C1=CC(=C(C=C1)O)OS(=O)(=O)O)O)O', isPolyketide: false},
+                {smiles: 'OC(=O)C(N)C(CC(=O)N)O', isPolyketide: false},
+                {smiles: 'OC(=O)C1C(C(CN1)C)O', isPolyketide: false},
             ],
-            sequence: '\\([1]-[0]\\)[2]-[3]-[4]-[5]-[6]',
+            sequence: '\\([0]-[1]\\)[2]-[3]-[4]-[5]-[6]',
             sequenceType: 'branch-cyclic',
             decays: [24, 30, 37, 41, 45, 52, 56],
             isPolyketide: false,
@@ -247,6 +247,9 @@ describe("blocks", function () {
         let result = smilesDrawer.buildBlockSmiles();
         let expected = {
             blockSmiles: [
+                {smiles: 'OC(=O)C(C(C)C)NC=O', isPolyketide: false},
+                {smiles: 'OC(=O)CN', isPolyketide: false},
+                {smiles: 'OC(=O)C(C)N', isPolyketide: false},
                 {smiles: 'OC(C(CC(C)C)N)=O', isPolyketide: false},
                 {smiles: 'NC(C)C(=O)O', isPolyketide: false},
                 {smiles: 'NC(C(C)C)C(=O)O', isPolyketide: false},
@@ -260,11 +263,8 @@ describe("blocks", function () {
                 {smiles: 'NC(CC(C)C)C(=O)O', isPolyketide: false},
                 {smiles: 'NC(CC2=CNC1=CC=CC=C12)C(=O)O', isPolyketide: false},
                 {smiles: 'NCCO', isPolyketide: false},
-                {smiles: 'OC(=O)C(C)N', isPolyketide: false},
-                {smiles: 'OC(=O)CN', isPolyketide: false},
-                {smiles: 'OC(=O)C(C(C)C)NC=O', isPolyketide: false}
             ],
-            sequence: '[12]-[11]-[10]-[9]-[8]-[7]-[6]-[5]-[4]-[3]-[2]-[1]-[0]-[13]-[14]-[15]',
+            sequence: '[0]-[1]-[2]-[3]-[4]-[5]-[6]-[7]-[8]-[9]-[10]-[11]-[12]-[13]-[14]-[15]',
             sequenceType: 'linear',
             decays: [6, 11, 18, 25, 32, 46, 54, 66, 74, 88, 96, 110, 115, 120, 124],
             isPolyketide: false,
@@ -282,7 +282,7 @@ describe("blocks", function () {
                 {smiles: 'NC(C(=O)O)C', isPolyketide: false},
                 {smiles: 'NC(C(=O)O)CC(C)C', isPolyketide: false}
             ],
-            sequence: '[0]-[3]-[2]-[1]',
+            sequence: '[0]-[1]-[2]-[3]',
             sequenceType: 'cyclic',
             decays: [9, 13, 17, 21],
             isPolyketide: false,
