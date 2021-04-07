@@ -16,7 +16,7 @@ var canUseDOM = !!(typeof window !== 'undefined' && window.document && window.do
  */
 
 var SmilesDrawer = {
-  Version: '2.1.0'
+  Version: '2.1.2'
 };
 SmilesDrawer.Drawer = Drawer;
 SmilesDrawer.Parser = Parser;
@@ -10660,11 +10660,11 @@ class SmallGraph {
 
     for (let index = 0; index < this._nodes.length; ++index) {
       if (this._nodes[index].neighbours.length === 1) {
-        if (this._nodes[index].neighbours[0].direction === Direction.VALUES.N) {
+        if (this._nodes[index].neighbours[0].direction === Direction.VALUES.C) {
           return this._nodes[index];
         }
 
-        if (this._nodes[index].neighbours[0].direction === Direction.VALUES.POLYKETIDE && this._nodes[this._nodes[index].neighbours[0].neighbour].direction === Direction.VALUES.C) {
+        if (this._nodes[index].neighbours[0].direction === Direction.VALUES.POLYKETIDE) {
           return this._nodes[index];
         }
 
@@ -10791,9 +10791,9 @@ class SmallGraph {
     let sortedArray = [...array];
     sortedArray.sort((a, b) => {
       if (this._nodes[a.neighbour].onRing === this._nodes[b.neighbour].onRing) {
-        if (a.direction < b.direction) {
+        if (a.direction > b.direction) {
           return -1;
-        } else if (a.direction > b.direction) {
+        } else if (a.direction < b.direction) {
           return 1;
         } else {
           return 0;
