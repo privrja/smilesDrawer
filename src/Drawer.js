@@ -3065,7 +3065,9 @@ class Drawer {
             return;
         }
         console.log(e.clientY, this.opts.offsetY, document.body.scrollTop);
-        this.findAndReDrawEdge(e.clientX - this.opts.offsetX, e.clientY - this.opts.offsetY + document.body.scrollTop);
+        console.log(document.documentElement.scrollTop);
+        console.log((document.documentElement.scrollTop || document.body.scrollTop));
+        this.findAndReDrawEdge(e.clientX - this.opts.offsetX, e.clientY - this.opts.offsetY + (document.documentElement.scrollTop || document.body.scrollTop));
     }
 
     /**
