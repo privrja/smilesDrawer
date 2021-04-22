@@ -3064,7 +3064,7 @@ class Drawer {
         if (!this.graph) {
             return;
         }
-        this.findAndReDrawEdge(e.clientX - this.opts.offsetX, e.clientY - this.opts.offsetY + document.body.scrollTop);
+        this.findAndReDrawEdge(e.clientX - this.opts.offsetX, e.clientY - this.opts.offsetY + (document.documentElement.scrollTop || document.body.scrollTop));
     }
 
     /**

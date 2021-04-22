@@ -15,7 +15,7 @@ var canUseDOM = !!(
  * @typicalname SmilesDrawer
  */
 var SmilesDrawer = {
-  Version: '2.1.3'
+  Version: '2.1.4'
 };
 
 SmilesDrawer.Drawer = Drawer;

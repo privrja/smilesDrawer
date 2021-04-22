@@ -16,7 +16,7 @@ var canUseDOM = !!(typeof window !== 'undefined' && window.document && window.do
  */
 
 var SmilesDrawer = {
-  Version: '2.1.2'
+  Version: '2.1.4'
 };
 SmilesDrawer.Drawer = Drawer;
 SmilesDrawer.Parser = Parser;
@@ -4980,7 +4980,7 @@ class Drawer {
       return;
     }
 
-    this.findAndReDrawEdge(e.clientX - this.opts.offsetX, e.clientY - this.opts.offsetY + document.body.scrollTop);
+    this.findAndReDrawEdge(e.clientX - this.opts.offsetX, e.clientY - this.opts.offsetY + (document.documentElement.scrollTop || document.body.scrollTop));
   }
   /**
    * Find edge which was clicked, mark edge as decay point and redraw graph
