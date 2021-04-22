@@ -3064,6 +3064,7 @@ class Drawer {
         if (!this.graph) {
             return;
         }
+        console.log(e.clientY, this.opts.offsetY, document.body.scrollTop);
         this.findAndReDrawEdge(e.clientX - this.opts.offsetX, e.clientY - this.opts.offsetY + document.body.scrollTop);
     }
 

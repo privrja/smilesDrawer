@@ -16,7 +16,7 @@ var canUseDOM = !!(typeof window !== 'undefined' && window.document && window.do
  */
 
 var SmilesDrawer = {
-  Version: '2.1.2'
+  Version: '2.1.3'
 };
 SmilesDrawer.Drawer = Drawer;
 SmilesDrawer.Parser = Parser;
@@ -4980,6 +4980,7 @@ class Drawer {
       return;
     }
 
+    console.log(e.clientY, this.opts.offsetY, document.body.scrollTop);
     this.findAndReDrawEdge(e.clientX - this.opts.offsetX, e.clientY - this.opts.offsetY + document.body.scrollTop);
   }
   /**
