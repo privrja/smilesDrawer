@@ -49,19 +49,25 @@ SmilesDrawer.apply = function(options, selector='canvas[data-smiles]', themeName
   for (var i = 0; i < elements.length; i++) {
       let element = elements[i];
 
-      SmilesDrawer.parse(element.getAttribute('data-smiles'), function(tree) {
-          smilesDrawer.draw(tree, element, themeName, false);
-      }, function(err) {
-        if (onError) {
-          onError(err);
-        }
-      });
+      let smiles = element.getAttribute('data-smiles');
+      if (!smiles || smiles === '') {
+          const context = element.getContext('2d');
+          context.clearRect(0, 0, element.width, element.height);
+      } else {
+          SmilesDrawer.parse(element.getAttribute('data-smiles'), function (tree) {
+              smilesDrawer.draw(tree, element, themeName, false);
+          }, function (err) {
+              if (onError) {
+                  onError(err);
+              }
+          });
+      }
   }
 };
 
 SmilesDrawer.clear = function(selector = 'canvas[data-smiles]') {
-    let elemets = document.querySelectorAll(selector);
-    elemets.forEach(canvas => {
+    let elements = document.querySelectorAll(selector);
+    elements.forEach(canvas => {
         const context = canvas.getContext('2d');
         context.clearRect(0, 0, canvas.width, canvas.height);
     })
@@ -69,7 +75,7 @@ SmilesDrawer.clear = function(selector = 'canvas[data-smiles]') {
 
 /**
 * Parses the entered smiles string.
-* 
+*
 * @static
 * @param {String} smiles A SMILES string.
 * @param {Function} successCallback A callback that is called on success with the parse tree.
