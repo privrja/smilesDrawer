@@ -1191,9 +1191,7 @@ class Graph {
         this.dfsSmallStart();
         this._smallGraph.oneCyclic();
         this._smallGraph.dfsSequenceStart();
-
         let sequenceData = this.sortSequence(smiles, this._smallGraph.sequence);
-
         return {
             blockSmiles: sequenceData.smiles,
             sequence: sequenceData.sequence,

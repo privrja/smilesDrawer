@@ -16,7 +16,7 @@ var canUseDOM = !!(typeof window !== 'undefined' && window.document && window.do
  */
 
 var SmilesDrawer = {
-  Version: '2.1.4'
+  Version: '2.1.6'
 };
 SmilesDrawer.Drawer = Drawer;
 SmilesDrawer.Parser = Parser;
@@ -10800,7 +10800,13 @@ class SmallGraph {
 
     this.dfsInitialization();
     this.isCyclic = false;
-    this.dfsCyclic(this._nodes[0], -1);
+
+    if (this._nodes.length === 2 && this._nodes[0].neighbours.length === 2 && this._nodes[1].neighbours.length === 2) {
+      this.isCyclic = true;
+      this._nodeOnRing = this._nodes[0];
+    } else {
+      this.dfsCyclic(this._nodes[0], -1);
+    }
   }
 
   dfsCyclic(vertex, vertexFromId) {
