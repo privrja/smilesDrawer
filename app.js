@@ -59,6 +59,14 @@ SmilesDrawer.apply = function(options, selector='canvas[data-smiles]', themeName
   }
 };
 
+SmilesDrawer.clear = function(selector = 'canvas[data-smiles]') {
+    let elemets = document.querySelectorAll(selector);
+    elemets.forEach(canvas => {
+        const context = canvas.getContext('2d');
+        context.clearRect(0, 0, canvas.width, canvas.height);
+    })
+};
+
 /**
 * Parses the entered smiles string.
 * 

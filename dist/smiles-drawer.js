@@ -58,6 +58,14 @@ SmilesDrawer.apply = function (options, selector = 'canvas[data-smiles]', themeN
     });
   }
 };
+
+SmilesDrawer.clear = function (selector = 'canvas[data-smiles]') {
+  let elemets = document.querySelectorAll(selector);
+  elemets.forEach(canvas => {
+    const context = canvas.getContext('2d');
+    context.clearRect(0, 0, canvas.width, canvas.height);
+  });
+};
 /**
 * Parses the entered smiles string.
 * 
@@ -2204,6 +2212,12 @@ class Drawer {
       }
     }
   }
+
+  clear() {
+    if (this.canvasWrapper) {
+      this.canvasWrapper.clear();
+    }
+  }
   /**
    * Returns the number of rings this edge is a part of.
    *
@@ -4209,7 +4223,7 @@ class Drawer {
         this.createRing(nextRing, nextCenter, vertex);
       }
     } else {
-      // Draw the non-ring vertices connected to this one  
+      // Draw the non-ring vertices connected to this one
       let isStereoCenter = vertex.value.isStereoCenter;
       let tmpNeighbours = vertex.getNeighbours();
       let neighbours = Array(); // Remove neighbours that are not drawn

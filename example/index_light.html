@@ -472,6 +472,9 @@
     <div>
         <input id="build" name="build" type="button" value="Build Block SMILES">
     </div>
+    <div>
+        <input id="clear" name="clear" type="button" value="Clear">
+    </div>
 </div>
 
 <script>
@@ -479,6 +482,7 @@
     var debugCheckbox = document.getElementById('debug');
     var decayCheckbox = document.getElementById('decay');
     var buildButton = document.getElementById('build');
+    var clearButton = document.getElementById('clear');
     var bondThicknessInput = document.getElementById('bondThickness');
     var textSizeInput = document.getElementById('textSize');
     var bondLengthInput = document.getElementById('bondLength');
@@ -541,6 +545,10 @@
 
         buildButton.addEventListener('click', function () {
             console.log(smilesDrawer.buildBlockSmiles());
+        });
+
+        clearButton.addEventListener('click', function () {
+            smilesDrawer.clear()
         });
 
         decayCheckbox.addEventListener('click', function () {
