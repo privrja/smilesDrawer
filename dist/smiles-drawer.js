@@ -10800,7 +10800,13 @@ class SmallGraph {
 
     this.dfsInitialization();
     this.isCyclic = false;
-    this.dfsCyclic(this._nodes[0], -1);
+
+    if (this._nodes.length === 2 && this._nodes[0].neighbours.length === 2 && this._nodes[1].neighbours.length === 2) {
+      this.isCyclic = true;
+      this._nodeOnRing = this._nodes[0];
+    } else {
+      this.dfsCyclic(this._nodes[0], -1);
+    }
   }
 
   dfsCyclic(vertex, vertexFromId) {

@@ -15,6 +15,7 @@ const LINEARIZED_PSEUDACYCLIN_A = 'C(CCC(NC(=O)C(NC(=O)C)C(C)CC)C(=O)NC(CC1=CC=C
 const PYOVERDIN_PA_A = 'CC(C1C(=O)NC(C(=O)NCCCCC(C(=O)NC(C(=O)N1)CCCN(C=O)O)NC(=O)C(CCCN(C=O)O)NC(=O)C(CO)NC(=O)C(CCCN=C(N)N)NC(=O)C(CO)NC(=O)C2CCNC3=C(C=C4C=C(C(=O)C=C4N23)O)NC(=O)CCC(=O)O)C(C)O)O';
 const MICAFUNGIN = 'CCCCCOC1=CC=C(C=C1)C2=CC(=NO2)C3=CC=C(C=C3)C(=O)NC4CC(C(NC(=O)C5C(C(CN5C(=O)C(NC(=O)C(NC(=O)C6CC(CN6C(=O)C(NC4=O)C(C)O)O)C(C(C7=CC(=C(C=C7)O)OS(=O)(=O)O)O)O)C(CC(=O)N)O)C)O)O)O';
 const DESFERI_FERIOXAMINE_B = 'CC(=O)N(CCCCCNC(=O)CCC(=O)N(CCCCCNC(=O)CCC(=O)N(CCCCCN)O)O)O';
+const RHODOTULIC = 'CC(=O)N(CCCC1C(=O)NC(C(=O)N1)CCCN(C(=O)C)O)O';
 
 describe("blocks", function () {
     let smilesDrawer = new SmilesDrawer.Drawer({drawDecayPoints: DecayState.VALUES.STANDARD});
@@ -325,5 +326,21 @@ describe("blocks", function () {
         };
         expect(result).toEqual(expected);
     });
+
+    it('rhodotulic', function () {
+        smilesDrawer.draw(SmilesDrawer.Parser.parse(RHODOTULIC), 'output-canvas', 'light', true);
+        let result = smilesDrawer.buildBlockSmiles();
+        let expected = {
+            blockSmiles: [
+                {smiles: 'OC(C(CCCN(C(C)=O)O)N)=O', isPolyketide: false},
+                {smiles: 'NC(C(=O)O)CCCN(C(=O)C)O', isPolyketide: false},
+            ],
+            sequence: '[0]-[1]',
+            sequenceType: 'cyclic',
+            decays: [9, 13],
+            isPolyketide: false // polyketide have to be true on both blocks, but not implemented yet
+        };
+        expect(result).toEqual(expected);
+    })
 
 });
