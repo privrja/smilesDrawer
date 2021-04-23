@@ -49,18 +49,33 @@ SmilesDrawer.apply = function (options, selector = 'canvas[data-smiles]', themeN
 
   for (var i = 0; i < elements.length; i++) {
     let element = elements[i];
-    SmilesDrawer.parse(element.getAttribute('data-smiles'), function (tree) {
-      smilesDrawer.draw(tree, element, themeName, false);
-    }, function (err) {
-      if (onError) {
-        onError(err);
-      }
-    });
+    let smiles = element.getAttribute('data-smiles');
+
+    if (!smiles || smiles === '') {
+      const context = element.getContext('2d');
+      context.clearRect(0, 0, element.width, element.height);
+    } else {
+      SmilesDrawer.parse(element.getAttribute('data-smiles'), function (tree) {
+        smilesDrawer.draw(tree, element, themeName, false);
+      }, function (err) {
+        if (onError) {
+          onError(err);
+        }
+      });
+    }
   }
+};
+
+SmilesDrawer.clear = function (selector = 'canvas[data-smiles]') {
+  let elements = document.querySelectorAll(selector);
+  elements.forEach(canvas => {
+    const context = canvas.getContext('2d');
+    context.clearRect(0, 0, canvas.width, canvas.height);
+  });
 };
 /**
 * Parses the entered smiles string.
-* 
+*
 * @static
 * @param {String} smiles A SMILES string.
 * @param {Function} successCallback A callback that is called on success with the parse tree.
@@ -2204,6 +2219,12 @@ class Drawer {
       }
     }
   }
+
+  clear() {
+    if (this.canvasWrapper) {
+      this.canvasWrapper.clear();
+    }
+  }
   /**
    * Returns the number of rings this edge is a part of.
    *
@@ -4209,7 +4230,7 @@ class Drawer {
         this.createRing(nextRing, nextCenter, vertex);
       }
     } else {
-      // Draw the non-ring vertices connected to this one  
+      // Draw the non-ring vertices connected to this one
       let isStereoCenter = vertex.value.isStereoCenter;
       let tmpNeighbours = vertex.getNeighbours();
       let neighbours = Array(); // Remove neighbours that are not drawn
